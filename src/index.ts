@@ -36,4 +36,5 @@ bot.on('textMessage', (e: TextMessage) => {
   }
 });
 
+console.log("Connect bot")
 bot.connect();

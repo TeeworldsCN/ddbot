@@ -21,11 +21,11 @@ export const points: TextHandler = async (tools, bot, e) => {
     if ((response.data as []).length > 0) {
       const table = [['**ID**', '**分数**']];
       if (response.data[0].name == searchName) {
-        table.push([playerLink(response.data[0].name), response.data[0].points]);
+        table.push([playerLink(response.data[0].name), response.data[0].points.toString()]);
       } else {
         card.addMarkdown(`*未找到玩家:* **${searchName}**, 以下为近似结果：`);
         const top5 = response.data.slice(0, 5);
-        table.push(...top5.map((x: any) => [playerLink(x.name), x.points]));
+        table.push(...top5.map((x: any) => [playerLink(x.name), x.points.toString()]));
       }
 
       card.addTable(table);

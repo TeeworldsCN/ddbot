@@ -21,7 +21,8 @@ const flags: { [key: string]: string } = {
 
 export const ddnetStatus: TextHandler = async (tools, bot, e) => {
   const card = new Card('lg', 'DDNet服务器状态');
-
+  card.addContext(['[详情 (ddnet.tw)](https://ddnet.tw/status)']);
+  
   await tools.reply.addReaction(e.msgId, ['⌛']);
   try {
     const response = await bot.axios.get(encodeURI(`https://ddnet.tw/status/json/stats.json`), {
@@ -64,8 +65,6 @@ export const ddnetStatus: TextHandler = async (tools, bot, e) => {
     card.addMarkdown('❌ *查询出错*');
     console.error(err);
   }
-
-  card.addContext(['[详情 (ddnet.tw)](https://ddnet.tw/status)']);
 
   await tools.reply.create(10, card.data);
   await tools.reply.deleteReaction(e.msgId, ['⌛']);
