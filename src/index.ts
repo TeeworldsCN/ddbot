@@ -15,7 +15,7 @@ const feeder = new rss();
 (feeder.add as any)(
   {
     url: 'https://ddnet.tw/status/records/feed/',
-    refresh: 30000,
+    refresh: 5000,
     eventName: 'record',
   }
   // {
@@ -92,6 +92,7 @@ feeder.on('record', item => {
   if (!time || typeof time != 'number') return;
 
   if (time > lastTime) {
+    console.log("Bot getting new record")
     tools.db.set('record_last', time).write();
   } else {
     // skip already processed
