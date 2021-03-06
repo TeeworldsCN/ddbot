@@ -4,3 +4,5 @@ dist/
 
 .vscode
 .env
+
+db.json
