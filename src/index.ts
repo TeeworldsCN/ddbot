@@ -81,21 +81,29 @@ bot.on('buttonClick', (e: ButtonClickEvent) => {
 });
 
 feeder.on('record', item => {
-  if (!item || !item.title) return;
+  if (!item || !item.title) {
+    console.warn('Record: no item');
+    return;
+  }
 
   const channelId = tools.db.get('record_channel').value();
-  if (!channelId) return;
+  if (!channelId) {
+    console.warn('Record: not subscribed, skipping');
+    return;
+  }
 
   const lastTime = tools.db.get('record_last').value() || 0;
 
   const time = item.pubDate.getTime();
-  if (!time || typeof time != 'number') return;
+  if (!time || typeof time != 'number') {
+    console.warn('Record: invalid publish date');
+    return;
+  }
 
   if (time > lastTime) {
-    console.log("Bot getting new record")
+    console.log('Record: getting new record');
     tools.db.set('record_last', time).write();
   } else {
-    // skip already processed
     return;
   }
 
