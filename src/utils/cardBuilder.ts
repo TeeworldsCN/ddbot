@@ -1,7 +1,8 @@
 import { textChangeRangeIsUnchanged } from 'typescript';
 
+type CardTheme = 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'secondary';
 interface CardButton {
-  theme: 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'secondary';
+  theme: CardTheme;
   value: string;
   click: 'return-val' | 'link';
   text: string;
@@ -27,6 +28,10 @@ export class Card {
     if (title) {
       this.addTitle(title);
     }
+  }
+
+  public setTheme(theme: string) {
+    this.card.theme = theme;
   }
 
   public addTitle(title: string) {

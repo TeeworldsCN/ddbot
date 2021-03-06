@@ -4,6 +4,8 @@ import { MessageCreateResponseInternal } from 'kaiheila-bot-root/dist/api/messag
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
 import axios from 'axios';
 import { Card } from './utils/cardBuilder';
+import low from 'lowdb';
+import FileSync from 'lowdb/adapters/FileSync';
 
 export type ReplyType = keyof typeof TYPES;
 const TYPES = {
@@ -23,22 +25,27 @@ export type ReplyTool = {
   deleteReaction: (msgId: string, emoji: string[], userId?: string) => Promise<boolean>;
 };
 
+const dbAdapter = new FileSync(process.env.KAIHEILA_BOT_FILEPATH);
+
+const adminUsers = process.env.KAIHEILA_ADMIN_USERS.split('|');
+
 const tools = {
   axios: axios.create({
     headers: {
       'Accept-Encoding': 'gzip, deflate',
     },
     decompress: true,
-    timeout: 5000,
+    timeout: 10000,
   }),
+  db: low(dbAdapter),
 };
 
-export const initTools = () => {};
+export const initTools = () => tools;
 
 export class Tools {
   private _authorId: string;
   private _channelId: string;
-  private _channelType: string;
+  private _channelType: 'GROUP' | 'PERSON';
   private _content: string;
   private _msgId: string;
   private _eventMsgId: string;
@@ -52,6 +59,8 @@ export class Tools {
     avatar: string;
     online: boolean;
     identifyNum: string;
+    isAdmin: boolean;
+    tag: string;
     roles?: number[];
     game?: {
       icon: string;
@@ -81,26 +90,34 @@ export class Tools {
 
     if (type == 'text') {
       e = e as TextMessage;
+      const tag = `${e.author.username}#${e.author.identifyNum}`;
       this._authorId = e.authorId;
       this._content = e.content;
       this._msgId = e.msgId;
       this._eventMsgId = e.msgId;
-      this._author = (e as TextMessage).author;
+      this._author = {
+        isAdmin: adminUsers.indexOf(tag) >= 0,
+        tag,
+        ...(e as TextMessage).author,
+      };
       if (!this._author.nickname) this._author.nickname = this._author.username;
     } else {
       e = e as ButtonClickEvent;
+      const tag = `${e.user.username}#${e.user.identifyNum}`;
       this._authorId = e.userId;
       this._content = e.value;
       this._msgId = e.targetMsgId;
       this._eventMsgId = e.msgId;
       this._author = {
+        isAdmin: adminUsers.indexOf(tag) >= 0,
+        tag,
         ...e.user,
         nickname: e.user.username,
       };
     }
 
     this._channelId = e.channelId;
-    this._channelType = e.channelType;
+    this._channelType = e.channelType as any;
     this._msgTimestamp = e.msgTimestamp;
   }
 
@@ -134,6 +151,10 @@ export class Tools {
 
   public get axios() {
     return tools.axios;
+  }
+
+  public get db() {
+    return tools.db;
   }
 
   public get reply(): ReplyTool {

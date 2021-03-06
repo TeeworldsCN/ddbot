@@ -1,23 +1,6 @@
 import { TextHandler } from './bottype';
 import { Card } from '../utils/cardBuilder';
-
-const flags: { [key: string]: string } = {
-  default: '🇪🇺',
-  ger: '🇩🇪',
-  pol: '🇵🇱',
-  rus: '🇷🇺',
-  tur: '🇹🇷',
-  irn: '🇮🇷',
-  chl: '🇨🇱',
-  bra: '🇧🇷',
-  arg: '🇦🇷',
-  usa: '🇺🇸',
-  can: '🇨🇦',
-  chn: '🇨🇳',
-  kor: '🇰🇷',
-  sgp: '🇸🇬',
-  zaf: '🇿🇦',
-};
+import { FLAGS } from '../utils/consts';
 
 export const ddnetStatus: TextHandler = async (msg, bot, type, raw) => {
   const card = new Card('lg', 'DDNet服务器状态');
@@ -52,7 +35,7 @@ export const ddnetStatus: TextHandler = async (msg, bot, type, raw) => {
           ? `▼${(s.packets_rx / 1000).toFixed(1)}k ▲${(s.packets_tx / 1000).toFixed(1)}k`
           : '❌ 不可用';
         return [
-          `${country in flags ? flags[country] : flags['default']}${server.toUpperCase()}`,
+          `${country in FLAGS ? FLAGS[country] : FLAGS['default']}${server.toUpperCase()}`,
           online ? '🟢 在线' : '❌ 离线',
           packets,
         ];

@@ -7,6 +7,8 @@
     "cheerio": "^1.0.0-rc.5",
     "dotenv": "^8.2.0",
     "kaiheila-bot-root": "^0.2.6",
+    "lowdb": "^1.0.0",
+    "rss-feed-emitter": "^3.2.2",
     "typescript": "^4.2.2"
   },
   "name": "twcn-ddbot",

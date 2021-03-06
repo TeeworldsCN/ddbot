@@ -1,6 +1,7 @@
 import { ButtonHandler, TextHandler } from './handlers/bottype';
 import { ddnetStatus } from './handlers/ddnetStatus';
 import { points } from './handlers/points';
+import { subscribe } from './handlers/subscribe';
 import { testButton, testText } from './handlers/test';
 
 /*
@@ -10,9 +11,7 @@ import { testButton, testText } from './handlers/test';
 export const COMMANDS: { [key: string]: TextHandler } = {
   points: points,
   status: ddnetStatus,
-  test: testText,
+  subscribe: subscribe,
 };
 
-export const BUTTONS: { [key: string]: ButtonHandler } = {
-  test: testButton,
-};
+export const BUTTONS: { [key: string]: ButtonHandler } = {};
