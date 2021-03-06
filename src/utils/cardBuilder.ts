@@ -10,6 +10,23 @@ interface CardButton {
 
 type CardSize = 'sm' | 'lg';
 
+// Safe Markdown
+export const SMD = (str: string) => {
+  //return str.replace(/([\[\]\(\)\\*~/\->:`])/g, (match, capture) => `\\${capture}`);
+  return str
+    .replace(/\*/g, '\u2217')
+    .replace(/\(/g, '\u2768')
+    .replace(/\)/g, '\u2769')
+    .replace(/\~/g, '\u2053')
+    .replace(/\`/g, '\u055D')
+    .replace(/ \[/g, '\uFF3B')
+    .replace(/\] /g, '\uFF3D')
+    .replace(/\[/g, '\uFF3B')
+    .replace(/\]/g, '\uFF3D')
+    .replace(/\>/g, '\u02C3')
+    .replace(/\-/g, '\u02D7');
+};
+
 export class Card {
   private card: any;
 

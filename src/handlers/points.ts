@@ -1,8 +1,8 @@
 import { TextHandler } from './bottype';
-import { Card } from '../utils/cardBuilder';
+import { Card, SMD } from '../utils/cardBuilder';
 
 const playerLink = (player: string) => {
-  return `[${player}](${encodeURI(`https://ddnet.tw/players/${player}`)})`;
+  return `[${SMD(player)}](${encodeURI(`https://ddnet.tw/players/${player}`)})`;
 };
 
 export const points: TextHandler = async (msg, bot, type, raw) => {
@@ -29,7 +29,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
 
       card.addTable(table);
     } else {
-      card.addMarkdown(`*未找到玩家:* **${searchName}**`);
+      card.addMarkdown(`*未找到玩家:* **${SMD(searchName)}**`);
     }
   } catch (err) {
     card.addMarkdown('❌ *查询超时，请稍后重试*');

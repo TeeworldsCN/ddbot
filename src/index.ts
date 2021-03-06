@@ -4,7 +4,7 @@ import { ButtonClickEvent, KaiheilaBot, TextMessage } from 'kaiheila-bot-root';
 import { BUTTONS, COMMANDS } from './commands';
 import { Tools, initTools } from './tools';
 import rss from 'rss-feed-emitter';
-import { Card } from './utils/cardBuilder';
+import { Card, SMD } from './utils/cardBuilder';
 import { FLAGS, SERVERS } from './utils/consts';
 
 /*
@@ -116,7 +116,9 @@ feeder.on('record', item => {
     const type = types[data[2].toLowerCase()] || ['', '新记录', '变化', 'secondary'];
     const old = data[7].slice(16) || data[5];
 
-    card.addMarkdown(`**【${server}】${map}**\n${flag} ${type[0]} **${data[6]}** 创下${type[1]}！`);
+    card.addMarkdown(
+      `**【${server}】${SMD(map)}**\n${flag} ${type[0]} **${SMD(data[6])}** 创下${type[1]}！`
+    );
     if (data[8]) {
       card.addTable([
         [`**新记录**\n${data[5]}`, `**原记录**\n${old}`, `**${type[2]}**\n${data[8]}`],

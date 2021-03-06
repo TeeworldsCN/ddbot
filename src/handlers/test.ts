@@ -1,17 +1,10 @@
-import { Card } from '../utils/cardBuilder';
+import { Card, SMD } from '../utils/cardBuilder';
 import { ButtonHandler, TextHandler } from './bottype';
 
 export const testText: TextHandler = async (msg, bot, type, raw) => {
   const card = new Card('sm', '测试');
 
-  card.addButtons([
-    {
-      theme: 'info',
-      value: '.points',
-      click: 'return-val',
-      text: '点我查询分数',
-    },
-  ]);
+  card.addMarkdown(SMD('*>[]()\\~---`'));
   await msg.reply.create(card);
 };
 
