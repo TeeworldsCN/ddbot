@@ -6,7 +6,7 @@
     "axios": "^0.21.1",
     "cheerio": "^1.0.0-rc.5",
     "dotenv": "^8.2.0",
-    "kaiheila-bot-root": "^0.2.1-beta.3",
+    "kaiheila-bot-root": "^0.2.6",
     "typescript": "^4.2.2"
   },
   "name": "twcn-ddbot",

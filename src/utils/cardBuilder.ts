@@ -231,7 +231,7 @@ export class Card {
     this.card.modules.slice(start, end);
   }
 
-  public get data(): any {
+  public toString(): string {
     return JSON.stringify([this.card]);
   }
 }

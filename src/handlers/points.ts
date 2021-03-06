@@ -5,21 +5,20 @@ const playerLink = (player: string) => {
   return `[${player}](${encodeURI(`https://ddnet.tw/players/${player}`)})`;
 };
 
-export const points: TextHandler = async (tools, bot, e) => {
-  const query = e.content.slice('.points '.length);
+export const points: TextHandler = async (msg, bot, type, raw) => {
+  const query = msg.content.slice('.points '.length);
 
-  let searchName = query || e.author.nickname || e.author.username;
+  let searchName = query || msg.author.nickname;
 
   const card = new Card('lg', 'DDNet分数查询');
 
-  await tools.reply.addReaction(e.msgId, ['⌛']);
+  await msg.reply.addReaction(msg.msgId, ['⌛']);
   try {
-    const response = await bot.axios.get(
-      encodeURI(`https://ddnet.tw/players/?query=${searchName}`),
-      { timeout: 5000 }
+    const response = await msg.axios.get(
+      encodeURI(`https://ddnet.tw/players/?query=${searchName}`)
     );
     if ((response.data as []).length > 0) {
-      const table = [['**ID**', '**分数**']];
+      const table = [];
       if (response.data[0].name == searchName) {
         table.push([playerLink(response.data[0].name), response.data[0].points.toString()]);
       } else {
@@ -37,6 +36,11 @@ export const points: TextHandler = async (tools, bot, e) => {
     console.error(err);
   }
 
-  await tools.reply.create(10, card.data);
-  await tools.reply.deleteReaction(e.msgId, ['⌛']);
+  if (type == 'button') {
+    card.addContext(['*该消息只有你可以看到*']);
+    await msg.reply.create(card, undefined, true);
+  } else {
+    await msg.reply.create(card, undefined);
+  }
+  await msg.reply.deleteReaction(msg.msgId, ['⌛']);
 };

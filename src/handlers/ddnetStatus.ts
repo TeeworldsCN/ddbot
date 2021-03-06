@@ -19,15 +19,13 @@ const flags: { [key: string]: string } = {
   zaf: '🇿🇦',
 };
 
-export const ddnetStatus: TextHandler = async (tools, bot, e) => {
+export const ddnetStatus: TextHandler = async (msg, bot, type, raw) => {
   const card = new Card('lg', 'DDNet服务器状态');
   card.addContext(['[详情 (ddnet.tw)](https://ddnet.tw/status)']);
-  
-  await tools.reply.addReaction(e.msgId, ['⌛']);
+
+  await msg.reply.addReaction(msg.msgId, ['⌛']);
   try {
-    const response = await bot.axios.get(encodeURI(`https://ddnet.tw/status/json/stats.json`), {
-      timeout: 5000,
-    });
+    const response = await msg.axios.get(encodeURI(`https://ddnet.tw/status/json/stats.json`));
 
     const servers = [];
     for (let s of response.data.servers) {
@@ -66,6 +64,6 @@ export const ddnetStatus: TextHandler = async (tools, bot, e) => {
     console.error(err);
   }
 
-  await tools.reply.create(10, card.data);
-  await tools.reply.deleteReaction(e.msgId, ['⌛']);
+  await msg.reply.create(card);
+  await msg.reply.deleteReaction(msg.msgId, ['⌛']);
 };
