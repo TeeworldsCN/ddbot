@@ -1,6 +1,7 @@
 {
   "devDependencies": {
     "@types/lowdb": "^1.0.9",
+    "@types/luxon": "^1.26.2",
     "@types/xml2js": "^0.4.8"
   },
   "dependencies": {
@@ -9,6 +10,7 @@
     "dotenv": "^8.2.0",
     "kaiheila-bot-root": "^0.2.6",
     "lowdb": "^1.0.0",
+    "luxon": "^1.26.0",
     "typescript": "^4.2.2",
     "xml2js": "^0.4.23"
   },

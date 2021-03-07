@@ -1,6 +1,7 @@
 import { TextHandler } from './bottype';
 import { Card, SMD } from '../utils/cardBuilder';
-import { FLAGS, SERVERS, SERVERS_SHORT } from '../utils/consts';
+import { FLAGS, SERVERS_SHORT } from '../utils/consts';
+import { AxiosError } from 'axios';
 
 const playerLink = (label: string, player: string) => {
   return `[${SMD(label)}](https://ddnet.tw/players/${encodeURIComponent(
@@ -70,23 +71,29 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
       );
 
       card.setTheme('success');
-    } catch {
-      card.slice(0, 0);
-      // 尝试查找近似名
-      const response = await msg.tools.axios.get(
-        `https://ddnet.tw/players/?query=${encodeURIComponent(searchName)}`
-      );
-      const table = [];
-      if ((response.data as []).length > 0) {
-        card.addTitle(`未找到DDNet玩家: ${searchName}`);
-        card.addMarkdown('*以下为近似结果：*');
-        const top5 = response.data.slice(0, 5);
-        table.push(...top5.map((x: any) => [playerLink(x.name, x.name), x.points.toString()]));
-        card.addTable(table);
-        card.setTheme('info');
+    } catch (e) {
+      const err = e as AxiosError;
+      if (err.isAxiosError && err.response.status == 404) {
+        card.slice(0, 0);
+
+        // 尝试查找近似名
+        const response = await msg.tools.axios.get(
+          `https://ddnet.tw/players/?query=${encodeURIComponent(searchName)}`
+        );
+        const table = [];
+        if ((response.data as []).length > 0) {
+          card.addTitle(`未找到DDNet玩家: ${searchName}`);
+          card.addMarkdown('*以下为近似结果：*');
+          const top5 = response.data.slice(0, 5);
+          table.push(...top5.map((x: any) => [playerLink(x.name, x.name), x.points.toString()]));
+          card.addTable(table);
+          card.setTheme('info');
+        } else {
+          card.addTitle(`未找到DDNet玩家: ${searchName}`);
+          card.setTheme('danger');
+        }
       } else {
-        card.addTitle(`未找到DDNet玩家: ${searchName}`);
-        card.setTheme('danger');
+        throw e;
       }
     }
   } catch (err) {

@@ -6,6 +6,7 @@ import axios from 'axios';
 import { Card } from './utils/cardBuilder';
 import low from 'lowdb';
 import FileSync from 'lowdb/adapters/FileSync';
+import { DateTime } from 'luxon';
 
 export type ReplyType = keyof typeof TYPES;
 const TYPES = {
@@ -39,8 +40,8 @@ const tools = {
   }),
   db: low(dbAdapter),
   dateTime: (date: number) =>
-    new Date(date).toISOString().slice(0, 16).replace('T', ' ').replace(/-/g, '/'),
-  date: (date: number) => new Date(date).toISOString().slice(0, 10).replace(/-/g, '/'),
+    DateTime.fromMillis(date).setZone('Asia/Shanghai').toFormat('yyyy/MM/dd HH:mm'),
+  date: (date: number) => DateTime.fromMillis(date).setZone('Asia/Shanghai').toFormat('yyyy/MM/dd'),
   secTime: (time: number) => `${Math.floor(time / 60)}分${time % 60}秒`,
 };
 
