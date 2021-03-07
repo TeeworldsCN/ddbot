@@ -43,6 +43,17 @@ const tools = {
     DateTime.fromMillis(date).setZone('Asia/Shanghai').toFormat('yyyy/MM/dd HH:mm'),
   date: (date: number) => DateTime.fromMillis(date).setZone('Asia/Shanghai').toFormat('yyyy/MM/dd'),
   secTime: (time: number) => `${Math.floor(time / 60)}分${time % 60}秒`,
+  ddnetEncode: (str: string) =>
+    encodeURIComponent(
+      str
+        .replace(/\-/g, '')
+        .replace(/\\/g, '-92-')
+        .replace(/\%/g, '-37-')
+        .replace(/\?/g, '-63-')
+        .replace(/\&/g, '-38-')
+        .replace(/\=/g, '-61-')
+        .replace(/\//g, '-47-')
+    ),
 };
 
 export const initTools = () => tools;

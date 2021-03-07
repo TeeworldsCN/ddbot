@@ -4,9 +4,7 @@ import { FLAGS, SERVERS_SHORT } from '../utils/consts';
 import { AxiosError } from 'axios';
 
 const playerLink = (label: string, player: string) => {
-  return `[${SMD(label)}](https://ddnet.tw/players/${encodeURIComponent(
-    player.replace(/-/g, '-45-')
-  )})`;
+  return `[${SMD(label)}](https://ddnet.tw/players/${player})`;
 };
 
 export const points: TextHandler = async (msg, bot, type, raw) => {
@@ -52,7 +50,9 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
               table.push(`**${category[1]}**\n*无排名*`);
             }
           } else {
-            table.push(`**玩家详情**\n${playerLink('点击查看', searchName)}`);
+            table.push(
+              `**玩家详情**\n${playerLink('点击查看', msg.tools.ddnetEncode(searchName))}`
+            );
           }
         }
         card.addTable([table]);
@@ -85,7 +85,12 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
           card.addTitle(`未找到DDNet玩家: ${searchName}`);
           card.addMarkdown('*以下为近似结果：*');
           const top5 = response.data.slice(0, 5);
-          table.push(...top5.map((x: any) => [playerLink(x.name, x.name), x.points.toString()]));
+          table.push(
+            ...top5.map((x: any) => [
+              playerLink(x.name, msg.tools.ddnetEncode(x.name)),
+              x.points.toString(),
+            ])
+          );
           card.addTable(table);
           card.setTheme('info');
         } else {
