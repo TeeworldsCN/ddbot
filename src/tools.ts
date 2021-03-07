@@ -38,6 +38,14 @@ const tools = {
     decompress: true,
     timeout: 10000,
   }),
+  api: axios.create({
+    baseURL: process.env.TWCN_API_URL,
+    headers: {
+      'Accept-Encoding': 'gzip, deflate',
+    },
+    decompress: true,
+    timeout: 10000,
+  }),
   db: low(dbAdapter),
   dateTime: (date: number) =>
     DateTime.fromMillis(date).setZone('Asia/Shanghai').toFormat('yyyy/MM/dd HH:mm'),

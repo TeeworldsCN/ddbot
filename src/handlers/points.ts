@@ -19,9 +19,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
     // 查询玩家
     try {
       // 玩家详情
-      const playerRes = await msg.tools.axios.get(
-        `https://api.teeworlds.cn/ddnet/players/${encodeURIComponent(searchName)}`
-      );
+      const playerRes = await msg.tools.api.get(`/ddnet/players/${encodeURIComponent(searchName)}`);
       const player = playerRes.data;
       const flag = FLAGS[player.server.toLowerCase()];
       card.addTitle(`${flag} DDNet玩家: ${searchName}`);
