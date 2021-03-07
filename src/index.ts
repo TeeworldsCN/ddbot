@@ -3,27 +3,11 @@ require('dotenv').config();
 import { ButtonClickEvent, KaiheilaBot, TextMessage } from 'kaiheila-bot-root';
 import { BUTTONS, COMMANDS } from './commands';
 import { Tools, initTools } from './tools';
-import rss from 'rss-feed-emitter';
+import { RssFeeder } from './utils/rssFeeder';
 import { Card, SMD } from './utils/cardBuilder';
 import { FLAGS, SERVERS } from './utils/consts';
 
-/*
-  RSS 订阅
- */
-
-const feeder = new rss();
-(feeder.add as any)(
-  {
-    url: 'https://ddnet.tw/status/records/feed/',
-    refresh: 30000,
-    eventName: 'record',
-  }
-  // {
-  //   url: 'https://ddnet.tw/releases/feed/',
-  //   refresh: 60,
-  //   eventName: 'map',
-  // }
-);
+const tools = initTools();
 
 /*
     机器人初始化
@@ -34,8 +18,6 @@ const bot = new KaiheilaBot({
   token: process.env.KAIHEILA_BOT_TOKEN,
   ignoreDecryptError: false,
 });
-
-const tools = initTools();
 
 bot.on('textMessage', (e: TextMessage) => {
   // no bot message
@@ -80,7 +62,15 @@ bot.on('buttonClick', (e: ButtonClickEvent) => {
   }
 });
 
-feeder.on('record', item => {
+/*
+  RSS 订阅
+ */
+
+const feeder = new RssFeeder(10000, tools.db);
+feeder.startFeed('https://ddnet.tw/status/records/feed/', 'record', 30000);
+// feeder.startFeed('https://ddnet.tw/releases/feed/', 'record', 30000);
+
+feeder.register('record', async item => {
   if (!item || !item.title) return;
 
   const channelId = tools.db.get('record_channel').value();
@@ -88,7 +78,7 @@ feeder.on('record', item => {
 
   const lastTime = tools.db.get('record_last').value() || 0;
 
-  const time = item.pubDate.getTime();
+  const time = item.updated;
   if (!time || typeof time != 'number') return;
 
   if (time > lastTime) {
@@ -121,7 +111,7 @@ feeder.on('record', item => {
     );
     if (data[8]) {
       card.addTable([
-        [`**新记录**\n${data[5]}`, `**原记录**\n${old}`, `**${type[2]}**\n${data[8]}`],
+        [`**新记录**\n${data[5]}`, `**原记录**\n~~${old}~~`, `**${type[2]}**\n${data[8]}`],
       ]);
       card.setTheme(type[3]);
     } else {
@@ -131,15 +121,19 @@ feeder.on('record', item => {
   } else {
     card.addText(item.title);
   }
-
-  bot.API.message.create(10, channelId, card.toString());
+  card.addContext([
+    new Date('2021-03-06T21:56:00+01:00')
+      .toISOString()
+      .slice(0, 16)
+      .replace('T', ' ')
+      .replace(/-/g, '/'),
+  ]);
+  await bot.API.message.create(10, channelId, card.toString());
 });
 
 // feeder.on('map', item => {
 //   console.log(item.pubdate);
 // });
-
-feeder.on('error', console.error);
 
 console.log('Connect bot');
 bot.connect();
