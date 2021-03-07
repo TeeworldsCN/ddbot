@@ -8,7 +8,9 @@ export const ddnetStatus: TextHandler = async (msg, bot, type, raw) => {
 
   await msg.reply.addReaction(msg.msgId, ['⌛']);
   try {
-    const response = await msg.axios.get(encodeURI(`https://ddnet.tw/status/json/stats.json`));
+    const response = await msg.tools.axios.get(
+      encodeURI(`https://ddnet.tw/status/json/stats.json`)
+    );
 
     const servers = [];
     for (let s of response.data.servers) {

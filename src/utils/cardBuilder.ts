@@ -47,7 +47,7 @@ export class Card {
     }
   }
 
-  public setTheme(theme: string) {
+  public setTheme(theme: CardTheme) {
     this.card.theme = theme;
   }
 
@@ -87,13 +87,13 @@ export class Card {
     });
   }
 
-  public addContext(elements: string[]) {
+  public addContext(elements: string[], isPlain: boolean = false) {
     this.addModule({
       type: 'context',
       elements: elements.map(e => {
         if (!e.startsWith('!')) {
           return {
-            type: 'kmarkdown',
+            type: isPlain ? 'plain-text' : 'kmarkdown',
             content: e,
           };
         } else {

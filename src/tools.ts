@@ -38,6 +38,10 @@ const tools = {
     timeout: 10000,
   }),
   db: low(dbAdapter),
+  dateTime: (date: number) =>
+    new Date(date).toISOString().slice(0, 16).replace('T', ' ').replace(/-/g, '/'),
+  date: (date: number) => new Date(date).toISOString().slice(0, 10).replace(/-/g, '/'),
+  secTime: (time: number) => `${Math.floor(time / 60)}分${time % 60}秒`,
 };
 
 export const initTools = () => tools;
@@ -149,12 +153,8 @@ export class Tools {
     return this._channelType;
   }
 
-  public get axios() {
-    return tools.axios;
-  }
-
-  public get db() {
-    return tools.db;
+  public get tools() {
+    return tools;
   }
 
   public get reply(): ReplyTool {

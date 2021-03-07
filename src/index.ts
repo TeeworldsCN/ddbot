@@ -122,7 +122,7 @@ feeder.register('record', async item => {
       card.addTable([
         [`**新记录**\n${data[5]}`, `**原记录**\n~~${old}~~`, `**${type[2]}**\n${data[8]}`],
       ]);
-      card.setTheme(type[3]);
+      card.setTheme(type[3] as any);
     } else {
       card.addTable([[`**首杀记录！**\n${data[5]}`]]);
       card.setTheme('warning');
@@ -130,13 +130,7 @@ feeder.register('record', async item => {
   } else {
     card.addText(item.title);
   }
-  card.addContext([
-    new Date('2021-03-06T21:56:00+01:00')
-      .toISOString()
-      .slice(0, 16)
-      .replace('T', ' ')
-      .replace(/-/g, '/'),
-  ]);
+  card.addContext([tools.dateTime(item.updated)]);
   await bot.API.message.create(10, channelId, card.toString());
 });
 

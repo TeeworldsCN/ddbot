@@ -28,3 +28,16 @@ export const SERVERS: { [key: string]: string } = {
   race: 'Race - 竞速',
   fun: 'Fun - 娱乐',
 };
+
+export const SERVERS_SHORT: { [key: string]: string } = {
+  novice: '简单',
+  moderate: '中阶',
+  brutal: '高阶',
+  insane: '疯狂',
+  dummy: '分身',
+  ddmax: '古典',
+  oldschool: '传统',
+  solo: '单人',
+  race: '竞速',
+  fun: '娱乐',
+};
