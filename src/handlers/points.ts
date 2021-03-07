@@ -71,11 +71,12 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
 
       card.setTheme('success');
     } catch {
+      card.slice(0, 0);
       // 尝试查找近似名
-      const table = [];
       const response = await msg.tools.axios.get(
         `https://ddnet.tw/players/?query=${encodeURIComponent(searchName)}`
       );
+      const table = [];
       if ((response.data as []).length > 0) {
         card.addTitle(`未找到DDNet玩家: ${searchName}`);
         card.addMarkdown('*以下为近似结果：*');
@@ -89,6 +90,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
       }
     }
   } catch (err) {
+    card.slice(0, 0);
     card.addMarkdown('❌ *查询超时，请稍后重试*');
     console.error(err);
   }

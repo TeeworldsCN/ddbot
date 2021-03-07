@@ -250,7 +250,7 @@ export class Card {
   }
 
   public slice(start?: number, end?: number) {
-    this.card.modules.slice(start, end);
+    this.card.modules = this.card.modules.slice(start, end);
   }
 
   public toString(): string {
