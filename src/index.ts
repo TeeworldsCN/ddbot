@@ -69,7 +69,7 @@ bot.on('buttonClick', (e: ButtonClickEvent) => {
 
 const feeder = new RssFeeder(10000, tools.db);
 feeder.startFeed('https://ddnet.tw/status/records/feed/', 'record', 30000, 10000);
-feeder.startFeed('https://ddnet.tw/releases/feed/', 'map', 30000, 0);
+feeder.startFeed('https://ddnet.tw/releases/feed/', 'map', 60000, 20000);
 
 feeder.register('record', async item => {
   if (!item || !item.title) {
