@@ -28,7 +28,8 @@ bot.on('textMessage', (e: TextMessage) => {
     return;
   }
 
-  const command = e.content.split(' ')[0].slice(1);
+  const text = e.content.replace(/^\. /, '.');
+  const command = text.split(' ')[0].slice(1);
 
   for (let key in COMMANDS) {
     if (key == command) {
