@@ -54,7 +54,7 @@ const tools = {
   ddnetEncode: (str: string) =>
     encodeURIComponent(
       str
-        .replace(/\-/g, '')
+        .replace(/\-/g, '-45-')
         .replace(/\\/g, '-92-')
         .replace(/\%/g, '-37-')
         .replace(/\?/g, '-63-')
