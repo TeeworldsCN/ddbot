@@ -31,10 +31,12 @@ bot.on('textMessage', (e: TextMessage) => {
   const text = e.content.replace(/^\. /, '.');
   const command = text.split(' ')[0].slice(1);
 
+  e.content = text;
+
   for (let key in COMMANDS) {
     if (key == command) {
       COMMANDS[key](new Tools(bot, e, 'text'), bot, 'text', e).catch(reason => {
-        console.error(`Error proccessing command '${e.content}'`);
+        console.error(`Error proccessing command '${text}'`);
         console.error(reason);
       });
     }
@@ -174,7 +176,6 @@ feeder.register('map', async item => {
   }
 
   card.addContext([`${tools.dateTime(item.updated)} (met)all(met)`]);
-  console.log(card.toString());
   await bot.API.message.create(10, channelId, card.toString());
   return true;
 });
