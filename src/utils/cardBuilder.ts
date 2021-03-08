@@ -2,10 +2,15 @@ import { textChangeRangeIsUnchanged } from 'typescript';
 
 type CardTheme = 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'secondary';
 interface CardButton {
-  theme: CardTheme;
+  theme?: CardTheme;
   value: string;
   click: 'return-val' | 'link';
   text: string;
+}
+
+interface CardImage {
+  src: string;
+  alt?: string;
 }
 
 type CardSize = 'sm' | 'lg';
@@ -87,11 +92,11 @@ export class Card {
     });
   }
 
-  public addContext(elements: string[], isPlain: boolean = false) {
+  public addContext(elements: (string | CardImage)[], isPlain: boolean = false) {
     this.addModule({
       type: 'context',
       elements: elements.map(e => {
-        if (!e.startsWith('!')) {
+        if (typeof e == 'string') {
           return {
             type: isPlain ? 'plain-text' : 'kmarkdown',
             content: e,
@@ -99,7 +104,7 @@ export class Card {
         } else {
           return {
             type: 'image',
-            src: e.slice(1),
+            ...e,
           };
         }
       }),
@@ -108,32 +113,33 @@ export class Card {
 
   public addTextWithImage(
     text: string,
-    image: string,
+    image: CardImage,
     size: 'sm' | 'lg',
+    isPlain: boolean = false,
     circle: boolean = false,
     left: boolean = false
   ) {
     this.addModule({
       type: 'section',
       text: {
-        type: 'kmarkdown',
+        type: isPlain ? 'plain-text' : 'kmarkdown',
         content: text,
       },
       mode: left ? 'left' : 'right',
       accessory: {
         type: 'image',
-        src: image,
+        ...image,
         size,
         circle,
       },
     });
   }
 
-  public addTextWithButton(text: string, button: CardButton) {
+  public addTextWithButton(text: string, button: CardButton, isPlain: boolean = false) {
     this.addModule({
       type: 'section',
       text: {
-        type: 'kmarkdown',
+        type: isPlain ? 'plain-text' : 'kmarkdown',
         content: text,
       },
       mode: 'right',
@@ -168,13 +174,13 @@ export class Card {
     });
   }
 
-  public addImages(images: string[]) {
+  public addImages(images: CardImage[]) {
     this.addModule({
       type: 'image-group',
       elements: images.slice(0, 9).map(img => {
         return {
           type: 'image',
-          src: img,
+          ...img,
         };
       }),
     });

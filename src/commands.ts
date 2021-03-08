@@ -1,7 +1,7 @@
 import { ButtonHandler, TextHandler } from './handlers/bottype';
 import { ddnetStatus } from './handlers/ddnetStatus';
 import { points } from './handlers/points';
-import { subscribe } from './handlers/subscribe';
+import { subscribe } from './handlers/adminTools';
 import { testButton, testText } from './handlers/test';
 
 /*

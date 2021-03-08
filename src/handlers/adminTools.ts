@@ -1,5 +1,4 @@
 import { TextHandler } from './bottype';
-import { Card } from '../utils/cardBuilder';
 
 export const subscribe: TextHandler = async (msg, bot, type, raw) => {
   if (msg.channelType == 'PERSON') return;

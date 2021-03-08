@@ -6,6 +6,7 @@ import { Tools, initTools } from './tools';
 import { RssFeeder } from './utils/rssFeeder';
 import { Card, SMD } from './utils/cardBuilder';
 import { FLAGS, SERVERS } from './utils/consts';
+import cheerio from 'cheerio';
 
 const tools = initTools();
 
@@ -67,34 +68,19 @@ bot.on('buttonClick', (e: ButtonClickEvent) => {
  */
 
 const feeder = new RssFeeder(10000, tools.db);
-feeder.startFeed('https://ddnet.tw/status/records/feed/', 'record', 30000);
-// feeder.startFeed('https://ddnet.tw/releases/feed/', 'record', 30000);
+feeder.startFeed('https://ddnet.tw/status/records/feed/', 'record', 30000, 10000);
+feeder.startFeed('https://ddnet.tw/releases/feed/', 'map', 30000, 0);
 
 feeder.register('record', async item => {
   if (!item || !item.title) {
     console.warn('Record: no item');
-    return;
+    return false;
   }
 
   const channelId = tools.db.get('record_channel').value();
   if (!channelId) {
     console.warn('Record: not subscribed, skipping');
-    return;
-  }
-
-  const lastTime = tools.db.get('record_last').value() || 0;
-
-  const time = item.updated;
-  if (!time || typeof time != 'number') {
-    console.warn('Record: invalid publish date');
-    return;
-  }
-
-  if (time > lastTime) {
-    console.log('Record: getting new record');
-    tools.db.set('record_last', time).write();
-  } else {
-    return;
+    return false;
   }
 
   const card = new Card('lg');
@@ -128,15 +114,69 @@ feeder.register('record', async item => {
       card.setTheme('warning');
     }
   } else {
+    card.slice(0, 0);
     card.addText(item.title);
   }
   card.addContext([tools.dateTime(item.updated)]);
   await bot.API.message.create(10, channelId, card.toString());
+  return true;
 });
 
-// feeder.on('map', item => {
-//   console.log(item.pubdate);
-// });
+feeder.register('map', async item => {
+  if (!item || !item.title) {
+    console.warn('Map: no item');
+    return false;
+  }
+
+  const channelId = tools.db.get('map_channel').value();
+  if (!channelId) {
+    console.warn('Map: not subscribed, skipping');
+    return false;
+  }
+
+  const card = new Card('lg');
+
+  try {
+    const $ = cheerio.load(item.content);
+    const name = $('div p span').eq(0).text();
+    const author = item.author;
+    const server = SERVERS[item.title.match(/\[(.*)\]/)[1].toLowerCase()];
+    const desc = $('div p').eq(1);
+    const descText = desc.text().replace('Difficulty', '星级').replace(', Points', ' 分数');
+    const imageLink = $('.screenshot').attr('src');
+
+    card.addTitle(`[${server}] ${name}`);
+    card.addTextWithButton(`作者: ${author}\n${descText}`, {
+      theme: 'info',
+      text: '预览',
+      value: `https://teeworlds.cn/mappreview/?map=https://api.teeworlds.cn/ddnet/mapdata/${encodeURIComponent(
+        name
+      )}`,
+      click: 'link',
+    });
+
+    if (imageLink) {
+      card.addImages([
+        {
+          src: `https://ddnet.tw${imageLink}`,
+          alt: name,
+        },
+      ]);
+    }
+
+    card.setTheme('success');
+  } catch (e) {
+    console.error('Map card error:');
+    console.error(e);
+    card.slice(0, 0);
+    card.addText(item.title);
+  }
+
+  card.addContext([tools.dateTime(item.updated)]);
+  console.log(card.toString());
+  await bot.API.message.create(10, channelId, card.toString());
+  return true;
+});
 
 console.log('Connect bot');
 bot.connect();
