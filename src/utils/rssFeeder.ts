@@ -76,11 +76,13 @@ export class RssFeeder {
 
           entries.sort((a, b) => (a.updated == b.updated ? 0 : a.updated < b.updated ? -1 : 1));
 
+          let dirty = false;
           for (let entry of entries) {
             if (entry.updated > last_time) {
               if (this.events[eventName]) {
                 if (await this.events[eventName](entry)) {
                   last_time = entry.updated;
+                  dirty = true;
                 } else {
                   break;
                 }
@@ -88,7 +90,9 @@ export class RssFeeder {
             }
           }
 
-          this.db.set(`${eventName}_last`, last_time).write();
+          if (dirty) {
+            this.db.set(`${eventName}_last`, last_time).write();
+          }
         } catch (e) {
           console.error('Feed error:');
           console.log(e);
