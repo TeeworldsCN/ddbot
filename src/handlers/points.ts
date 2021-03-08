@@ -59,14 +59,13 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
       card.addDivider();
 
       const lastFinish = player?.lastFinishes?.[0];
-      card.addContext(
-        [
-          `最新完成 [${SERVERS_SHORT[lastFinish.type.toLowerCase()]}] ${
-            lastFinish.map
-          } (${msg.tools.secTime(lastFinish.time)}) - ${msg.tools.dateTime(lastFinish.timestamp)}`,
-        ],
-        true
-      );
+      card.addContext([
+        `最新完成 [${SERVERS_SHORT[lastFinish.type.toLowerCase()]}] ${SMD(
+          lastFinish.map
+        )} (${msg.tools.secTime(lastFinish.time)}) - ${msg.tools.dateTime(
+          lastFinish.timestamp
+        )} (met)${msg.authorId}(met)`,
+      ]);
 
       card.setTheme('success');
     } catch (e) {
@@ -105,11 +104,6 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
     console.error(err);
   }
 
-  if (type == 'button') {
-    card.addContext(['*该消息只有你可以看到*']);
-    await msg.reply.create(card, undefined, true);
-  } else {
-    await msg.reply.create(card, undefined);
-  }
+  await msg.reply.create(card, undefined);
   await msg.reply.deleteReaction(msg.msgId, ['⌛']);
 };
