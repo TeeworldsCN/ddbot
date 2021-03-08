@@ -117,7 +117,7 @@ feeder.register('record', async item => {
     card.slice(0, 0);
     card.addText(item.title);
   }
-  card.addContext([tools.dateTime(item.updated)]);
+  card.addContext([`${tools.dateTime(item.updated)} (met)all(met)`]);
   await bot.API.message.create(10, channelId, card.toString());
   return true;
 });
@@ -172,7 +172,7 @@ feeder.register('map', async item => {
     card.addText(item.title);
   }
 
-  card.addContext([tools.dateTime(item.updated)]);
+  card.addContext([`${tools.dateTime(item.updated)} (met)all(met)`]);
   console.log(card.toString());
   await bot.API.message.create(10, channelId, card.toString());
   return true;
