@@ -29,7 +29,7 @@ bot.on('textMessage', (e: TextMessage) => {
   }
 
   const text = e.content.replace(/^\. /, '.');
-  const command = text.split(' ')[0].slice(1);
+  const command = text.split(' ')[0].slice(1).toLowerCase();
 
   e.content = text;
 
@@ -161,8 +161,7 @@ feeder.register('map', async item => {
           .attr('src')
           .match(/\/([^\/]*).png/)[1];
         return {
-          src: `https://ddnet.tw/tiles/${tile}.png`,
-          alt: tile,
+          src: `https://teeworlds.cn/assets/tiles/${tile}.png`,
         };
       });
 
@@ -182,7 +181,6 @@ feeder.register('map', async item => {
       )}`,
       {
         src: `https://api.teeworlds.cn/ddnet/mapthumbs/${imageName}.png?square=true`,
-        alt: name,
       },
       'lg',
       true
@@ -199,6 +197,12 @@ feeder.register('map', async item => {
   await bot.API.message.create(10, channelId, card.toString());
   return true;
 });
-
 console.log('Connect bot');
+
+tools.db
+  .defaults({
+    ddnetBinds: {},
+  })
+  .write();
+
 bot.connect();

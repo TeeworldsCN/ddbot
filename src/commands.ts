@@ -3,13 +3,23 @@ import { ddnetStatus } from './handlers/ddnetStatus';
 import { points } from './handlers/points';
 import { subscribe } from './handlers/adminTools';
 import { testButton, testText } from './handlers/test';
+import { maps } from './handlers/maps';
+import { bind } from './handlers/bind';
+import { rank } from './handlers/rank';
 
 /*
     简单指令配置
  */
 
 export const COMMANDS: { [key: string]: TextHandler } = {
+  查分: points,
+  查图: maps,
+  绑定: bind,
+  查记录: rank,
   points: points,
+  map: maps,
+  bind: bind,
+  rank: rank,
   status: ddnetStatus,
   subscribe: subscribe,
 };

@@ -1,10 +1,12 @@
+import { CommandParser } from '../utils/commandParser';
 import { TextHandler } from './bottype';
 
 export const subscribe: TextHandler = async (msg, bot, type, raw) => {
   if (msg.channelType == 'PERSON') return;
   if (!msg.author.isAdmin) return;
 
-  const itemType = msg.content.split(' ')[1];
+  const query = new CommandParser(msg.content);
+  const itemType = query.getRest(1);
 
   if (itemType == 'map') {
     msg.tools.db.set('map_channel', msg.channelId).write();

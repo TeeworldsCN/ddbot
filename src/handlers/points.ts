@@ -3,17 +3,27 @@ import { Card, SMD } from '../utils/cardBuilder';
 import { FLAGS, SERVERS_SHORT } from '../utils/consts';
 import { AxiosError } from 'axios';
 import _ from 'lodash';
+import { CommandParser } from '../utils/commandParser';
 
-const playerLink = (label: string, player: string) => {
-  return `[${SMD(label)}](https://ddnet.tw/players/${player})`;
+const playerLink = (msg: any, label: string, player: string) => {
+  return `[${SMD(label)}](https://ddnet.tw/players/${msg.tools.ddnetEncode(player)})`;
 };
 
 export const points: TextHandler = async (msg, bot, type, raw) => {
-  const query = msg.content.slice('.points '.length);
+  const query = new CommandParser(msg.content);
+  const name = query.getRest(1);
 
-  let searchName = query || msg.author.nickname;
-
+  let searchName = name || msg.tools.db.get(`ddnetBinds.u${msg.authorId}`).value();
   const card = new Card('lg');
+  const temporary = type == 'button';
+  if (temporary) card.addContext(['该消息只有您可见']);
+
+  if (!searchName) {
+    card.addMarkdown('请先使用 `.bind <名字>` 指令绑定DDNet ID再使用快速查询指令');
+    card.addContext([`(met)${msg.authorId}(met)`]);
+    await msg.reply.create(card, undefined, temporary);
+    return;
+  }
 
   await msg.reply.addReaction(msg.msgId, ['⌛']);
   try {
@@ -61,9 +71,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
               table.push(`**${category[1]}**\n*${category[2]}*`);
             }
           } else {
-            table.push(
-              `**${category[1]}**\n${playerLink('点击查看', msg.tools.ddnetEncode(searchName))}`
-            );
+            table.push(`**${category[1]}**\n${playerLink(msg, '点击查看', searchName)}`);
           }
         }
         card.addTable([table]);
@@ -96,15 +104,14 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
           card.addMarkdown('*以下为近似结果：*');
           const top5 = response.data.slice(0, 5);
           table.push(
-            ...top5.map((x: any) => [
-              playerLink(x.name, msg.tools.ddnetEncode(x.name)),
-              x.points.toString(),
-            ])
+            ...top5.map((x: any) => [playerLink(msg, x.name, x.name), x.points.toString()])
           );
           card.addTable(table);
+          card.addContext([`(met)${msg.authorId}(met)`]);
           card.setTheme('info');
         } else {
-          card.addTitle(`未找到DDNet玩家: ${searchName}`);
+          card.addTitle(`⚠ 未找到DDNet玩家: ${searchName}`);
+          card.addContext([`(met)${msg.authorId}(met)`]);
           card.setTheme('danger');
         }
       } else {
@@ -114,9 +121,15 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
   } catch (err) {
     card.slice(0, 0);
     card.addMarkdown('❌ *查询超时，请稍后重试*');
+    card.addContext([`(met)${msg.authorId}(met)`]);
+    card.setTheme('danger');
     console.error(err);
   }
 
-  await msg.reply.create(card, undefined);
+  try {
+    await msg.reply.create(card, undefined, temporary);
+  } catch {
+    await msg.reply.create('暂时无法回应，请稍后重试');
+  }
   await msg.reply.deleteReaction(msg.msgId, ['⌛']);
 };
