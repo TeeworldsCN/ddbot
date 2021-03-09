@@ -2,6 +2,7 @@ import { TextHandler } from './bottype';
 import { Card, SMD } from '../utils/cardBuilder';
 import { FLAGS, SERVERS_SHORT } from '../utils/consts';
 import { AxiosError } from 'axios';
+import _ from 'lodash';
 
 const playerLink = (label: string, player: string) => {
   return `[${SMD(label)}](https://ddnet.tw/players/${player})`;
@@ -21,19 +22,31 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
       // 玩家详情
       const playerRes = await msg.tools.api.get(`/ddnet/players/${encodeURIComponent(searchName)}`);
       const player = playerRes.data;
-      const flag = FLAGS[player.server.toLowerCase()];
+      const server = player.server.toLowerCase();
+      const flag = FLAGS[server];
       card.addTitle(`${flag} DDNet玩家: ${searchName}`);
+
+      const rankRes = await msg.tools.api.get(`/ddnet/players/?server=${server}`);
+      const rank = rankRes.data;
+      player.regionPoints = _.find(rank.points, { name: player.name });
+      player.regionTeamRank = _.find(rank.teamRank, { name: player.name });
+      player.regionRank = _.find(rank.rank, { name: player.name });
 
       const categories = [
         [
-          ['points', '地图完成分'],
-          ['teamRank', '团队排名分'],
-          ['rank', '个人排名分'],
+          ['points', '🌐 全球总点数', '无排名'],
+          ['teamRank', '🌐 团队排名分', '无排名'],
+          ['rank', '🌐 个人排名分', '无排名'],
         ],
         [
-          ['monthlyPoints', '月增长'],
-          ['weeklyPoints', '周增长'],
-          ['detail', '详情'],
+          ['regionPoints', `${flag} 区域服点数`, '未进前五百'],
+          ['regionTeamRank', `${flag} 区域团队分`, '未进前五百'],
+          ['regionRank', `${flag} 区域个人分`, '未进前五百'],
+        ],
+        [
+          ['monthlyPoints', `📅 月增长`, '无排名'],
+          ['weeklyPoints', `📅 周增长`, '无排名'],
+          ['detail', '🔗 玩家详情'],
         ],
       ];
 
@@ -45,11 +58,11 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
             if (rankData) {
               table.push(`**${category[1]}**\n${rankData.points} (#${rankData.rank})`);
             } else {
-              table.push(`**${category[1]}**\n*无排名*`);
+              table.push(`**${category[1]}**\n*${category[2]}*`);
             }
           } else {
             table.push(
-              `**玩家详情**\n${playerLink('点击查看', msg.tools.ddnetEncode(searchName))}`
+              `**${category[1]}**\n${playerLink('点击查看', msg.tools.ddnetEncode(searchName))}`
             );
           }
         }
