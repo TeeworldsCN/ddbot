@@ -11,6 +11,7 @@ export const bind: TextHandler = async (msg, bot, type, raw) => {
   const card = new Card('sm');
 
   await msg.reply.addReaction(msg.msgId, ['⌛']);
+  card.addContext(['该消息只有您可见']);
 
   try {
     // 查找该人是否存在
@@ -36,6 +37,9 @@ export const bind: TextHandler = async (msg, bot, type, raw) => {
     console.error(err);
   }
 
-  await msg.reply.create(card);
-  await msg.reply.deleteReaction(msg.msgId, ['⌛']);
+  try {
+    await msg.reply.delete(msg.msgId);
+  } catch {}
+
+  await msg.reply.create(card, undefined, true);
 };
