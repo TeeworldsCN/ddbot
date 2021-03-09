@@ -68,7 +68,7 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
       card.addContext([`(met)${msg.authorId}(met)`]);
       card.setTheme('success');
     } else {
-      card.addText(`找不到玩家"${playerName}"与地图"${map}"相关的记录`);
+      card.addText(`找不到玩家"${playerName}"与地图"${mapName}"相关的记录`);
 
       if (isButton) {
         card.addContext([`(met)${msg.authorId}(met)`]);
