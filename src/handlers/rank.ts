@@ -12,13 +12,13 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
 
   const playerName = query.getRest(2) || msg.tools.db.get(`ddnetBinds.u${msg.authorId}`).value();
   const card = new Card('lg');
-  const temporary = type == 'button';
-  if (temporary) card.addContext(['该消息只有您可见']);
+  const isButton = type == 'button';
+  if (isButton) card.addContext(['该消息只有您可见']);
 
   if (!playerName) {
     card.addMarkdown('请先使用 `.bind <名字>` 指令绑定DDNet ID再使用快速查询指令');
     card.addContext([`(met)${msg.authorId}(met)`]);
-    await msg.reply.create(card, undefined, temporary);
+    await msg.reply.create(card, undefined, isButton);
     return;
   }
 
@@ -37,7 +37,7 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
         .replace(/_|\s/g, '(_|\\s+)');
       const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
       map = allMaps.find(m => m.name.toLowerCase().match(`^${reg}$`));
-      if (!map) {
+      if (!isButton && !map) {
         const allMapNames = allMaps.map(m => m.name.replace(/_|\s/g, '').toLowerCase());
         const matches = findBestMatch(mapName.replace(/[%_]|\s/g, '').toLowerCase(), allMapNames);
         if (matches.bestMatch.rating > 0) {
@@ -68,8 +68,14 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
       card.addContext([`(met)${msg.authorId}(met)`]);
       card.setTheme('success');
     } else {
-      card.addMarkdown('*找不到相关记录*\n*如果地图名或玩家名中有空格，请用引号括起来*');
-      card.addContext([`(met)${msg.authorId}(met)`]);
+      card.addText(`找不到玩家"${playerName}"与地图"${map}"相关的记录`);
+
+      if (isButton) {
+        card.addContext([`(met)${msg.authorId}(met)`]);
+      } else {
+        card.addContext([`提示: 如果地图名中有空格，请用引号括起来。 (met)${msg.authorId}(met)`]);
+      }
+
       card.setTheme('danger');
     }
 
@@ -83,7 +89,7 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
   }
 
   try {
-    await msg.reply.create(card, undefined, temporary);
+    await msg.reply.create(card, undefined, isButton);
   } catch {
     await msg.reply.create('暂时无法回应，请稍后重试');
   }
