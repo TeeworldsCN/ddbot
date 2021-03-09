@@ -141,15 +141,33 @@ feeder.register('map', async item => {
 
   try {
     const $ = cheerio.load(item.content);
-    const name = $('div p span').eq(0).text();
+    const nameQuery = $('div p span').eq(0);
+    const name = nameQuery.text();
+    const size = nameQuery.attr('title').match(/([0-9]*x[0-9]*)/)[1];
     const author = item.author;
     const server = SERVERS[item.title.match(/\[(.*)\]/)[1].toLowerCase()];
     const desc = $('div p').eq(1);
-    const descText = desc.text().replace('Difficulty', '星级').replace(', Points', ' 分数');
-    const imageLink = $('.screenshot').attr('src');
+    const descText = desc.text().replace('Difficulty', '星级').replace(', Points', '\n分数');
+    const imageName = $('.screenshot')
+      .attr('src')
+      .match(/\/ranks\/maps\/(.*).png/)[1];
 
-    card.addTitle(`[${server}] ${name}`);
-    card.addTextWithButton(`作者: ${author}\n${descText}`, {
+    const tiles = $('div p')
+      .eq(3)
+      .find('img')
+      .toArray()
+      .map(e => {
+        const tile = $(e)
+          .attr('src')
+          .match(/\/([^\/]*).png/)[1];
+        return {
+          src: `https://ddnet.tw/tiles/${tile}.png`,
+          alt: tile,
+        };
+      });
+
+    card.addTitle(`DDNet 新地图发布`);
+    card.addTextWithButton(`地图: ${name}\n作者: ${author}`, {
       theme: 'info',
       text: '预览',
       value: `https://teeworlds.cn/mappreview/?map=https://api.teeworlds.cn/ddnet/mapdata/${encodeURIComponent(
@@ -157,16 +175,18 @@ feeder.register('map', async item => {
       )}`,
       click: 'link',
     });
-
-    if (imageLink) {
-      card.addImages([
-        {
-          src: `https://ddnet.tw${imageLink}`,
-          alt: name,
-        },
-      ]);
-    }
-
+    if (tiles.length > 0) card.addContext(tiles);
+    card.addTextWithImage(
+      `地图大小: ${size}\n类型: ${server}\n${descText}\n\n发布时间: ${tools.dateTime(
+        item.updated
+      )}`,
+      {
+        src: `https://api.teeworlds.cn/ddnet/mapthumbs/${imageName}.png?square=true`,
+        alt: name,
+      },
+      'lg',
+      true
+    );
     card.setTheme('success');
   } catch (e) {
     console.error('Map card error:');
@@ -175,7 +195,7 @@ feeder.register('map', async item => {
     card.addText(item.title);
   }
 
-  card.addContext([`${tools.dateTime(item.updated)} (met)all(met)`]);
+  card.addContext([`(met)all(met)`]);
   await bot.API.message.create(10, channelId, card.toString());
   return true;
 });

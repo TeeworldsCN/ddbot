@@ -56,31 +56,22 @@ export class RssFeeder {
             }
           });
 
-          // const xml = await this.parser.parseStringPromise(response.data);
-          //
-          // const xmlEntries = xml?.feed?.entry;
-          // if (!xmlEntries) throw new Error('No feed entry');
-
-          // for (let entry of xmlEntries) {
-          //   const time = entry?.updated?.[0];
-          //   if (time) {
-          //     entries.push({
-          //       title: entry?.title?.[0],
-          //       link: entry?.link?.[0]?.href,
-          //       content: entry?.content,
-          //       author: entry?.author?.[0]?.name?.[0] || entry?.author?.[0],
-          //       updated: new Date(time).getTime(),
-          //     });
-          //   }
-          // }
-
           entries.sort((a, b) => (a.updated == b.updated ? 0 : a.updated < b.updated ? -1 : 1));
 
           let dirty = false;
           for (let entry of entries) {
             if (entry.updated > last_time) {
               if (this.events[eventName]) {
-                if (await this.events[eventName](entry)) {
+                let success = false;
+                try {
+                  success = await this.events[eventName](entry);
+                } catch (e) {
+                  console.log(`${eventName} handler failed:`);
+                  console.log(e);
+                  break;
+                }
+
+                if (success) {
                   last_time = entry.updated;
                   dirty = true;
                 } else {
