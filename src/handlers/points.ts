@@ -201,18 +201,18 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
 
       const categories = [
         [
-          ['points', '🌐 全球总点数', '无排名'],
-          ['teamRank', '🌐 团队排名分', '无排名'],
-          ['rank', '🌐 个人排名分', '无排名'],
+          ['points', `**🌐 总点数**`, '无排名'],
+          ['teamRank', '**🌐 团队排名分**', '无排名'],
+          ['rank', '**🌐 个人排名分**', '无排名'],
         ],
         [
-          ['regionPoints', `${flag} 区域服点数`, '未进前五百'],
-          ['regionTeamRank', `${flag} 区域团队分`, '未进前五百'],
-          ['regionRank', `${flag} 区域个人分`, '未进前五百'],
+          ['regionPoints', `**${flag} 区域服点数**`, '未进前五百'],
+          ['regionTeamRank', `**${flag} 区域团队分**`, '未进前五百'],
+          ['regionRank', `**${flag} 区域个人分**`, '未进前五百'],
         ],
         [
-          ['monthlyPoints', `📅 月增长`, '无排名'],
-          ['weeklyPoints', `📅 周增长`, '无排名'],
+          ['monthlyPoints', `**📅 月增长**`, '无排名'],
+          ['weeklyPoints', `**📅 周增长**`, '无排名'],
           ['detail', '🔗 玩家详情'],
         ],
       ];
@@ -225,16 +225,16 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
             if (rankData) {
               if (rankData.delta) {
                 table.push(
-                  `**${category[1]}**\n${rankData.points}[+${rankData.delta}] (#${rankData.rank})`
+                  `${category[1]}[+${rankData.delta}]\n${rankData.points} (#${rankData.rank})`
                 );
               } else {
-                table.push(`**${category[1]}**\n${rankData.points} (#${rankData.rank})`);
+                table.push(`${category[1]}\n${rankData.points} (#${rankData.rank})`);
               }
             } else {
-              table.push(`**${category[1]}**\n*${category[2]}*`);
+              table.push(`${category[1]}\n*${category[2]}*`);
             }
           } else {
-            table.push(`**${category[1]}**\n${playerLink(msg, '点击查看', searchName)}`);
+            table.push(`${category[1]}\n${playerLink(msg, '点击查看', searchName)}`);
           }
         }
         card.addTable([table]);
