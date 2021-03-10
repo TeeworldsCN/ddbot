@@ -262,7 +262,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
       card.setTheme('success');
     } catch (e) {
       const err = e as AxiosError;
-      if (err.isAxiosError && err.response.status == 404) {
+      if (err.isAxiosError && err?.response?.status == 404) {
         card.slice(0, 0);
 
         // 尝试查找近似名

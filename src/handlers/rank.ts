@@ -47,7 +47,7 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
         map = allMaps.find(m => m.name.trim() == mapName.trim());
       } catch (e) {
         const err = e as AxiosError;
-        if (err.isAxiosError && err.response.status == 404) {
+        if (err.isAxiosError && err?.response?.status == 404) {
           map = null;
         } else {
           throw e;
