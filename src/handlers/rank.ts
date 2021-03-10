@@ -3,12 +3,11 @@ import { Card } from '../utils/cardBuilder';
 import { AxiosError } from 'axios';
 import _ from 'lodash';
 import { CommandParser } from '../utils/commandParser';
-import { findBestMatch } from 'string-similarity';
 
 export const rank: TextHandler = async (msg, bot, type, raw) => {
   const query = new CommandParser(msg.content);
-  const mapName = query.getString(1);
-  if (!mapName) return;
+  const mapQueryString = query.getString(1);
+  if (!mapQueryString) return;
 
   const playerName = query.getRest(2) || msg.tools.db.get(`ddnetBinds.u${msg.authorId}`).value();
   const card = new Card('lg');
@@ -23,63 +22,68 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
   }
 
   await msg.reply.addReaction(msg.msgId, ['⌛']);
-  try {
-    // 查询玩家
-    let map = null;
-    try {
-      const playerRes = await msg.tools.api.get(`/ddnet/players/${encodeURIComponent(playerName)}`);
-      const player = playerRes.data;
 
-      const reg = mapName
-        .toLowerCase()
-        .replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-        .replace(/%/, '.*')
-        .replace(/_|\s/g, '(_|\\s+)');
-      const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
-      map = allMaps.find(m => m.name.toLowerCase().match(`^${reg}$`));
-      if (!isButton && !map) {
-        const allMapNames = allMaps.map(m => m.name.replace(/_|\s/g, '').toLowerCase());
-        const matches = findBestMatch(mapName.replace(/[%_]|\s/g, '').toLowerCase(), allMapNames);
-        if (matches.bestMatch.rating > 0) {
-          map = allMaps[matches.bestMatchIndex];
+  try {
+    let mapName: string = null;
+    if (isButton) {
+      mapName = mapQueryString;
+    } else {
+      const mapQuery = await msg.tools.api.get(
+        `https://ddnet.tw/maps/?query=${encodeURIComponent(mapQueryString)}`
+      );
+      mapName = mapQuery.data?.[0]?.name;
+    }
+
+    if (mapName) {
+      // 查询玩家
+      let map = null;
+      try {
+        const playerRes = await msg.tools.api.get(
+          `/ddnet/players/${encodeURIComponent(playerName)}`
+        );
+        const player = playerRes.data;
+
+        const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
+        map = allMaps.find(m => m.name.trim() == mapName.trim());
+      } catch (e) {
+        const err = e as AxiosError;
+        if (err.isAxiosError && err.response.status == 404) {
+          map = null;
+        } else {
+          throw e;
         }
       }
-    } catch (e) {
-      const err = e as AxiosError;
-      if (err.isAxiosError && err.response.status == 404) {
-        map = null;
-      } else {
-        throw e;
-      }
-    }
 
-    if (map) {
-      card.addText(`${playerName} 的 ${map.name} 记录 (${map.points}分)`);
-      const text = [`最快用时: ${msg.tools.secTime(map.time)}`, `排名: ${map.rank}`];
-      if (map.teamRank) {
-        text.push(`团队排名: ${map.teamRank}`);
-      }
-      text.push(
-        '',
-        `完成次数: ${map.finishes}次`,
-        `首次完成: ${msg.tools.dateTime(map.firstFinish)}`
-      );
-      card.addText(text.join('\n'));
-      card.addContext([`(met)${msg.authorId}(met)`]);
-      card.setTheme('success');
-    } else {
-      card.addText(`找不到玩家"${playerName}"与地图"${mapName}"相关的记录`);
-
-      if (isButton) {
+      if (map) {
+        card.addText(`${playerName} 的 ${map.name} 记录 (${map.points}分)`);
+        const text = [`最快用时: ${msg.tools.secTime(map.time)}`, `排名: ${map.rank}`];
+        if (map.teamRank) {
+          text.push(`团队排名: ${map.teamRank}`);
+        }
+        text.push(
+          '',
+          `完成次数: ${map.finishes}次`,
+          `首次完成: ${msg.tools.dateTime(map.firstFinish)}`
+        );
+        card.addText(text.join('\n'));
         card.addContext([`(met)${msg.authorId}(met)`]);
+        card.setTheme('success');
       } else {
-        card.addContext([`提示: 如果地图名中有空格，请用引号括起来。 (met)${msg.authorId}(met)`]);
+        card.addText(`⚠ 玩家 "${playerName}"\n未完成地图 "${mapName}"`);
+
+        if (isButton) {
+          card.addContext([`(met)${msg.authorId}(met)`]);
+        } else {
+          card.addContext([`提示: 如果地图名中有空格，请用引号括起来。 (met)${msg.authorId}(met)`]);
+        }
+
+        card.setTheme('warning');
       }
-
-      card.setTheme('danger');
+    } else {
+      card.addTitle(`⚠ 未找到和${mapQueryString}相关的地图`);
+      card.addContext([`(met)${msg.authorId}(met)`]);
+      card.setTheme('warning');
     }
-
-    card.setTheme('success');
   } catch (err) {
     card.slice(0, 0);
     card.addMarkdown('❌ *查询超时，请稍后重试*');

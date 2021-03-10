@@ -78,9 +78,9 @@ export const maps: TextHandler = async (msg, bot, type, raw) => {
       ]);
       card.setTheme('success');
     } else {
-      card.addTitle(`⚠ 未找到和${query}相关的地图`);
+      card.addTitle(`⚠ 未找到和${mapQueryString}相关的地图`);
       card.addContext([`(met)${msg.authorId}(met)`]);
-      card.setTheme('danger');
+      card.setTheme('warning');
     }
   } catch (err) {
     card.slice(0, 0);
