@@ -169,9 +169,7 @@ feeder.register('map', async item => {
     card.addTextWithButton(`地图: ${name}\n作者: ${author}`, {
       theme: 'info',
       text: '预览',
-      value: `https://teeworlds.cn/mappreview/?map=https://api.teeworlds.cn/ddnet/mapdata/${encodeURIComponent(
-        name
-      )}`,
+      value: `https://teeworlds.cn/p/${encodeURIComponent(name)}`,
       click: 'link',
     });
     if (tiles.length > 0) card.addContext(tiles);

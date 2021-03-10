@@ -59,9 +59,7 @@ export const maps: TextHandler = async (msg, bot, type, raw) => {
         {
           theme: 'info',
           text: '预览',
-          value: `https://teeworlds.cn/mappreview/?map=https://api.teeworlds.cn/ddnet/mapdata/${encodeURIComponent(
-            mapName
-          )}`,
+          value: `https://teeworlds.cn/p/${encodeURIComponent(mapName)}`,
           click: 'link',
         },
         {
