@@ -59,7 +59,7 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
           color: {
             aggregate: 'sum',
             field: 'points',
-            scale: { domain: [0, 100], scheme: 'darkblue' },
+            scale: { domain: [0, 100], scheme: 'darkblue', type: 'pow', exponent: 0.6 },
           },
         },
       },
@@ -69,7 +69,7 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
           stroke: '#ffffff',
           width: 12,
           height: 12,
-          strokeWidth: 2,
+          strokeWidth: 1.2,
           cornerRadius: 3,
         },
         width: { step: 15 },
@@ -97,7 +97,7 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
           color: {
             aggregate: 'sum',
             field: 'points',
-            scale: { domain: [0, 100], scheme: 'darkblue' },
+            scale: { domain: [0, 100], scheme: 'darkblue', type: 'pow', exponent: 0.6 },
           },
         },
       },
@@ -123,7 +123,7 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
         gradientThickness: 15,
         labelColor: '#F5F5F5',
         offset: 5,
-        tickCount: 5,
+        tickCount: 2,
         labelFont: 'Noto Sans CJK SC',
       },
       style: {
@@ -138,13 +138,16 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
   });
 
   var svg = await new View(parse(graph.spec), { renderer: 'none' }).toSVG(2);
-  var png = await sharp(Buffer.from(svg)).png().toBuffer();
+  var png = await sharp(Buffer.from(svg))
+    .png({
+      compressionLevel: 9,
+    })
+    .toBuffer();
   var image = await bot.API.asset.create(png, {
     contentType: 'form-data',
     filename: `points.png`,
     knownLength: png.length,
   });
-  console.log(image.url);
   return image.url;
 };
 
@@ -237,9 +240,14 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
         card.addTable([table]);
       }
 
-      const url = await uploadGraph(bot, allMaps);
+      try {
+        const url = await uploadGraph(bot, allMaps);
+        card.addImages([{ src: url }]);
+      } catch (e) {
+        console.warn('Image generation failed');
+        console.warn(e);
+      }
 
-      card.addImages([{ src: url }]);
       card.addDivider();
 
       const lastFinish = player?.lastFinishes?.[0];
