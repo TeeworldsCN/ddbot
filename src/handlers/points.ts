@@ -120,7 +120,7 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
         title: null,
         gradientStrokeColor: '#bbbbbb',
         gradientStrokeWidth: 1,
-        gradientThickness: 15,
+        gradientThickness: 12,
         labelColor: '#F5F5F5',
         offset: 5,
         tickCount: 2,
