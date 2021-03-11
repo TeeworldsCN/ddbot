@@ -250,7 +250,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
         card.slice(0, 0);
 
         // 尝试查找近似名
-        const response = await msg.tools.axios.get(
+        const response = await msg.tools.api.get(
           `/ddnet/fuzzy/players/${encodeURIComponent(searchName)}`
         );
         const table = [];

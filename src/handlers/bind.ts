@@ -13,7 +13,7 @@ export const bind: TextHandler = async (msg, bot, type, raw) => {
 
   try {
     // 查找该人是否存在
-    const response = await msg.tools.axios.get(
+    const response = await msg.tools.api.get(
       `/ddnet/fuzzy/players/${encodeURIComponent(searchName)}`
     );
     if ((response.data as []).length > 0 && response.data[0].name == searchName) {
