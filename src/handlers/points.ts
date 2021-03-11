@@ -19,19 +19,23 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
     data: { values: data },
     transform: [
       {
-        filter: `datum.firstFinish >= ${begin.toMillis()}`,
-      },
-      {
         impute: 'points',
-        keyvals: {
-          step: 86400000,
-          start: begin.toMillis(),
-          stop: end.toMillis(),
-        },
+        keyvals: { step: 86400000, start: begin.toMillis(), stop: end.toMillis() },
         key: 'firstFinish',
         value: 0,
       },
+      { filter: `datum.firstFinish >= ${begin.toMillis()}` },
     ],
+    encoding: {
+      x: {
+        field: 'firstFinish',
+        timeUnit: 'yearweek',
+        type: 'ordinal',
+        axis: {
+          labelExpr: "(date(datum.value) < 8) ? toNumber(timeFormat(datum.value, '%m'))+'月' : ''",
+        },
+      },
+    },
     layer: [
       {
         mark: {
@@ -42,20 +46,11 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
           strokeWidth: 1,
           cornerRadius: 3,
         },
+        transform: [{ filter: `datum.firstFinish < ${today.toMillis()}` }],
         width: { step: 15 },
         height: { step: 15 },
-        transform: [{ filter: ` datum.firstFinish < ${today.toMillis()}` }],
         encoding: {
-          y: {
-            field: 'firstFinish',
-            timeUnit: 'day',
-            type: 'ordinal',
-          },
-          x: {
-            field: 'firstFinish',
-            timeUnit: 'yearweek',
-            type: 'ordinal',
-          },
+          y: { field: 'firstFinish', timeUnit: 'day', type: 'ordinal' },
           color: {
             aggregate: 'sum',
             field: 'points',
@@ -85,15 +80,6 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
                 "['日', '一', '二', '三', '四', '五', '六'][toNumber(timeFormat(datum.value, '%w'))]",
             },
           },
-          x: {
-            field: 'firstFinish',
-            timeUnit: 'yearweek',
-            type: 'ordinal',
-            axis: {
-              labelExpr:
-                "(date(datum.value) < 8) ? toNumber(timeFormat(datum.value, '%m'))+'月' : ''",
-            },
-          },
           color: {
             aggregate: 'sum',
             field: 'points',
@@ -103,9 +89,7 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
       },
     ],
     config: {
-      scale: {
-        bandPaddingOuter: 0.2,
-      },
+      scale: { bandPaddingOuter: 0.2 },
       axis: {
         grid: false,
         tickBand: 'extent',
@@ -127,11 +111,7 @@ const uploadGraph = async (bot: BotInstance, data: any[]) => {
         labelFont: 'Noto Sans CJK SC',
       },
       style: {
-        cell: {
-          cornerRadius: 3,
-          stroke: '#666666',
-          strokeOffset: 0,
-        },
+        cell: { cornerRadius: 3, stroke: '#666666', strokeOffset: 0 },
       },
     },
     background: '#393C41',
@@ -179,14 +159,22 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
       const playerRes = await msg.tools.api.get(`/ddnet/players/${encodeURIComponent(searchName)}`);
       const player = playerRes.data;
       const server = player.server.toLowerCase();
-      const flag = FLAGS[server];
+      const flag = FLAGS[server] || '❓';
       card.addTitle(`${flag} DDNet玩家: ${searchName}`);
 
-      const rankRes = await msg.tools.api.get(`/ddnet/players/?server=${server}`);
-      const rank = rankRes.data;
-      player.regionPoints = _.find(rank.points, { name: player.name });
-      player.regionTeamRank = _.find(rank.teamRank, { name: player.name });
-      player.regionRank = _.find(rank.rank, { name: player.name });
+      const regional = [];
+      if (server in FLAGS) {
+        const rankRes = await msg.tools.api.get(`/ddnet/players/?server=${server}`);
+        const rank = rankRes.data;
+        player.regionPoints = _.find(rank.points, { name: player.name });
+        player.regionTeamRank = _.find(rank.teamRank, { name: player.name });
+        player.regionRank = _.find(rank.rank, { name: player.name });
+        regional.push([
+          ['regionPoints', `**${flag} 区域服点数**`, '未进前五百'],
+          ['regionTeamRank', `**${flag} 区域团队分**`, '未进前五百'],
+          ['regionRank', `**${flag} 区域个人分**`, '未进前五百'],
+        ]);
+      }
 
       const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
 
@@ -205,11 +193,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
           ['teamRank', '**🌐 团队排名分**', '无排名'],
           ['rank', '**🌐 个人排名分**', '无排名'],
         ],
-        [
-          ['regionPoints', `**${flag} 区域服点数**`, '未进前五百'],
-          ['regionTeamRank', `**${flag} 区域团队分**`, '未进前五百'],
-          ['regionRank', `**${flag} 区域个人分**`, '未进前五百'],
-        ],
+        ...regional,
         [
           ['monthlyPoints', `**📅 月增长**`, '无排名'],
           ['weeklyPoints', `**📅 周增长**`, '无排名'],
@@ -267,7 +251,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
 
         // 尝试查找近似名
         const response = await msg.tools.axios.get(
-          `https://ddnet.tw/players/?query=${encodeURIComponent(searchName)}`
+          `/ddnet/fuzzy/players/${encodeURIComponent(searchName)}`
         );
         const table = [];
         if ((response.data as []).length > 0) {
@@ -299,7 +283,8 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
 
   try {
     await msg.reply.create(card, undefined, temporary);
-  } catch {
+  } catch (e) {
+    console.log(e);
     await msg.reply.create('暂时无法回应，请稍后重试');
   }
   await msg.reply.deleteReaction(msg.msgId, ['⌛']);

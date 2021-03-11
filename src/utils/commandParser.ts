@@ -9,7 +9,7 @@ export class CommandParser {
   public getString(index: number) {
     const part = this.matches[index];
     if (!part) return undefined;
-    const str = part.trimEnd().replace(/\\'"/g, str => str.slice(1));
+    const str = part.trimEnd().replace(/\\['"]/g, str => str.slice(1));
     if (str.startsWith('"')) return str.slice(1, str.length - (str.endsWith('"') ? 1 : 0));
     if (str.startsWith("'")) return str.slice(1, str.length - (str.endsWith("'") ? 1 : 0));
     return str;

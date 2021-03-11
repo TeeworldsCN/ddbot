@@ -3,10 +3,11 @@ import { Card } from '../utils/cardBuilder';
 import { AxiosError } from 'axios';
 import _ from 'lodash';
 import { CommandParser } from '../utils/commandParser';
+import { FLAGS } from '../utils/consts';
 
 export const rank: TextHandler = async (msg, bot, type, raw) => {
   const query = new CommandParser(msg.content);
-  const mapQueryString = query.getString(1);
+  const mapQueryString = query.getString(1).replace(/['"]/g, '');
   if (!mapQueryString) return;
 
   const playerName = query.getRest(2) || msg.tools.db.get(`ddnetBinds.u${msg.authorId}`).value();
@@ -29,7 +30,7 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
       mapName = mapQueryString;
     } else {
       const mapQuery = await msg.tools.api.get(
-        `https://ddnet.tw/maps/?query=${encodeURIComponent(mapQueryString)}`
+        `/ddnet/fuzzy/maps/${encodeURIComponent(mapQueryString)}`
       );
       mapName = mapQuery.data?.[0]?.name;
     }
@@ -37,6 +38,7 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
     if (mapName) {
       // 查询玩家
       let map = null;
+      let flag = '';
       try {
         const playerRes = await msg.tools.api.get(
           `/ddnet/players/${encodeURIComponent(playerName)}`
@@ -45,6 +47,52 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
 
         const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
         map = allMaps.find(m => m.name.trim() == mapName.trim());
+
+        // 查询Top
+        let mapRank = null;
+        try {
+          let server = (player.server || 'default').toLowerCase();
+          if (server == 'unk') server = 'default';
+          let url = '';
+          const hasRegion = server in FLAGS && server != 'default';
+          if (hasRegion) {
+            flag = FLAGS[server];
+            url = `/ddnet/maps/${encodeURIComponent(mapName)}?server=${server}`;
+          } else {
+            url = `/ddnet/maps/${encodeURIComponent(mapName)}`;
+          }
+          const mapRank = await msg.tools.api.get(url);
+          const teamRecord = mapRank.data.teamRecords.find(
+            (r: any) => r.players.indexOf(player.name) >= 0
+          );
+          const record = mapRank.data.records.find((r: any) => r.player == player.name);
+
+          if (teamRecord) {
+            if (!map) map = { name: mapName, points: map.points };
+            if (teamRecord.time <= (map.time || Infinity)) {
+              map.time = teamRecord.time;
+              if (hasRegion) {
+                map.regionTeamRank = teamRecord.rank;
+              } else {
+                map.teamRank = teamRecord.rank;
+              }
+            }
+          }
+
+          if (record) {
+            if (!map) map = { name: mapName, points: map.points };
+            if (record.time <= (map.time || Infinity)) {
+              map.time = record.time;
+              if (hasRegion) {
+                map.regionRank = record.rank;
+              } else {
+                map.rank = record.rank;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(e);
+        }
       } catch (e) {
         const err = e as AxiosError;
         if (err.isAxiosError && err?.response?.status == 404) {
@@ -56,20 +104,35 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
 
       if (map) {
         card.addText(`${playerName} 的 ${map.name} 记录 (${map.points}分)`);
-        const text = [`最快用时: ${msg.tools.secTime(map.time)}`, `排名: ${map.rank}`];
-        if (map.teamRank) {
-          text.push(`团队排名: ${map.teamRank}`);
+        const text = [`最快用时: ${msg.tools.secTime(map.time)}`];
+        if (map.rank) {
+          text.push(`🌐 个人排名: #${map.rank}`);
         }
-        text.push(
-          '',
-          `完成次数: ${map.finishes}次`,
-          `首次完成: ${msg.tools.dateTime(map.firstFinish)}`
-        );
+        if (map.teamRank) {
+          text.push(`🌐 团队排名: #${map.teamRank}`);
+        }
+        if (map.regionRank) {
+          text.push(`${flag} 个人排名: #${map.regionRank}`);
+        }
+        if (map.regionTeamRank) {
+          text.push(`${flag} 团队排名: #${map.regionTeamRank}`);
+        }
+
+        if (map.finishes && map.firstFinish) {
+          text.push(
+            '',
+            `完成次数: ${map.finishes}次`,
+            `首次完成: ${msg.tools.dateTime(map.firstFinish)}`
+          );
+        }
+
         card.addText(text.join('\n'));
         card.addContext([`(met)${msg.authorId}(met)`]);
         card.setTheme('success');
       } else {
-        card.addText(`⚠ 玩家 "${playerName}"\n未完成地图 "${mapName}"`);
+        card.addText(
+          `⚠ 未找到玩家"${playerName}"与地图"${mapName}"相关的记录\n个人记录可能需要一天的时间统计，请明天再查询。`
+        );
 
         if (isButton) {
           card.addContext([`(met)${msg.authorId}(met)`]);

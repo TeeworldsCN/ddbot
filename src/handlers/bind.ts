@@ -1,7 +1,5 @@
 import { TextHandler } from './bottype';
-import { Card, SMD } from '../utils/cardBuilder';
-import { FLAGS, SERVERS_SHORT } from '../utils/consts';
-import { AxiosError } from 'axios';
+import { Card } from '../utils/cardBuilder';
 import _ from 'lodash';
 import { CommandParser } from '../utils/commandParser';
 
@@ -16,7 +14,7 @@ export const bind: TextHandler = async (msg, bot, type, raw) => {
   try {
     // 查找该人是否存在
     const response = await msg.tools.axios.get(
-      `https://ddnet.tw/players/?query=${encodeURIComponent(searchName)}`
+      `/ddnet/fuzzy/players/${encodeURIComponent(searchName)}`
     );
     if ((response.data as []).length > 0 && response.data[0].name == searchName) {
       console.log(msg.authorId);

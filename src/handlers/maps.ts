@@ -14,7 +14,7 @@ const difficulty = (stars: number) => {
 
 export const maps: TextHandler = async (msg, bot, type, raw) => {
   const query = new CommandParser(msg.content);
-  const mapQueryString = query.getRest(1);
+  const mapQueryString = query.getRest(1).replace(/['"]/g, '');
   const card = new Card('lg');
 
   if (!mapQueryString) return;
@@ -25,7 +25,7 @@ export const maps: TextHandler = async (msg, bot, type, raw) => {
   try {
     // 地图Query
     const mapQuery = await msg.tools.api.get(
-      `https://ddnet.tw/maps/?query=${encodeURIComponent(mapQueryString)}`
+      `/ddnet/fuzzy/maps/${encodeURIComponent(mapQueryString)}`
     );
     const result = mapQuery.data;
 
@@ -68,6 +68,18 @@ export const maps: TextHandler = async (msg, bot, type, raw) => {
           value: `.rank "${map.name.replace(/"/g, '\\"')}"`,
           click: 'return-val',
         },
+        {
+          theme: 'secondary',
+          text: '全球排名',
+          value: `.top global ${map.name}`,
+          click: 'return-val',
+        },
+        {
+          theme: 'secondary',
+          text: '国服排名',
+          value: `.top chn ${map.name}`,
+          click: 'return-val',
+        },
       ]);
       card.addContext([
         `发布日期: ${map.releaseDate.replace(/-/g, '/').replace('legacy', '上古老图')} (met)${
@@ -90,7 +102,8 @@ export const maps: TextHandler = async (msg, bot, type, raw) => {
 
   try {
     await msg.reply.create(card);
-  } catch {
+  } catch (e) {
+    console.error(e);
     await msg.reply.create('暂时无法回应，请稍后重试');
   }
 
