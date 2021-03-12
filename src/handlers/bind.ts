@@ -17,7 +17,6 @@ export const bind: TextHandler = async (msg, bot, type, raw) => {
       `/ddnet/fuzzy/players/${encodeURIComponent(searchName)}`
     );
     if ((response.data as []).length > 0 && response.data[0].name == searchName) {
-      console.log(msg.authorId);
       msg.tools.db.set(`ddnetBinds.u${msg.authorId}`, searchName).write();
       card.addTitle(`已绑定DDNet ID ${searchName}`);
       card.setTheme('info');
