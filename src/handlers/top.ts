@@ -132,7 +132,6 @@ export const top: TextHandler = async (msg, bot, type, raw) => {
   }
 
   try {
-    console.log(card.toString());
     await msg.reply.create(card, undefined, isButton);
   } catch (e) {
     console.error(e);

@@ -72,7 +72,7 @@ bot.on('buttonClick', (e: ButtonClickEvent) => {
 
 const feeder = new RssFeeder(10000, tools.db);
 feeder.startFeed('https://ddnet.tw/status/records/feed/', 'record', 30000, 10000);
-feeder.startFeed('https://ddnet.tw/releases/feed/', 'map', 60000, 20000);
+feeder.startFeed('https://ddnet.tw/releases/feed/', 'map', 60000, 0);
 
 feeder.register('record', async item => {
   if (!item || !item.title) {
@@ -141,16 +141,50 @@ feeder.register('map', async item => {
 
   try {
     const $ = cheerio.load(item.content);
-    const nameQuery = $('div p span').eq(0);
-    const name = nameQuery.text();
-    const size = nameQuery.attr('title').match(/([0-9]*x[0-9]*)/)[1];
-    const author = item.author;
-    const server = SERVERS[item.title.match(/\[(.*)\]/)[1].toLowerCase()];
-    const desc = $('div p').eq(1);
-    const descText = desc.text().replace('Difficulty', '星级').replace(', Points', '\n分数');
+    let name = null;
+    let author = null;
+    let server = null;
+    let size = null;
+    let desc = null;
+
+    $('div a').each((i, e) => {
+      const link = $(e);
+      const href = link.attr('href');
+      if (href.startsWith('/maps/')) {
+        name = link.text();
+      } else if (href.startsWith('/mappers/')) {
+        author = link.text();
+      } else if (href.startsWith('/ranks/')) {
+        server =
+          SERVERS[
+            link
+              .text()
+              .replace(/ [Ss]erver/, '')
+              .toLowerCase()
+          ];
+      }
+    });
+
+    if (!name || !author) throw new Error("Can't parse essential map detail");
+
+    $('div span').each((i, e) => {
+      const title = $(e).attr('title');
+      const sizeMatch = title.match(/([0-9]*x[0-9]*)/);
+      if (sizeMatch) {
+        size = sizeMatch[1];
+      }
+    });
+
+    $('div p').each((i, e) => {
+      const text = $(e).text().trim();
+      if (text.startsWith('Difficulty')) {
+        desc = text.replace('Difficulty', '星级').replace(', Points', '\n分数');
+      }
+    });
+
     const imageName = $('.screenshot')
       .attr('src')
-      .match(/\/ranks\/maps\/(.*).png/)[1];
+      .match(/\/ranks\/maps\/(.*).png/)?.[1];
 
     const tiles = $('div p')
       .eq(3)
@@ -172,18 +206,36 @@ feeder.register('map', async item => {
       value: `https://teeworlds.cn/p/${encodeURIComponent(name)}`,
       click: 'link',
     });
+
     if (tiles.length > 0) card.addContext(tiles);
-    card.addTextWithImage(
-      `地图大小: ${size}\n类型: ${server}\n${descText}\n\n发布时间: ${tools.dateTime(
-        item.updated
-      )}`,
-      {
-        src: `https://api.teeworlds.cn/ddnet/mapthumbs/${imageName}.png?square=true`,
-      },
-      'lg',
-      true
-    );
+
+    if (!size || !server || !desc) {
+      const retried = tools.db.get(`map_wait_cycle`).value() || 0;
+      if (retried < 10) {
+        tools.db.set(`map_wait_cycle`, retried + 1).write();
+        return false;
+      }
+    }
+
+    const text = [];
+    if (size) text.push(`地图大小: ${size}`);
+    if (server) text.push(`类型: ${server}`);
+    if (desc) text.push(desc);
+    const descText = `${text.join('\n')}\n\n发布时间: ${tools.dateTime(item.updated)}`;
+
+    if (imageName) {
+      card.addTextWithImage(
+        descText,
+        { src: `https://api.teeworlds.cn/ddnet/mapthumbs/${imageName}.png?square=true` },
+        'lg',
+        true
+      );
+    } else {
+      card.addText(descText);
+    }
+
     card.setTheme('success');
+    tools.db.set(`map_wait_cycle`, 0).write();
   } catch (e) {
     console.error('Map card error:');
     console.error(e);
