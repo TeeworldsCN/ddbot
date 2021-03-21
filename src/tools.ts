@@ -37,7 +37,7 @@ const tools = {
       'Accept-Encoding': 'gzip, deflate',
     },
     decompress: true,
-    timeout: 10000,
+    timeout: 30000,
   }),
   api: axios.create({
     baseURL: process.env.TWCN_API_URL,
@@ -45,7 +45,7 @@ const tools = {
       'Accept-Encoding': 'gzip, deflate',
     },
     decompress: true,
-    timeout: 10000,
+    timeout: 30000,
   }),
   db: low(dbAdapter),
   dateTime: (date: number) =>
