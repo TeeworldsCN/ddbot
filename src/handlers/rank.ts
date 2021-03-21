@@ -8,7 +8,10 @@ import { FLAGS } from '../utils/consts';
 export const rank: TextHandler = async (msg, bot, type, raw) => {
   const query = new CommandParser(msg.content);
   const mapQueryString = query.getString(1).replace(/['"]/g, '');
-  if (!mapQueryString) return;
+  if (!mapQueryString) {
+    await msg.reply.addReaction(msg.msgId, ['❌']);
+    return;
+  }
 
   const playerName = query.getRest(2) || msg.tools.db.get(`ddnetBinds.u${msg.authorId}`).value();
   const card = new Card('lg');
@@ -16,7 +19,7 @@ export const rank: TextHandler = async (msg, bot, type, raw) => {
   if (isButton) card.addContext(['该消息只有您可见']);
 
   if (!playerName) {
-    card.addMarkdown('请先使用 `.bind <名字>` 指令绑定DDNet ID再使用快速查询指令');
+    card.addMarkdown('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
     card.addContext([`(met)${msg.authorId}(met)`]);
     await msg.reply.create(card, undefined, isButton);
     return;

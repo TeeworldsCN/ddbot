@@ -109,11 +109,15 @@ feeder.register('record', async item => {
     );
     if (data[8]) {
       card.addTable([
-        [`**新记录**\n${data[5]}`, `**原记录**\n~~${old}~~`, `**${type[2]}**\n${data[8]}`],
+        [
+          `**新记录**\n${SMD(data[5])}`,
+          `**原记录**\n~~${SMD(old)}~~`,
+          `**${type[2]}**\n${data[8]}`,
+        ],
       ]);
       card.setTheme(type[3] as any);
     } else {
-      card.addTable([[`**首杀记录！**\n${data[5]}`]]);
+      card.addTable([[`**首杀记录！**\n${SMD(data[5])}`]]);
       card.setTheme('warning');
     }
   } else {

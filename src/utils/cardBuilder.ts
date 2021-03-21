@@ -29,7 +29,8 @@ export const SMD = (str: string) => {
     .replace(/\[/g, '\uFF3B')
     .replace(/\]/g, '\uFF3D')
     .replace(/\>/g, '\u02C3')
-    .replace(/\-/g, '\u02D7');
+    .replace(/\-/g, '\u02D7')
+    .replace(/\:/g, '\u0589');
 };
 
 export class Card {

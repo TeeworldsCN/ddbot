@@ -17,7 +17,10 @@ export const maps: TextHandler = async (msg, bot, type, raw) => {
   const mapQueryString = query.getRest(1).replace(/['"]/g, '');
   const card = new Card('lg');
 
-  if (!mapQueryString) return;
+  if (!mapQueryString) {
+    await msg.reply.addReaction(msg.msgId, ['❌']);
+    return;
+  }
 
   await msg.reply.addReaction(msg.msgId, ['⌛']);
 

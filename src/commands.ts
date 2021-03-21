@@ -7,9 +7,10 @@ import { maps } from './handlers/maps';
 import { bind } from './handlers/bind';
 import { rank } from './handlers/rank';
 import { top } from './handlers/top';
+import { find } from './handlers/find';
 
 /*
-    简单指令配置
+  简单指令配置
  */
 
 export const COMMANDS: { [key: string]: TextHandler } = {
@@ -25,6 +26,11 @@ export const COMMANDS: { [key: string]: TextHandler } = {
   status: ddnetStatus,
   subscribe: subscribe,
   top: top,
+  find: find,
 };
 
 export const BUTTONS: { [key: string]: ButtonHandler } = {};
+
+/* 
+  定时任务
+*/

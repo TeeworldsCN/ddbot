@@ -145,7 +145,7 @@ export const points: TextHandler = async (msg, bot, type, raw) => {
   if (temporary) card.addContext(['该消息只有您可见']);
 
   if (!searchName) {
-    card.addMarkdown('请先使用 `.bind <名字>` 指令绑定DDNet ID再使用快速查询指令');
+    card.addMarkdown('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
     card.addContext([`(met)${msg.authorId}(met)`]);
     await msg.reply.create(card, undefined, temporary);
     return;

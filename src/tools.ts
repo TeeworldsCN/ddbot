@@ -7,6 +7,7 @@ import { Card } from './utils/cardBuilder';
 import low from 'lowdb';
 import FileSync from 'lowdb/adapters/FileSync';
 import { DateTime } from 'luxon';
+import _ from 'lodash';
 
 export type ReplyType = keyof typeof TYPES;
 const TYPES = {
@@ -62,6 +63,17 @@ const tools = {
         .replace(/\=/g, '-61-')
         .replace(/\//g, '-47-')
     ),
+  addr2b: (ip: string, port: number) => {
+    const part = ip.split('.');
+    const hexStr =
+      _.padStart(parseInt(part[0]).toString(16), 2, '0') +
+      _.padStart(parseInt(part[1]).toString(16), 2, '0') +
+      _.padStart(parseInt(part[2]).toString(16), 2, '0') +
+      _.padStart(parseInt(part[3]).toString(16), 2, '0') +
+      _.padStart(port.toString(16), 4, '0');
+
+    return Buffer.from(hexStr, 'hex').toString('base64').replace(/\+/g, '_').replace(/\//g, '-');
+  },
 };
 
 export const initTools = () => tools;
