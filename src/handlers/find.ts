@@ -41,7 +41,7 @@ export const find: TextHandler = async (msg, bot, type, raw) => {
           },
           true
         );
-        card.addContext([`${player.server.ip}:${player.server.port}`], true);
+        card.addContext([`(met)${msg.authorId}(met)`]);
       }
     } else {
       card.addText(`${searchName} 当前似乎不在线`);

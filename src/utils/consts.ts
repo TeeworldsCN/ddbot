@@ -16,6 +16,7 @@ export const FLAGS: { [key: string]: string } = {
   zaf: '🇿🇦',
   jap: '🇯🇵',
   nld: '🇳🇱',
+  uae: '🇦🇪',
 };
 
 export const SERVERS: { [key: string]: string } = {
