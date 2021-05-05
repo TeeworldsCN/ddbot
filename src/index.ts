@@ -14,11 +14,21 @@ const tools = initTools();
     机器人初始化
  */
 
-const bot = new KaiheilaBot({
-  mode: 'websocket',
-  token: process.env.KAIHEILA_BOT_TOKEN,
-  ignoreDecryptError: false,
-});
+const bot = new KaiheilaBot(
+  process.env.KAIHEILA_BOT_MODE == 'webhook'
+    ? {
+        mode: 'webhook',
+        token: process.env.KAIHEILA_BOT_TOKEN,
+        port: parseInt(process.env.KAIHEILA_BOT_PORT),
+        verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
+        ignoreDecryptError: false,
+      }
+    : {
+        mode: 'websocket',
+        token: process.env.KAIHEILA_BOT_TOKEN,
+        ignoreDecryptError: false,
+      }
+);
 
 bot.on('textMessage', (e: TextMessage) => {
   // no bot message
