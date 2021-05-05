@@ -21,7 +21,7 @@ const bot = new KaiheilaBot(
         token: process.env.KAIHEILA_BOT_TOKEN,
         port: parseInt(process.env.KAIHEILA_BOT_PORT),
         verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
-        key: process.env.KAIHEILA_BOT_VERIFYTOKEN,
+        key: process.env.KAIHEILA_BOT_KEY,
         ignoreDecryptError: false,
       }
     : {
