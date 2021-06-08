@@ -28,7 +28,9 @@ export const bind: TextHandler = async (msg, type) => {
     return;
   }
 
-  await msg.reply.addReaction(msg.msgId, ['⌛']);
+  if (msg.platform == 'kaiheila') {
+    await msg.reply.addReaction(msg.msgId, ['⌛']);
+  }
 
   await DDNetIDModel.updateOne(
     { chatid: msg.autherKey },
