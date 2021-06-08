@@ -1,7 +1,7 @@
-// import { CommandParser } from '../utils/commandParser';
-// import { TextHandler } from '../bottype';
+import { CommandParser } from '../utils/commandParser';
+import { TextHandler } from '../bottype';
 
-// export const subscribe: TextHandler = async (msg, bot, type, raw) => {
+// export const subscribe: TextHandler = async msg => {
 //   if (msg.channelType == 'PERSON') return;
 //   if (!msg.author.isAdmin) return;
 

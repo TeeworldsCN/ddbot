@@ -46,5 +46,3 @@ export const SERVERS_SHORT: { [key: string]: string } = {
   race: '竞速',
   fun: '娱乐',
 };
-
-export const ADMIN_USERS = process.env.BOT_ADMIN_USERS.split(',').map(unpackID);

@@ -1,8 +1,8 @@
 import { Card } from '../utils/cardBuilder';
 
 export type MessageReply = {
-  reply: (content: string | Card, quote?: string, temp?: boolean | string) => Promise<string>;
-  replyCard: (content: Card, quote?: string, temp?: boolean | string) => Promise<string>;
+  text: (content: string | Card, quote?: string, temp?: boolean | string) => Promise<string>;
+  card: (content: Card, quote?: string, temp?: boolean | string) => Promise<string>;
   update: (msgId: string, content: string, quote?: string) => Promise<void>;
   delete: (msgId: string) => Promise<void>;
   addReaction: (msgId: string, emoji: string[]) => Promise<void>;
@@ -10,7 +10,7 @@ export type MessageReply = {
 };
 
 export abstract class GenericMessage<BotType> {
-  protected _authorKey: string;
+  protected _chatid: string;
   protected _channelId: string;
   protected _channelType: 'GROUP' | 'PERSON';
   protected _content: string;
@@ -25,7 +25,6 @@ export abstract class GenericMessage<BotType> {
     avatar?: string;
     online?: boolean;
     identifyNum?: string;
-    isAdmin: boolean;
     tag?: string;
     roles?: number[];
     game?: {
@@ -81,8 +80,8 @@ export abstract class GenericMessage<BotType> {
     return this._author;
   }
 
-  public get autherKey() {
-    return this._authorKey;
+  public get chatid() {
+    return this._chatid;
   }
 
   public get channelId() {
@@ -97,6 +96,20 @@ export abstract class GenericMessage<BotType> {
     return this._bot;
   }
 
-  public abstract get reply(): MessageReply;
+  public get reply(): MessageReply {
+    return {
+      // empty stub
+      text: async () => null,
+      card: async () => null,
+      addReaction: async () => {},
+      deleteReaction: async () => {},
+      update: async () => {},
+      delete: async () => {},
+
+      ...this.makeReply(),
+    };
+  }
+
+  public abstract makeReply(): Partial<MessageReply>;
   public abstract get platform(): string;
 }

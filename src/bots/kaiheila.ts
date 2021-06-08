@@ -1,7 +1,6 @@
 import { ButtonClickEvent, KaiheilaBot, TextMessage } from 'kaiheila-bot-root';
 import { ButtonHandler, TextHandler } from '../bottype';
-import { GenericMessage, MessageReply } from './reply';
-import { ADMIN_USERS } from '../utils/consts';
+import { GenericMessage, MessageReply } from './base';
 import { Card } from '../utils/cardBuilder';
 import { packID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
@@ -10,6 +9,8 @@ const MSG_TYPES = {
   text: 1,
   card: 10,
 };
+
+const PLATFORM = 'kaiheila';
 
 class KaiheilaMessage extends GenericMessage<BotInstance> {
   public constructor(bot: BotInstance, e: TextMessage | ButtonClickEvent, type: 'text' | 'button') {
@@ -20,12 +21,11 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     if (type == 'text') {
       e = e as TextMessage;
       const tag = `${e.author.username}#${e.author.identifyNum}`;
-      this._authorKey = packID({ platform: this.platform, id: e.authorId });
+      this._chatid = packID({ platform: this.platform, id: e.authorId });
       this._content = e.content;
       this._msgId = e.msgId;
       this._eventMsgId = e.msgId;
       this._author = {
-        isAdmin: ADMIN_USERS.map(v => v.id).indexOf(tag) >= 0,
         tag,
         id: e.authorId,
         ...(e as TextMessage).author,
@@ -34,12 +34,11 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     } else {
       e = e as ButtonClickEvent;
       const tag = `${e.user.username}#${e.user.identifyNum}`;
-      this._authorKey = packID({ platform: this.platform, id: e.userId });
+      this._chatid = packID({ platform: this.platform, id: e.userId });
       this._content = e.value;
       this._msgId = e.targetMsgId;
       this._eventMsgId = e.msgId;
       this._author = {
-        isAdmin: ADMIN_USERS.map(v => v.id).indexOf(tag) >= 0,
         tag,
         ...e.user,
         id: e.userId,
@@ -52,10 +51,10 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     this._msgTimestamp = e.msgTimestamp;
   }
 
-  public get reply(): MessageReply {
+  public makeReply(): Partial<MessageReply> {
     if (this._channelType == 'PERSON') {
       return {
-        reply: async (content: string, quote?: string, temp?: boolean | string) => {
+        text: async (content: string, quote?: string, temp?: boolean | string) => {
           let type = MSG_TYPES.text;
           const result = await this.bot.API.directMessage.create(
             type,
@@ -66,7 +65,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
           );
           return result.msgId;
         },
-        replyCard: async (content: Card, quote?: string, temp?: boolean | string) => {
+        card: async (content: Card, quote?: string, temp?: boolean | string) => {
           let type = MSG_TYPES.card;
           const result = await this.bot.API.directMessage.create(
             type,
@@ -99,7 +98,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       };
     } else {
       return {
-        reply: async (content: string, quote?: string, temp?: boolean | string) => {
+        text: async (content: string, quote?: string, temp?: boolean | string) => {
           let type = MSG_TYPES.text;
           const result = await this.bot.API.message.create(
             type,
@@ -110,7 +109,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
           );
           return result.msgId;
         },
-        replyCard: async (content: Card, quote?: string, temp?: boolean | string) => {
+        card: async (content: Card, quote?: string, temp?: boolean | string) => {
           let type = MSG_TYPES.card;
           const result = await this.bot.API.message.create(
             type,
@@ -138,7 +137,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
   }
 
   public get platform(): string {
-    return 'kaiheila';
+    return PLATFORM;
   }
 }
 
@@ -180,9 +179,11 @@ export const kaiheilaStart = () => {
 
     e.content = text;
 
+    const msg = new KaiheilaMessage(kaiheila, e, 'text');
+
     for (let key in Commands) {
       if (key == command) {
-        Commands[key](new KaiheilaMessage(kaiheila, e, 'text'), 'text').catch(reason => {
+        Commands[key](msg).catch(reason => {
           console.error(`Error proccessing command '${text}'`);
           console.error(reason);
         });
@@ -195,7 +196,7 @@ export const kaiheilaStart = () => {
       const command = e.value.split(' ')[0].slice(1);
       for (let key in Commands) {
         if (key == command) {
-          Commands[key](new KaiheilaMessage(kaiheila, e, 'button'), 'button').catch(reason => {
+          Commands[key](new KaiheilaMessage(kaiheila, e, 'text')).catch(reason => {
             console.error(`Error proccessing command button'${e.value}'`);
             console.error(reason);
           });

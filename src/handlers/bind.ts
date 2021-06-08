@@ -2,9 +2,9 @@ import { TextHandler } from '../bottype';
 import { Card } from '../utils/cardBuilder';
 import _ from 'lodash';
 import { CommandParser } from '../utils/commandParser';
-import { DDNetIDModel } from '../db/ddnetid';
+import { UserModel } from '../db/user';
 
-export const bind: TextHandler = async (msg, type) => {
+export const bind: TextHandler = async msg => {
   const query = new CommandParser(msg.content);
   const searchName = query.getRest(1);
 
@@ -21,19 +21,15 @@ export const bind: TextHandler = async (msg, type) => {
         await msg.reply.delete(msg.msgId);
       } catch {}
 
-      await msg.reply.replyCard(card, undefined, true);
+      await msg.reply.card(card, undefined, true);
     } else if (msg.platform == 'wechat') {
-      msg.reply.reply(`请提供您的DDNet昵称`);
+      msg.reply.text(`请提供您的DDNet昵称`);
     }
     return;
   }
 
-  if (msg.platform == 'kaiheila') {
-    await msg.reply.addReaction(msg.msgId, ['⌛']);
-  }
-
-  await DDNetIDModel.updateOne(
-    { chatid: msg.autherKey },
+  await UserModel.updateOne(
+    { chatid: msg.chatid },
     { $set: { ddnetid: searchName } },
     { upsert: true }
   );
@@ -50,8 +46,8 @@ export const bind: TextHandler = async (msg, type) => {
       await msg.reply.delete(msg.msgId);
     } catch {}
 
-    await msg.reply.replyCard(card, undefined, true);
+    await msg.reply.card(card, undefined, true);
   } else if (msg.platform == 'wechat') {
-    msg.reply.reply(`成功绑定DDNet ID: ${searchName}`);
+    msg.reply.text(`成功绑定DDNet ID: ${searchName}`);
   }
 };

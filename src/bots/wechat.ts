@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import axios, { AxiosInstance } from 'axios';
 import sha1 from 'sha1';
 import { ButtonHandler, TextHandler } from '../bottype';
-import { GenericMessage, MessageReply } from './reply';
+import { GenericMessage, MessageReply } from './base';
 import { packID } from '../utils/helpers';
 import { parse, j2xParser } from 'fast-xml-parser';
 
@@ -62,6 +62,8 @@ const checkSign = (req: express.Request, res: express.Response, next: express.Ne
   res.sendStatus(404);
 };
 
+const PLATFORM = 'wechat';
+
 class WechatMessage extends GenericMessage<AxiosInstance> {
   private _sent = false;
 
@@ -75,12 +77,11 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     this._type = type;
 
     if (type == 'text') {
-      this._authorKey = packID({ platform: this.platform, id: req.body.FromUserName.__cdata });
+      this._chatid = packID({ platform: this.platform, id: req.body.FromUserName.__cdata });
       this._content = req.body.Content.__cdata;
       this._msgId = req.body.MsgId;
       this._eventMsgId = req.body.MsgId;
       this._author = {
-        isAdmin: false,
         tag: 'Anonymous',
         nickname: '公众号用户',
         username: 'WechatUser',
@@ -94,10 +95,10 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     this._msgTimestamp = req.body.CreateTime;
   }
 
-  public get reply(): MessageReply {
+  public makeReply(): Partial<MessageReply> {
     const res: express.Response = this._raw.res;
     return {
-      reply: async (content: string, quote?: string, temp?: boolean | string) => {
+      text: async (content: string, quote?: string, temp?: boolean | string) => {
         if (this._sent) return null;
         const xml = json2xml.parse({
           xml: {
@@ -112,7 +113,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
         this._sent = true;
         return null;
       },
-      replyCard: async (content: any, quote?: string, temp?: boolean | string) => {
+      card: async (content: any, quote?: string, temp?: boolean | string) => {
         return null;
       },
       update: async (msgId: string, content: string, quote?: string) => {
@@ -131,7 +132,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   }
 
   public get platform(): string {
-    return 'wechat';
+    return PLATFORM;
   }
 
   public get sent() {
@@ -166,7 +167,7 @@ wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) =
     for (let key in Commands) {
       if (key == command) {
         try {
-          await Commands[key](reply, 'text');
+          await Commands[key](reply);
         } catch (e) {
           console.error(`Error proccessing command '${content}'`);
           console.error(e);
