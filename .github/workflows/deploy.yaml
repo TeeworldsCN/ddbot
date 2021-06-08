@@ -20,26 +20,32 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Publish
+      - name: Publish dist
         uses: nogsantos/scp-deploy@master
         with:
-          src: ./*
+          src: ./dist
+          host: ${{ secrets.SSH_HOST }}
+          remote: ${{ secrets.SSH_DIR }}/dist
+          port: ${{ secrets.SSH_PORT }}
+          user: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+
+      - name: Publish package.json
+        uses: nogsantos/scp-deploy@master
+        with:
+          src: ./package.json
           host: ${{ secrets.SSH_HOST }}
           remote: ${{ secrets.SSH_DIR }}
           port: ${{ secrets.SSH_PORT }}
           user: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
 
-      - name: Post command
+      - uses: actions/checkout@master
+      - name: Deploy
         uses: appleboy/ssh-action@master
-        env:
-          WORKING_DIR: ${{ secrets.SSH_DIR }}
-          DEPLOY_COMMANDS: ${{ secrets.DEPLOY_COMMANDS }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd $WORKING_DIR
-            bash -c $DEPLOY_COMMANDS
+          script: ${{ secrets.DEPLOY_COMMANDS }}
