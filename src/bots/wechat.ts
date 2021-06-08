@@ -136,6 +136,11 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
 const Commands: { [key: string]: TextHandler } = {};
 const Buttons: { [key: string]: ButtonHandler } = {};
 
+wechat.get('/', checkSign, (req, res) => {
+  if (req.query.echostr) return res.send(req.query.echostr);
+  return res.sendStatus(404);
+});
+
 wechat.post('/', checkSign, express.json(), (req, res) => {
   const type = req.body.type;
   if (type === 'text') {
