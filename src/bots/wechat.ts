@@ -34,7 +34,7 @@ const wechatAPI = axios.create({
   timeout: 3000,
 });
 
-const getToken = async () => {
+const accessToken = async () => {
   if (DateTime.now() >= wechatState.expireDate) {
     wechatState.expireDate = DateTime.now();
     const result = await wechatAPI.get('/token', {
@@ -131,6 +131,28 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
 
   public get sent() {
     return this._sent;
+  }
+
+  public async fetchUserInfo() {
+    try {
+      const { data } = await this.bot.instance.get('user/info', {
+        params: {
+          access_token: await accessToken(),
+          openid: this.userId,
+          lang: 'zh_CN',
+        },
+      });
+
+      if (!data.subscribe) return;
+
+      this.author.nickname = data.nickname;
+      this.author.username = data.nickname;
+      this.author.tag = data.remark;
+      this.author.avatar = data.headimgurl;
+    } catch (e) {
+      console.warn(`[微信]获取用户信息(${this.userId})失败`);
+      console.warn(e);
+    }
   }
 }
 

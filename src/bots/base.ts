@@ -172,5 +172,7 @@ export abstract class GenericMessage<BotType> {
     };
   }
 
+  public async fetchUserInfo(): Promise<void> {}
+
   public abstract makeReply(): Partial<MessageReply>;
 }
