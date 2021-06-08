@@ -147,7 +147,7 @@ wechat.get('/', checkSign, (req, res) => {
   return res.sendStatus(404);
 });
 
-wechat.post('/', checkSign, express.text(), async (req, res) => {
+wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) => {
   try {
     const data = parse(req.body, xmlParseOption);
     req.body = data.xml;
