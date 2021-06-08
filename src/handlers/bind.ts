@@ -1,42 +1,55 @@
-import { TextHandler } from './bottype';
+import { TextHandler } from '../bottype';
 import { Card } from '../utils/cardBuilder';
 import _ from 'lodash';
 import { CommandParser } from '../utils/commandParser';
+import { DDNetIDModel } from '../db/ddnetid';
 
-export const bind: TextHandler = async (msg, bot, type, raw) => {
+export const bind: TextHandler = async (msg, type) => {
   const query = new CommandParser(msg.content);
   const searchName = query.getRest(1);
-  const card = new Card('sm');
 
-  await msg.reply.addReaction(msg.msgId, ['⌛']);
-  card.addContext(['该消息只有您可见']);
+  if (!searchName) {
+    if (msg.platform == 'kaiheila') {
+      const card = new Card('sm');
+      card.addContext(['该消息只有您可见']);
 
-  try {
-    // 查找该人是否存在
-    const response = await msg.tools.api.get(
-      `/ddnet/fuzzy/players/${encodeURIComponent(searchName)}`
-    );
-    if ((response.data as []).length > 0 && response.data[0].name == searchName) {
-      msg.tools.db.set(`ddnetBinds.u${msg.authorId}`, searchName).write();
-      card.addTitle(`已绑定DDNet ID ${searchName}`);
-      card.setTheme('info');
-    } else {
-      card.addTitle(`未找到DDNet玩家: ${searchName}`);
-      card.addText('请检查名字是否正确');
+      card.addTitle(`请提供您的DDNet昵称`);
       card.setTheme('danger');
+      card.addContext([`(met)${msg.author.id}(met)`]);
+
+      try {
+        await msg.reply.delete(msg.msgId);
+      } catch {}
+
+      await msg.reply.replyCard(card, undefined, true);
+    } else if (msg.platform == 'wechat') {
+      msg.reply.reply(`请提供您的DDNet昵称`);
     }
-    card.addContext([`(met)${msg.authorId}(met)`]);
-  } catch (err) {
-    card.slice(0, 0);
-    card.addMarkdown('❌ *请求超时，请稍后重试*');
-    card.addContext([`(met)${msg.authorId}(met)`]);
-    card.setTheme('danger');
-    console.error(err);
+    return;
   }
 
-  try {
-    await msg.reply.delete(msg.msgId);
-  } catch {}
+  await msg.reply.addReaction(msg.msgId, ['⌛']);
 
-  await msg.reply.create(card, undefined, true);
+  await DDNetIDModel.updateOne(
+    { chatid: msg.autherKey },
+    { $set: { ddnetid: searchName } },
+    { upsert: true }
+  );
+
+  if (msg.platform == 'kaiheila') {
+    const card = new Card('sm');
+    card.addContext(['该消息只有您可见']);
+
+    card.addTitle(`成功绑定DDNet ID ${searchName}`);
+    card.setTheme('info');
+    card.addContext([`(met)${msg.author.id}(met)`]);
+
+    try {
+      await msg.reply.delete(msg.msgId);
+    } catch {}
+
+    await msg.reply.replyCard(card, undefined, true);
+  } else if (msg.platform == 'wechat') {
+    msg.reply.reply(`成功绑定DDNet ID: ${searchName}`);
+  }
 };

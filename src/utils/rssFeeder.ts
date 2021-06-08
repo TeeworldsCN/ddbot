@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
-import Lowdb from 'lowdb';
 import cheerio from 'cheerio';
+import { SubscriptionModel } from '../db/subscription';
 
 interface FeedEntry {
   title: string;
@@ -14,9 +14,8 @@ export class RssFeeder {
   private axios: AxiosInstance;
   private events: { [key: string]: (entry: FeedEntry) => Promise<boolean> };
   private timeout: number;
-  private db: Lowdb.LowdbSync<any>;
 
-  public constructor(timeout: number = 10000, db: Lowdb.LowdbSync<any>) {
+  public constructor(timeout: number = 10000) {
     this.axios = axios.create({
       headers: {
         'Accept-Encoding': 'gzip, deflate',
@@ -27,7 +26,6 @@ export class RssFeeder {
 
     this.timeout = timeout;
     this.events = {};
-    this.db = db;
   }
 
   public startFeed(url: string, eventName: string, interval: number, offset: number) {
@@ -39,7 +37,16 @@ export class RssFeeder {
       const event = async () => {
         try {
           const response = await this.axios.get(url);
-          let last_time = this.db.get(`${eventName}_last`).value() || 0;
+
+          const doc = await SubscriptionModel.findOne({ name: eventName });
+
+          if (!doc) {
+            console.log(`${eventName} not subscribed`);
+            return;
+          }
+
+          let last_time = doc.last;
+
           const entries: FeedEntry[] = [];
 
           const $ = cheerio.load(response.data);
@@ -82,7 +89,8 @@ export class RssFeeder {
           }
 
           if (dirty) {
-            this.db.set(`${eventName}_last`, last_time).write();
+            doc.last = last_time;
+            doc.save();
           }
         } catch (e) {
           console.error('Feed error:');
