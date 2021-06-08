@@ -1,6 +1,6 @@
 import { ButtonClickEvent, KaiheilaBot, TextMessage } from 'kaiheila-bot-root';
 import { ButtonHandler, TextHandler } from '../bottype';
-import { GenericMessage, MessageReply } from './base';
+import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
 import { Card } from '../utils/cardBuilder';
 import { packID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
@@ -11,9 +11,166 @@ const MSG_TYPES = {
 };
 
 const PLATFORM = 'kaiheila';
+class KaiheilaBotAdapter extends GenericBot<BotInstance> {
+  public makeChannelContext(channelId: string): Partial<MessageAction> {
+    return {
+      text: async (content: string, quote?: string, temp?: string) => {
+        try {
+          let type = MSG_TYPES.text;
+          const result = await this.instance.API.message.create(
+            type,
+            channelId,
+            content,
+            quote,
+            temp
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送消息失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      card: async (content: Card, quote?: string, temp?: string) => {
+        try {
+          let type = MSG_TYPES.card;
+          const result = await this.instance.API.message.create(
+            type,
+            channelId,
+            content.toString(),
+            quote,
+            temp
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送卡片失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      update: async (msgId: string, content: string, quote?: string) => {
+        try {
+          await this.instance.API.message.update(msgId, content.toString(), quote);
+        } catch (e) {
+          console.warn(`[开黑啦] 更新消息失败`);
+          console.warn(e);
+        }
+      },
+      delete: async (msgId: string) => {
+        try {
+          await this.instance.API.message.delete(msgId);
+        } catch (e) {
+          console.warn(`[开黑啦] 删除消息失败`);
+          console.warn(e);
+        }
+      },
+      addReaction: async (msgId: string, emoji: string[]) => {
+        try {
+          await this.instance.API.message.addReaction(msgId, emoji[0]);
+        } catch (e) {
+          console.warn(`[开黑啦] 添加回应失败`);
+          console.warn(e);
+        }
+      },
+      deleteReaction: async (msgId: string, emoji: string[], userId?: string) => {
+        try {
+          await this.instance.API.message.deleteReaction(msgId, emoji[0], undefined);
+        } catch (e) {
+          console.warn(`[开黑啦] 删除回应失败`);
+          console.warn(e);
+        }
+      },
+    };
+  }
 
+  public makeUserContext(userId: string): Partial<MessageAction> {
+    return {
+      text: async (content: string, quote?: string, temp?: string) => {
+        try {
+          let type = MSG_TYPES.text;
+          const result = await this.instance.API.directMessage.create(
+            type,
+            userId,
+            undefined,
+            content,
+            quote
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送消息失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      card: async (content: Card, quote?: string, temp?: string) => {
+        try {
+          let type = MSG_TYPES.card;
+          const result = await this.instance.API.directMessage.create(
+            type,
+            userId,
+            undefined,
+            content.toString(),
+            quote
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送卡片失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      update: async (msgId: string, content: string, quote?: string) => {
+        try {
+          await this.instance.API.directMessage.update(msgId, content.toString(), quote);
+        } catch (e) {
+          console.warn(`[开黑啦] 更新消息失败`);
+          console.warn(e);
+        }
+      },
+      delete: async (msgId: string) => {
+        try {
+          await this.instance.API.directMessage.delete(msgId);
+        } catch (e) {
+          console.warn(`[开黑啦] 删除消息失败`);
+          console.warn(e);
+        }
+      },
+      addReaction: async (msgId: string, emoji: string[]) => {
+        try {
+          await this.instance.API.directMessage.addReaction(
+            msgId,
+            emoji.length > 1 ? emoji[1] : emoji[0]
+          );
+        } catch (e) {
+          console.warn(`[开黑啦] 添加回应失败`);
+          console.warn(e);
+        }
+      },
+      deleteReaction: async (msgId: string, emoji: string[], userId?: string) => {
+        try {
+          await this.instance.API.directMessage.deleteReaction(
+            msgId,
+            emoji.length > 1 ? emoji[1] : emoji[0],
+            undefined
+          );
+        } catch (e) {
+          console.warn(`[开黑啦] 删除回应失败`);
+          console.warn(e);
+        }
+      },
+    };
+  }
+
+  public get platform(): string {
+    return PLATFORM;
+  }
+}
 class KaiheilaMessage extends GenericMessage<BotInstance> {
-  public constructor(bot: BotInstance, e: TextMessage | ButtonClickEvent, type: 'text' | 'button') {
+  public constructor(
+    bot: KaiheilaBotAdapter,
+    e: TextMessage | ButtonClickEvent,
+    type: 'text' | 'button'
+  ) {
     super(bot, e);
 
     this._type = type;
@@ -21,7 +178,8 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     if (type == 'text') {
       e = e as TextMessage;
       const tag = `${e.author.username}#${e.author.identifyNum}`;
-      this._chatid = packID({ platform: this.platform, id: e.authorId });
+      this._userId = e.authorId;
+      this._userKey = packID({ platform: this.bot.platform, id: e.authorId });
       this._content = e.content;
       this._msgId = e.msgId;
       this._eventMsgId = e.msgId;
@@ -34,139 +192,66 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     } else {
       e = e as ButtonClickEvent;
       const tag = `${e.user.username}#${e.user.identifyNum}`;
-      this._chatid = packID({ platform: this.platform, id: e.userId });
+      this._userId = packID({ platform: this.bot.platform, id: e.userId });
+      this._userKey = packID({ platform: this.bot.platform, id: e.userId });
       this._content = e.value;
       this._msgId = e.targetMsgId;
       this._eventMsgId = e.msgId;
       this._author = {
         tag,
         ...e.user,
-        id: e.userId,
         nickname: e.user.username,
       };
     }
 
+    this._channelKey = packID({ platform: this.bot.platform, id: e.channelId });
     this._channelId = e.channelId;
-    this._channelType = e.channelType as any;
+    this._sessionType = e.channelType == 'GROUP' ? 'CHANNEL' : 'DM';
     this._msgTimestamp = e.msgTimestamp;
   }
 
   public makeReply(): Partial<MessageReply> {
-    if (this._channelType == 'PERSON') {
-      return {
-        text: async (content: string, quote?: string, temp?: boolean | string) => {
-          let type = MSG_TYPES.text;
-          const result = await this.bot.API.directMessage.create(
-            type,
-            this.author.id,
-            undefined,
-            content,
-            quote
-          );
-          return result.msgId;
-        },
-        card: async (content: Card, quote?: string, temp?: boolean | string) => {
-          let type = MSG_TYPES.card;
-          const result = await this.bot.API.directMessage.create(
-            type,
-            this.author.id,
-            undefined,
-            content.toString(),
-            quote
-          );
-          return result.msgId;
-        },
-        update: async (msgId: string, content: string, quote?: string) => {
-          await this.bot.API.directMessage.update(msgId, content.toString(), quote);
-        },
-        delete: async (msgId: string) => {
-          await this.bot.API.directMessage.delete(msgId);
-        },
-        addReaction: async (msgId: string, emoji: string[]) => {
-          await this.bot.API.directMessage.addReaction(
-            msgId,
-            emoji.length > 1 ? emoji[1] : emoji[0]
-          );
-        },
-        deleteReaction: async (msgId: string, emoji: string[], userId?: string) => {
-          await this.bot.API.directMessage.deleteReaction(
-            msgId,
-            emoji.length > 1 ? emoji[1] : emoji[0],
-            undefined
-          );
-        },
-      };
-    } else {
-      return {
-        text: async (content: string, quote?: string, temp?: boolean | string) => {
-          let type = MSG_TYPES.text;
-          const result = await this.bot.API.message.create(
-            type,
-            this._channelId,
-            content,
-            quote,
-            typeof temp == 'boolean' ? (temp ? this.author.id : undefined) : temp
-          );
-          return result.msgId;
-        },
-        card: async (content: Card, quote?: string, temp?: boolean | string) => {
-          let type = MSG_TYPES.card;
-          const result = await this.bot.API.message.create(
-            type,
-            this._channelId,
-            content.toString(),
-            quote,
-            typeof temp == 'boolean' ? (temp ? this.author.id : undefined) : temp
-          );
-          return result.msgId;
-        },
-        update: async (msgId: string, content: string, quote?: string) => {
-          await this.bot.API.message.update(msgId, content.toString(), quote);
-        },
-        delete: async (msgId: string) => {
-          await this.bot.API.message.delete(msgId);
-        },
-        addReaction: async (msgId: string, emoji: string[]) => {
-          await this.bot.API.message.addReaction(msgId, emoji[0]);
-        },
-        deleteReaction: async (msgId: string, emoji: string[], userId?: string) => {
-          await this.bot.API.message.deleteReaction(msgId, emoji[0], undefined);
-        },
-      };
-    }
-  }
-
-  public get platform(): string {
-    return PLATFORM;
+    const context =
+      this.sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
+    return {
+      text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
+      card: (c, q, t) => context.card(c, q, t ? this.userId : undefined),
+      update: (c, q) => context.update(this.msgId, c, q),
+      delete: () => context.delete(this.msgId),
+      addReaction: e => context.addReaction(this.msgId, e),
+      deleteReaction: (e, u) => context.deleteReaction(this.msgId, e, u),
+    };
   }
 }
 
 const Commands: { [key: string]: TextHandler } = {};
 const Buttons: { [key: string]: ButtonHandler } = {};
 
-export let kaiheila: BotInstance = null;
+export let kaiheila: KaiheilaBotAdapter = null;
 
 export const kaiheilaStart = () => {
   if (!process.env.KAIHEILA_BOT_TOKEN) return;
 
-  kaiheila = new KaiheilaBot(
-    process.env.KAIHEILA_BOT_MODE == 'webhook'
-      ? {
-          mode: 'webhook',
-          token: process.env.KAIHEILA_BOT_TOKEN,
-          port: parseInt(process.env.KAIHEILA_BOT_PORT),
-          verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
-          key: process.env.KAIHEILA_BOT_KEY,
-          ignoreDecryptError: false,
-        }
-      : {
-          mode: 'websocket',
-          token: process.env.KAIHEILA_BOT_TOKEN,
-          ignoreDecryptError: false,
-        }
+  kaiheila = new KaiheilaBotAdapter(
+    new KaiheilaBot(
+      process.env.KAIHEILA_BOT_MODE == 'webhook'
+        ? {
+            mode: 'webhook',
+            token: process.env.KAIHEILA_BOT_TOKEN,
+            port: parseInt(process.env.KAIHEILA_BOT_PORT),
+            verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
+            key: process.env.KAIHEILA_BOT_KEY,
+            ignoreDecryptError: false,
+          }
+        : {
+            mode: 'websocket',
+            token: process.env.KAIHEILA_BOT_TOKEN,
+            ignoreDecryptError: false,
+          }
+    )
   );
 
-  kaiheila.on('textMessage', (e: TextMessage) => {
+  kaiheila.instance.on('textMessage', (e: TextMessage) => {
     // no bot message
     if (e.author.bot) return;
 
@@ -191,7 +276,7 @@ export const kaiheilaStart = () => {
     }
   });
 
-  kaiheila.on('buttonClick', (e: ButtonClickEvent) => {
+  kaiheila.instance.on('buttonClick', (e: ButtonClickEvent) => {
     if (e.value.startsWith('.')) {
       const command = e.value.split(' ')[0].slice(1);
       for (let key in Commands) {
@@ -214,7 +299,7 @@ export const kaiheilaStart = () => {
     }
   });
 
-  kaiheila.connect();
+  kaiheila.instance.connect();
 };
 
 export const kaiheilaAddCommand = (command: string, handler: TextHandler) => {

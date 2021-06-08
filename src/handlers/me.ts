@@ -1,6 +1,6 @@
 import { TextHandler } from '../bottype';
 
 export const me: TextHandler = async msg => {
-  msg.reply.delete(msg.msgId);
-  msg.reply.text(`你的ID: ${msg.chatid}`, null, true);
+  msg.reply.delete();
+  msg.reply.text(`Hi! ${msg.author.nickname}\n你的ID: ${msg.userKey}`, null, true);
 };

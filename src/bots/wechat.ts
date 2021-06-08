@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import axios, { AxiosInstance } from 'axios';
 import sha1 from 'sha1';
 import { ButtonHandler, TextHandler } from '../bottype';
-import { GenericMessage, MessageReply } from './base';
+import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
 import { packID } from '../utils/helpers';
 import { parse, j2xParser } from 'fast-xml-parser';
 
@@ -64,11 +64,23 @@ const checkSign = (req: express.Request, res: express.Response, next: express.Ne
 
 const PLATFORM = 'wechat';
 
+class WechatBotAdapter extends GenericBot<AxiosInstance> {
+  public makeChannelContext(channelId: string): Partial<MessageAction> {
+    return {};
+  }
+  public makeUserContext(userId: string): Partial<MessageAction> {
+    return {};
+  }
+  public get platform(): string {
+    return PLATFORM;
+  }
+}
+
 class WechatMessage extends GenericMessage<AxiosInstance> {
   private _sent = false;
 
   public constructor(
-    bot: AxiosInstance,
+    bot: WechatBotAdapter,
     e: { req: express.Request; res: express.Response },
     type: 'text'
   ) {
@@ -77,7 +89,8 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     this._type = type;
 
     if (type == 'text') {
-      this._chatid = packID({ platform: this.platform, id: req.body.FromUserName.__cdata });
+      this._userId = req.body.FromUserName.__cdata;
+      this._userKey = packID({ platform: this.bot.platform, id: this._userId });
       this._content = req.body.Content.__cdata;
       this._msgId = req.body.MsgId;
       this._eventMsgId = req.body.MsgId;
@@ -85,13 +98,13 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
         tag: 'Anonymous',
         nickname: '公众号用户',
         username: 'WechatUser',
-        id: req.body.FromUserName.__cdata,
       };
       if (!this._author.nickname) this._author.nickname = this._author.username;
     }
 
     this._channelId = req.body.ToUserName.__cdata;
-    this._channelType = 'PERSON';
+    this._channelKey = packID({ platform: this.bot.platform, id: req.body.ToUserName.__cdata });
+    this._sessionType = 'DM';
     this._msgTimestamp = req.body.CreateTime;
   }
 
@@ -102,7 +115,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
         if (this._sent) return null;
         const xml = json2xml.parse({
           xml: {
-            ToUserName: { __cdata: this.author.id },
+            ToUserName: { __cdata: this.userId },
             FromUserName: { __cdata: this.channelId },
             CreateTime: DateTime.now().toMillis(),
             MsgType: { __cdata: 'text' },
@@ -113,26 +126,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
         this._sent = true;
         return null;
       },
-      card: async (content: any, quote?: string, temp?: boolean | string) => {
-        return null;
-      },
-      update: async (msgId: string, content: string, quote?: string) => {
-        return null;
-      },
-      delete: async (msgId: string) => {
-        return null;
-      },
-      addReaction: async (msgId: string, emoji: string[]) => {
-        return null;
-      },
-      deleteReaction: async (msgId: string, emoji: string[], userId?: string) => {
-        return null;
-      },
     };
-  }
-
-  public get platform(): string {
-    return PLATFORM;
   }
 
   public get sent() {
@@ -148,6 +142,8 @@ wechat.get('/', checkSign, (req, res) => {
   return res.sendStatus(404);
 });
 
+const wechatBot = new WechatBotAdapter(axios);
+
 wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) => {
   try {
     const data = parse(req.body, xmlParseOption);
@@ -159,10 +155,17 @@ wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) =
   const type = req.body.MsgType.__cdata;
 
   if (type === 'text') {
-    const content = req.body.Content.__cdata;
-    const command = content.split(' ')[0].toLowerCase();
+    let content = req.body.Content.__cdata;
 
-    const reply = new WechatMessage(wechatAPI, { req, res }, 'text');
+    if (!content.startsWith('.') && !content.startsWith('。')) {
+      return;
+    }
+
+    content = content.replace(/^\. /, '.');
+    const command = content.split(' ')[0].slice(1).toLowerCase();
+    req.body.Content.__cdata = content;
+
+    const reply = new WechatMessage(wechatBot, { req, res }, 'text');
 
     for (let key in Commands) {
       if (key == command) {

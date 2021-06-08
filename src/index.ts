@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { kaiheilaAddCommand, kaiheilaStart } from './bots/kaiheila';
 import { wechatAddCommand, wechatStart } from './bots/wechat';
 import { initAdmins } from './db/user';
+import { assign, nuke } from './handlers/adminTools';
 
 import { bind } from './handlers/bind';
 import { me } from './handlers/me';
@@ -26,6 +27,8 @@ import { startWebhook as webhookStart } from './webhook';
 /*
     机器人指令绑定
 */
+kaiheilaAddCommand('nuke', nuke);
+kaiheilaAddCommand('assign', assign);
 kaiheilaAddCommand('bind', bind);
 kaiheilaAddCommand('me', me);
 
