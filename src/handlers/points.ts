@@ -163,7 +163,7 @@ const playerLink = (label: string, player: string) => {
   return `[${SMD(label)}](https://ddnet.tw/players/${ddnetEncode(player)})`;
 };
 
-const fetchPlayer = async (player: string, server?: string | false) => {
+const fetchPlayer = async (player: string, allowFuzzy?: boolean, server?: string | false) => {
   const result: any = {};
 
   try {
@@ -228,7 +228,9 @@ export const points: TextHandler = async msg => {
 
   await msg.reply.addReaction(['⌛']);
 
-  const result = isKaiheila ? await fetchPlayer(searchName) : await fetchPlayer(searchName, false);
+  const result = isKaiheila
+    ? await fetchPlayer(searchName, true)
+    : await fetchPlayer(searchName, true, false);
 
   if (!result || (result.type != 'fuzzy' && result.type != 'points')) {
     if (isKaiheila) {
@@ -366,4 +368,62 @@ export const points: TextHandler = async msg => {
   }
 
   await msg.reply.deleteReaction(['⌛']);
+};
+
+// 微信Only，查个人点数排名
+export const pointRank: TextHandler = async msg => {
+  const query = new CommandParser(msg.content);
+  const name = query.getRest(1);
+
+  const searchName = name || (await getUser(msg.userKey))?.ddnetid;
+
+  if (!searchName) {
+    await msg.reply.text(
+      '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“TsFreddie”，输入：\n绑定 TsFreddie'
+    );
+    return;
+  }
+
+  const result = await fetchPlayer(searchName, false);
+
+  if (!result) {
+    await msg.reply.text(`未找到玩家 ${searchName}`);
+    return;
+  }
+
+  const player = result.data;
+  const lines = [];
+
+  lines.push(`玩家排名: ${searchName}\n`);
+
+  const regional = [];
+  if (player.fetchedRegionalData) {
+    regional.push([
+      ['region_points', `\n${player.flag} 点数`, '未进前五百'],
+      ['region_team_rank', `${player.flag} 团队`, '未进前五百'],
+      ['region_rank', `${player.flag} 个人`, '未进前五百'],
+    ]);
+  }
+
+  const categories = [
+    [
+      ['points', '🌐 点数', '无排名'],
+      ['team_rank', '🌐 团队', '无排名'],
+      ['rank', '🌐 个人', '无排名'],
+    ],
+    ...regional,
+  ];
+
+  for (let row of categories) {
+    for (let category of row) {
+      const rankData = player[category[0]];
+      if (rankData && rankData.points) {
+        lines.push(`${category[1]}: 第${rankData.rank}名 (${rankData.points}pts)`);
+      } else {
+        lines.push(`${category[1]}: (${category[2]})`);
+      }
+    }
+  }
+
+  await msg.reply.text(lines.join('\n'));
 };

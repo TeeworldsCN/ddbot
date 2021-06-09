@@ -7,8 +7,11 @@ import { initAdmins } from './db/user';
 import { assign, nuke } from './handlers/adminTools';
 
 import { bind } from './handlers/bind';
+import { find } from './handlers/find';
 import { me } from './handlers/me';
-import { points } from './handlers/points';
+import { pointRank, points } from './handlers/points';
+import { rank } from './handlers/rank';
+import { top } from './handlers/top';
 import { startWebhook as webhookStart } from './webhook';
 
 /*
@@ -32,15 +35,19 @@ kaiheilaAddCommand('nuke', nuke);
 kaiheilaAddCommand('assign', assign);
 kaiheilaAddCommand('me', me);
 kaiheilaAddCommand('bind', bind);
-kaiheilaAddCommand('绑定', bind);
 kaiheilaAddCommand('points', points);
-kaiheilaAddCommand('点数', points);
+kaiheilaAddCommand('rank', rank);
+kaiheilaAddCommand('find', find);
+kaiheilaAddCommand('top', top);
+kaiheilaAddCommand('pointrank', pointRank);
 
 wechatAddCommand('me', me);
 wechatAddCommand('bind', bind);
 wechatAddCommand('绑定', bind);
 wechatAddCommand('points', points);
 wechatAddCommand('点数', points);
+wechatAddCommand('rank', rank);
+wechatAddCommand('排名', rank);
 
 /*
     启动机器人

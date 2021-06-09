@@ -3,8 +3,6 @@ import { Card } from '../utils/cardBuilder';
 import _ from 'lodash';
 import { CommandParser } from '../utils/commandParser';
 import { UserModel } from '../db/user';
-import { wechatAddCommand } from '../bots/wechat';
-import { kaiheilaAddCommand } from '../bots/kaiheila';
 
 export const bind: TextHandler = async msg => {
   const query = new CommandParser(msg.content);
@@ -15,7 +13,7 @@ export const bind: TextHandler = async msg => {
       const card = new Card('sm');
       card.addContext(['该消息只有您可见']);
 
-      card.addTitle(`请提供您的DDNet昵称`);
+      card.addTitle(`请提供DDNet昵称参数`);
       card.setTheme('danger');
       card.addContext([`(met)${msg.userId}(met)`]);
 
@@ -23,7 +21,7 @@ export const bind: TextHandler = async msg => {
 
       await msg.reply.card(card, undefined, true);
     } else if (msg.bot.platform == 'wechat') {
-      await msg.reply.text(`请提供您的DDNet昵称`);
+      await msg.reply.text(`请提供您的DDNet昵称，例如：\n绑定 TsFreddie`);
     }
     return;
   }
