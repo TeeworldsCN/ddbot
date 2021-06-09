@@ -222,7 +222,7 @@ wechat.get('/', checkSign, (req, res) => {
   return res.sendStatus(404);
 });
 
-const wechatBot = new WechatBotAdapter(axios);
+const wechatBot = new WechatBotAdapter(wechatAPI);
 
 wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) => {
   try {
