@@ -195,7 +195,6 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
   public async uploadImage(name: string, data: Buffer) {
     try {
       const result = await this.instance.API.asset.create(data, {
-        contentType: type,
         filename: name,
         knownLength: data.length,
       });
