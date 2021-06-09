@@ -204,6 +204,7 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       console.warn('[开黑啦] 图片上传失败');
       console.warn(e);
     }
+    return null;
   }
 
   public async uploadImageAsset(name: string, type: string, data: Buffer) {

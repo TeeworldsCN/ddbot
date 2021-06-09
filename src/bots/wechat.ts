@@ -89,12 +89,14 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
           access_token: await accessToken(),
           type: 'image',
         },
+        headers: formData.getHeaders(),
       });
       return data.media_id;
     } catch (e) {
       console.warn('[微信] 文章图片上传失败');
       console.warn(e);
     }
+    return null;
   }
 
   public async uploadImageAsset(name: string, type: string, imageData: Buffer) {
@@ -109,12 +111,14 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
         params: {
           access_token: await accessToken(),
         },
+        headers: formData.getHeaders(),
       });
       return data.media_id;
     } catch (e) {
       console.warn('[微信] 文章图片上传失败');
       console.warn(e);
     }
+    return null;
   }
 }
 
