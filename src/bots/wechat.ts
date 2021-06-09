@@ -80,9 +80,7 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
     try {
       const formData = new FormData();
       formData.append('media', imageData, {
-        contentType: type,
         filename: name,
-        knownLength: imageData.length,
       });
       const { data } = await this.instance.post('/media/upload', formData, {
         params: {
