@@ -187,7 +187,6 @@ export const points: TextHandler = async msg => {
         '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“TsFreddie”，输入：\n绑定 TsFreddie'
       );
     }
-    await msg.reply.deleteReaction(['⌛']);
     return;
   }
 

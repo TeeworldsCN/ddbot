@@ -36,6 +36,7 @@ export const initAdmins = async () => {
 
 export const getUser = async (userKey: string) => {
   const user = await UserModel.findOne({ userKey });
+  if (!user) return null;
   if (!user.level) user.level = LEVEL_USER;
   return user;
 };

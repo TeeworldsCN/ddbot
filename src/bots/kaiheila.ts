@@ -10,7 +10,7 @@ const MSG_TYPES = {
   card: 10,
 };
 
-const PLATFORM = 'kaiheila';
+const PLATFORM = 'test';
 class KaiheilaBotAdapter extends GenericBot<BotInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
