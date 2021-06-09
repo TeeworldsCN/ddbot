@@ -12,24 +12,30 @@ import { API } from '../utils/axios';
 import { FLAGS, SERVERS_SHORT } from '../utils/consts';
 import _ from 'lodash';
 
-const uploadGraph = async (bot: GenericBot<any>, data: any[]) => {
+const uploadGraph = async (
+  bot: GenericBot<any>,
+  data: any[],
+  points: number,
+  size: 'lg' | 'sm'
+) => {
   const today = DateTime.now().set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-  const begin = today.set({ weekday: 0 }).minus({ weeks: 24 });
+  const begin = today.set({ weekday: 0 }).minus({ weeks: size == 'lg' ? 24 : 8 });
   const end = today.set({ hour: 23, minute: 59, second: 59, millisecond: 999 });
+  const fontSize = size == 'lg' ? 12 : 9;
   const graph = compile({
     data: { values: data },
     transform: [
       {
         impute: 'points',
         keyvals: { step: 86400000, start: begin.toMillis(), stop: end.toMillis() },
-        key: 'firstFinish',
+        key: 'first_finish',
         value: 0,
       },
-      { filter: `datum.firstFinish >= ${begin.toMillis()}` },
+      { filter: `datum.first_finish >= ${begin.toMillis()}` },
     ],
     encoding: {
       x: {
-        field: 'firstFinish',
+        field: 'first_finish',
         timeUnit: 'yearweek',
         type: 'ordinal',
         axis: {
@@ -47,11 +53,11 @@ const uploadGraph = async (bot: GenericBot<any>, data: any[]) => {
           strokeWidth: 1,
           cornerRadius: 3,
         },
-        transform: [{ filter: `datum.firstFinish < ${today.toMillis()}` }],
+        transform: [{ filter: `datum.first_finish < ${today.toMillis()}` }],
         width: { step: 15 },
         height: { step: 15 },
         encoding: {
-          y: { field: 'firstFinish', timeUnit: 'day', type: 'ordinal' },
+          y: { field: 'first_finish', timeUnit: 'day', type: 'ordinal' },
           color: {
             aggregate: 'sum',
             field: 'points',
@@ -70,10 +76,10 @@ const uploadGraph = async (bot: GenericBot<any>, data: any[]) => {
         },
         width: { step: 15 },
         height: { step: 15 },
-        transform: [{ filter: `datum.firstFinish >= ${today.toMillis()}` }],
+        transform: [{ filter: `datum.first_finish >= ${today.toMillis()}` }],
         encoding: {
           y: {
-            field: 'firstFinish',
+            field: 'first_finish',
             timeUnit: 'day',
             type: 'ordinal',
             axis: {
@@ -99,16 +105,18 @@ const uploadGraph = async (bot: GenericBot<any>, data: any[]) => {
         title: null,
         domainWidth: 0,
         offset: -3,
+        labelFontSize: fontSize,
         labelFont: 'Noto Sans CJK SC',
       },
       legend: {
         title: null,
         gradientStrokeColor: '#bbbbbb',
         gradientStrokeWidth: 1,
-        gradientThickness: 12,
+        gradientThickness: fontSize,
         labelColor: '#F5F5F5',
         offset: 5,
         tickCount: 2,
+        labelFontSize: fontSize,
         labelFont: 'Noto Sans CJK SC',
       },
       style: {
@@ -116,6 +124,13 @@ const uploadGraph = async (bot: GenericBot<any>, data: any[]) => {
       },
     },
     background: '#393C41',
+    title: {
+      text: `点数: ${points}`,
+      anchor: 'start',
+      color: '#F5F5F5',
+      font: 'Noto Sans CJK SC',
+      fontSize: fontSize,
+    },
   });
 
   var svg = await new View(parse(graph.spec), { renderer: 'none' }).toSVG(2);
@@ -137,9 +152,9 @@ const fetchPlayer = async (player: string, server?: string | false) => {
 
   try {
     // 玩家详情
-    const { data } = await API.get(`/ddnet/players/${encodeURIComponent(player)}`);
-    const favServer: string = data.server.toLowerCase();
-    const flag = FLAGS[favServer] || '❓';
+    const { data } = await API.get(`/ddnet/players/${encodeURIComponent(player)}.json`);
+    const favServer = _.maxBy(_.toPairs(_.groupBy(data.last_finishes, 'country')), '1.length')?.[0];
+    const flag = FLAGS[favServer.toLowerCase()] || '❓';
 
     data.flag = flag;
 
@@ -148,17 +163,17 @@ const fetchPlayer = async (player: string, server?: string | false) => {
 
     if (server !== false) {
       const fetchServer = server || favServer;
-      const rankRes = await API.get(`/ddnet/players/?server=${fetchServer}`);
+      const rankRes = await API.get(`/ddnet/players.json?server=${fetchServer.toLowerCase()}`);
       const rank = rankRes.data;
 
-      data.regionPoints = _.find(rank.points, { name: data.name });
-      data.regionTeamRank = _.find(rank.teamRank, { name: data.name });
-      data.regionRank = _.find(rank.rank, { name: data.name });
+      data.region_points = _.find(rank.points, { name: data.player });
+      data.region_team_rank = _.find(rank.teamRank, { name: data.player });
+      data.region_rank = _.find(rank.rank, { name: data.player });
       data.fetchedRegionalData = true;
     }
   } catch (e) {
     try {
-      const { data } = await API.get(`/ddnet/fuzzy/players/${encodeURIComponent(player)}`);
+      const { data } = await API.get(`/ddnet/fuzzy/players/${encodeURIComponent(player)}.json`);
       result.type = 'fuzzy';
       result.data = data;
     } catch (e) {
@@ -244,11 +259,20 @@ export const points: TextHandler = async msg => {
   }
 
   const player = result.data;
-  const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
-  allMaps.sort((a, b) => (b.firstFinish || 0) - (a.firstFinish || 0));
+  const allMaps = _.map(
+    _.flatten(
+      _.map(_.toPairs(player.types), p => _.filter((p?.[1] as any)?.maps, m => m.finishes != 0))
+    ),
+    m => {
+      return { ...m, first_finish: (m.first_finish || 0) * 1000 };
+    }
+  );
+  allMaps.sort((a, b) => (b.first_finish || 0) - (a.first_finish || 0));
   let imageID = null;
+  const size: 'lg' | 'sm' = msg.bot.platform == 'wechat' ? 'sm' : 'lg';
+
   try {
-    imageID = await uploadGraph(msg.bot, allMaps);
+    imageID = await uploadGraph(msg.bot, allMaps, player.points.points, size);
   } catch (e) {
     console.warn('Image generation failed');
     console.warn(e);
@@ -260,9 +284,9 @@ export const points: TextHandler = async msg => {
     const regional = [];
     if (player.fetchedRegionalData) {
       regional.push([
-        ['regionPoints', `**${player.flag} 区域服点数**`, '未进前五百'],
-        ['regionTeamRank', `**${player.flag} 区域团队分**`, '未进前五百'],
-        ['regionRank', `**${player.flag} 区域个人分**`, '未进前五百'],
+        ['region_points', `**${player.flag} 区域服点数**`, '未进前五百'],
+        ['region_team_rank', `**${player.flag} 区域团队分**`, '未进前五百'],
+        ['region_rank', `**${player.flag} 区域个人分**`, '未进前五百'],
       ]);
     }
 
@@ -276,16 +300,11 @@ export const points: TextHandler = async msg => {
 
     const categories = [
       [
-        ['points', `**🌐 总点数**`, '无排名'],
-        ['teamRank', '**🌐 团队排名分**', '无排名'],
+        ['detail', '🔗 玩家详情'],
+        ['team_rank', '**🌐 团队排名分**', '无排名'],
         ['rank', '**🌐 个人排名分**', '无排名'],
       ],
       ...regional,
-      [
-        ['monthlyPoints', `**📅 月增长**`, '无排名'],
-        ['weeklyPoints', `**📅 周增长**`, '无排名'],
-        ['detail', '🔗 玩家详情'],
-      ],
     ];
 
     for (let row of categories) {
@@ -293,7 +312,7 @@ export const points: TextHandler = async msg => {
       for (let category of row) {
         if (category[0] != 'detail') {
           const rankData = player[category[0]];
-          if (rankData) {
+          if (rankData && rankData.points) {
             if (rankData.delta) {
               table.push(
                 `${category[1]}[+${rankData.delta}]\n${rankData.points} (#${rankData.rank})`
@@ -317,11 +336,11 @@ export const points: TextHandler = async msg => {
 
     card.addDivider();
 
-    const lastFinish = player?.lastFinishes?.[0];
+    const lastFinish = player?.last_finishes?.[0];
     card.addContext([
       `最新完成 [${SERVERS_SHORT[lastFinish.type.toLowerCase()]}] ${SMD(lastFinish.map)} (${secTime(
         lastFinish.time
-      )}) - ${dateTime(lastFinish.timestamp)} (met)${msg.userId}(met)`,
+      )}) - ${dateTime(lastFinish.timestamp * 1000)} (met)${msg.userId}(met)`,
     ]);
 
     await msg.reply.card(card, undefined, temporary);

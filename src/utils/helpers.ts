@@ -19,7 +19,8 @@ export const dateTime = (date: number) =>
 export const date = (date: number) =>
   DateTime.fromMillis(date).setZone('Asia/Shanghai').toFormat('yyyy/MM/dd');
 
-export const secTime = (time: number) => `${Math.floor(time / 60)}分${time % 60}秒`;
+export const secTime = (time: number) =>
+  `${time >= 60 ? `${Math.floor(time / 60)}分` : ''}${_.trimEnd((time % 60).toFixed(3), '0')}秒`;
 
 export const ddnetEncode = (str: string) =>
   encodeURIComponent(
