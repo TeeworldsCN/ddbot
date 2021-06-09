@@ -23,6 +23,27 @@ const uploadGraph = async (
   const begin = today.set({ weekday: 0 }).minus({ weeks: size == 'lg' ? 24 : 8 });
   const end = today.set({ hour: 23, minute: 59, second: 59, millisecond: 999 });
   const fontSize = size == 'lg' ? 12 : 9;
+  const title =
+    size == 'lg'
+      ? {
+          text: `点数: ${points}pts`,
+          anchor: 'start',
+          color: '#F5F5F5',
+          font: 'Noto Sans CJK SC',
+          fontSize: 12,
+        }
+      : {
+          text: `点数: ${points}pts`,
+          anchor: 'start',
+          color: '#F5F5F5',
+          font: 'Noto Sans CJK SC',
+          fontSize: 16,
+          subtitle: name,
+          subtitleColor: '#F5F5F5',
+          subtitleFont: 'Noto Sans CJK SC',
+          subtitleFontSize: 12,
+        };
+
   const graph = compile({
     data: { values: data },
     transform: [
@@ -125,13 +146,7 @@ const uploadGraph = async (
       },
     },
     background: '#393C41',
-    title: {
-      text: `${size == 'sm' ? name : '点数'}: ${points}pts`,
-      anchor: 'start',
-      color: '#F5F5F5',
-      font: 'Noto Sans CJK SC',
-      fontSize: size == 'sm' ? 16 : 12,
-    },
+    title,
   });
 
   var svg = await new View(parse(graph.spec), { renderer: 'none' }).toSVG(2);
