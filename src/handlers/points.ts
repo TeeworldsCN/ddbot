@@ -116,7 +116,7 @@ const uploadGraph = async (
         labelColor: '#F5F5F5',
         offset: 5,
         tickCount: 2,
-        labelFontSize: fontSize,
+        labelFontSize: size == 'sm' ? 6 : 12,
         labelFont: 'Noto Sans CJK SC',
       },
       style: {
@@ -129,7 +129,7 @@ const uploadGraph = async (
       anchor: 'start',
       color: '#F5F5F5',
       font: 'Noto Sans CJK SC',
-      fontSize: fontSize,
+      fontSize: size == 'sm' ? 18 : 12,
     },
   });
 

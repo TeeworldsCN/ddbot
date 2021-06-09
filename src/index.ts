@@ -32,11 +32,15 @@ kaiheilaAddCommand('nuke', nuke);
 kaiheilaAddCommand('assign', assign);
 kaiheilaAddCommand('me', me);
 kaiheilaAddCommand('bind', bind);
+kaiheilaAddCommand('绑定', bind);
 kaiheilaAddCommand('points', points);
+kaiheilaAddCommand('点数', points);
 
 wechatAddCommand('me', me);
 wechatAddCommand('bind', bind);
+wechatAddCommand('绑定', bind);
 wechatAddCommand('points', points);
+wechatAddCommand('点数', points);
 
 /*
     启动机器人

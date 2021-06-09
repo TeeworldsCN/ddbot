@@ -7,7 +7,6 @@ import { ButtonHandler, TextHandler } from '../bottype';
 import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
 import { packID } from '../utils/helpers';
 import { parse, j2xParser } from 'fast-xml-parser';
-import request from 'request';
 import FormData from 'form-data';
 
 const xmlParseOption = {
@@ -95,36 +94,9 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
         },
       });
 
-      // request.post({
-      //   url: `https://api.weixin.qq.com/cgi-bin/media/upload`,
-      //   formData: {
-      //     media: imageData,
-      //   },
-      // });
       return data.media_id;
     } catch (e) {
-      console.warn('[微信] 文章图片上传失败');
-      console.warn(e);
-    }
-    return null;
-  }
-
-  public async uploadImageAsset(name: string, imageData: Buffer) {
-    try {
-      const formData = new FormData();
-      formData.append('media', imageData, {
-        filename: name,
-        knownLength: imageData.length,
-      });
-      const { data } = await this.instance.post('/media/uploadimg', formData, {
-        params: {
-          access_token: await accessToken(),
-        },
-        headers: formData.getHeaders(),
-      });
-      return data.media_id;
-    } catch (e) {
-      console.warn('[微信] 文章图片上传失败');
+      console.warn('[微信] 临时图片素材上传失败');
       console.warn(e);
     }
     return null;
@@ -249,15 +221,7 @@ wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) =
 
   if (type === 'text') {
     let content = req.body.Content.__cdata;
-
-    if (!content.startsWith('.') && !content.startsWith('。')) {
-      return;
-    }
-
-    content = content.replace(/^\. /, '.');
-    const command = content.split(' ')[0].slice(1).toLowerCase();
-    req.body.Content.__cdata = content;
-
+    const command = content.split(' ')[0].toLowerCase();
     const reply = new WechatMessage(wechatBot, { req, res }, 'text');
 
     for (let key in Commands) {
