@@ -4,7 +4,6 @@ import { TextHandler } from '../bottype';
 import { Card } from '../utils/cardBuilder';
 import _ from 'lodash';
 import { AxiosError } from 'axios';
-import { GenericMessage } from '../bots/base';
 import { API } from '../utils/axios';
 import { secTime } from '../utils/helpers';
 

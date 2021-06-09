@@ -1,13 +1,15 @@
 require('dotenv').config();
 
 import mongoose from 'mongoose';
-import { kaiheilaAddCommand, kaiheilaStart } from './bots/kaiheila';
+import { kaiheilaAddButton, kaiheilaAddCommand, kaiheilaStart } from './bots/kaiheila';
 import { wechatAddCommand, wechatStart } from './bots/wechat';
 import { initAdmins } from './db/user';
 import { assign, nuke } from './handlers/adminTools';
 
 import { bind } from './handlers/bind';
+import { ddnetStatus } from './handlers/ddnetStatus';
 import { find } from './handlers/find';
+import { maps } from './handlers/maps';
 import { me } from './handlers/me';
 import { pointRank, points } from './handlers/points';
 import { rank } from './handlers/rank';
@@ -40,12 +42,15 @@ kaiheilaAddCommand('rank', rank);
 kaiheilaAddCommand('find', find);
 kaiheilaAddCommand('top', top);
 kaiheilaAddCommand('pointrank', pointRank);
+kaiheilaAddCommand('status', ddnetStatus);
+kaiheilaAddCommand('map', maps);
 
 wechatAddCommand('me', me);
 wechatAddCommand('bind', bind);
 wechatAddCommand('绑定', bind);
 wechatAddCommand('points', points);
 wechatAddCommand('点数', points);
+wechatAddCommand('分数', points);
 wechatAddCommand('rank', pointRank);
 wechatAddCommand('排名', pointRank);
 

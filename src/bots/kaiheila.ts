@@ -241,7 +241,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     } else {
       e = e as ButtonClickEvent;
       const tag = `${e.user.username}#${e.user.identifyNum}`;
-      this._userId = packID({ platform: this.bot.platform, id: e.userId });
+      this._userId = e.userId;
       this._userKey = packID({ platform: this.bot.platform, id: e.userId });
       this._content = e.value;
       this._msgId = e.targetMsgId;
@@ -331,7 +331,7 @@ export const kaiheilaStart = () => {
       const command = e.value.split(' ')[0].slice(1);
       for (let key in Commands) {
         if (key == command) {
-          Commands[key](new KaiheilaMessage(kaiheila, e, 'text')).catch(reason => {
+          Commands[key](new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
             console.error(`Error proccessing command button'${e.value}'`);
             console.error(reason);
           });

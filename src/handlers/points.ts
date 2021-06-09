@@ -188,11 +188,15 @@ const fetchPlayer = async (player: string, allowFuzzy?: boolean, server?: string
       data.fetchedRegionalData = true;
     }
   } catch (e) {
-    try {
-      const { data } = await API.get(`/ddnet/fuzzy/players/${encodeURIComponent(player)}.json`);
-      result.type = 'fuzzy';
-      result.data = data;
-    } catch (e) {
+    if (allowFuzzy) {
+      try {
+        const { data } = await API.get(`/ddnet/fuzzy/players/${encodeURIComponent(player)}.json`);
+        result.type = 'fuzzy';
+        result.data = data;
+      } catch (e) {
+        return null;
+      }
+    } else {
       return null;
     }
   }
