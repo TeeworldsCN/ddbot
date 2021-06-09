@@ -15,6 +15,7 @@ import _ from 'lodash';
 const uploadGraph = async (
   bot: GenericBot<any>,
   data: any[],
+  name: string,
   points: number,
   size: 'lg' | 'sm'
 ) => {
@@ -125,11 +126,11 @@ const uploadGraph = async (
     },
     background: '#393C41',
     title: {
-      text: `点数: ${points}`,
+      text: `${size == 'sm' ? name : '点数'}: ${points}pts`,
       anchor: 'start',
       color: '#F5F5F5',
       font: 'Noto Sans CJK SC',
-      fontSize: size == 'sm' ? 18 : 12,
+      fontSize: size == 'sm' ? 16 : 12,
     },
   });
 
@@ -272,7 +273,7 @@ export const points: TextHandler = async msg => {
   const size: 'lg' | 'sm' = msg.bot.platform == 'wechat' ? 'sm' : 'lg';
 
   try {
-    imageID = await uploadGraph(msg.bot, allMaps, player.points.points, size);
+    imageID = await uploadGraph(msg.bot, allMaps, player.player, player.points.points, size);
   } catch (e) {
     console.warn('Image generation failed');
     console.warn(e);
