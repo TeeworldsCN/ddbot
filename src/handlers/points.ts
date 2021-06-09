@@ -132,7 +132,7 @@ const playerLink = (label: string, player: string) => {
   return `[${SMD(label)}](https://ddnet.tw/players/${ddnetEncode(player)})`;
 };
 
-const fetchPlayer = async (player: string, server?: string) => {
+const fetchPlayer = async (player: string, server?: string | false) => {
   const result: any = {};
 
   try {
@@ -146,14 +146,16 @@ const fetchPlayer = async (player: string, server?: string) => {
     result.type = 'points';
     result.data = data;
 
-    const fetchServer = server || favServer;
-    const rankRes = await API.get(`/ddnet/players/?server=${fetchServer}`);
-    const rank = rankRes.data;
+    if (server !== false) {
+      const fetchServer = server || favServer;
+      const rankRes = await API.get(`/ddnet/players/?server=${fetchServer}`);
+      const rank = rankRes.data;
 
-    data.regionPoints = _.find(rank.points, { name: data.name });
-    data.regionTeamRank = _.find(rank.teamRank, { name: data.name });
-    data.regionRank = _.find(rank.rank, { name: data.name });
-    data.fetchedRegionalData = true;
+      data.regionPoints = _.find(rank.points, { name: data.name });
+      data.regionTeamRank = _.find(rank.teamRank, { name: data.name });
+      data.regionRank = _.find(rank.rank, { name: data.name });
+      data.fetchedRegionalData = true;
+    }
   } catch (e) {
     try {
       const { data } = await API.get(`/ddnet/fuzzy/players/${encodeURIComponent(player)}`);
@@ -175,10 +177,13 @@ export const points: TextHandler = async msg => {
 
   const temporary = msg.type == 'button';
   const card = new Card('lg');
+
+  const isKaiheila = msg.bot.platform == 'kaiheila';
+
   if (temporary) card.addContext(['该消息只有您可见']);
 
   if (!searchName) {
-    if (msg.bot.platform == 'kaiheila') {
+    if (isKaiheila) {
       card.addMarkdown('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
       card.addContext([`(met)${msg.userId}(met)`]);
       await msg.reply.card(card, undefined, temporary);
@@ -191,9 +196,11 @@ export const points: TextHandler = async msg => {
   }
 
   await msg.reply.addReaction(['⌛']);
-  const result = await fetchPlayer(searchName);
+
+  const result = isKaiheila ? await fetchPlayer(searchName) : await fetchPlayer(searchName, false);
+
   if (!result || (result.type != 'fuzzy' && result.type != 'points')) {
-    if (msg.bot.platform == 'kaiheila') {
+    if (isKaiheila) {
       card.slice(0, 0);
       card.addMarkdown('❌ *查询失败，请稍后重试*');
       card.addContext([`(met)${msg.userId}(met)`]);
@@ -208,7 +215,7 @@ export const points: TextHandler = async msg => {
   if (result.type == 'fuzzy') {
     if ((result.data as any[]).length > 0) {
       const top5: any[] = result.data.slice(0, 5);
-      if (msg.bot.platform == 'kaiheila') {
+      if (isKaiheila) {
         card.addTitle(`未找到DDNet玩家: ${searchName}`);
         card.addMarkdown('*以下为近似结果：*');
         card.addTable(top5.map((x: any) => [playerLink(x.name, x.name), `${x.points}pts`]));
@@ -223,7 +230,7 @@ export const points: TextHandler = async msg => {
         );
       }
     } else {
-      if (msg.bot.platform == 'kaiheila') {
+      if (isKaiheila) {
         card.addTitle(`⚠ 未找到DDNet玩家: ${searchName}`);
         card.addContext([`(met)${msg.userId}(met)`]);
         card.setTheme('danger');
@@ -238,7 +245,7 @@ export const points: TextHandler = async msg => {
 
   const player = result.data;
 
-  if (msg.bot.platform == 'kaiheila') {
+  if (isKaiheila) {
     card.addTitle(`${player.flag} DDNet玩家: ${searchName}`);
 
     const regional = [];
