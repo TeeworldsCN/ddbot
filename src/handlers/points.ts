@@ -23,7 +23,7 @@ const uploadGraph = async (
   const begin = today.set({ weekday: 0 }).minus({ weeks: size == 'lg' ? 24 : 8 });
   const end = today.set({ hour: 23, minute: 59, second: 59, millisecond: 999 });
   const fontSize = size == 'lg' ? 12 : 9;
-  const title =
+  const title: any =
     size == 'lg'
       ? {
           text: `点数: ${points}pts`,
