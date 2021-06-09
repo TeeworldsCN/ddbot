@@ -76,18 +76,18 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
     return PLATFORM;
   }
 
-  public async uploadImage(name: string, type: string, imageData: Buffer) {
+  public async uploadImage(name: string, imageData: Buffer) {
     try {
       const formData = new FormData();
-      formData.append('media', imageData, {
-        filename: name,
-      });
+      formData.append('media', imageData, name);
       const { data } = await this.instance.post('/media/upload', formData, {
         params: {
           access_token: await accessToken(),
           type: 'image',
         },
-        headers: formData.getHeaders(),
+        headers: {
+          ...formData.getHeaders(),
+        },
       });
       return data.media_id;
     } catch (e) {
@@ -97,7 +97,7 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
     return null;
   }
 
-  public async uploadImageAsset(name: string, type: string, imageData: Buffer) {
+  public async uploadImageAsset(name: string, imageData: Buffer) {
     try {
       const formData = new FormData();
       formData.append('media', imageData, {

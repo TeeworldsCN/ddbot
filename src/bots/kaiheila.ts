@@ -192,7 +192,7 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     };
   }
 
-  public async uploadImage(name: string, type: string, data: Buffer) {
+  public async uploadImage(name: string, data: Buffer) {
     try {
       const result = await this.instance.API.asset.create(data, {
         contentType: type,
@@ -207,8 +207,8 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     return null;
   }
 
-  public async uploadImageAsset(name: string, type: string, data: Buffer) {
-    return this.uploadImage(name, type, data);
+  public async uploadImageAsset(name: string, data: Buffer) {
+    return this.uploadImage(name, data);
   }
 
   public get platform(): string {

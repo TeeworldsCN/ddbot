@@ -96,12 +96,12 @@ export abstract class GenericBot<BotType> {
   }
 
   // 上传图片获取URL
-  public async uploadImage(name: string, type: string, data: Buffer): Promise<string> {
+  public async uploadImage(name: string, data: Buffer): Promise<string> {
     return null;
   }
 
   // 上传到图片素材库（微信），若不支持素材库则上传成URL
-  public async uploadImageAsset(name: string, type: string, data: Buffer): Promise<string> {
+  public async uploadImageAsset(name: string, data: Buffer): Promise<string> {
     return null;
   }
 

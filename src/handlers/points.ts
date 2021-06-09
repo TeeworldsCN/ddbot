@@ -124,7 +124,7 @@ const uploadGraph = async (bot: GenericBot<any>, data: any[]) => {
       compressionLevel: 9,
     })
     .toBuffer();
-  var image = await bot.uploadImage('points.png', 'image/png', png);
+  var image = await bot.uploadImage('points.png', png);
   return image;
 };
 
