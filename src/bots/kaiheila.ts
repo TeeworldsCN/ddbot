@@ -161,6 +161,20 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     };
   }
 
+  public async uploadImage(name: string, type: string, data: Buffer) {
+    try {
+      const result = await this.instance.API.asset.create(data, {
+        contentType: type,
+        filename: name,
+        knownLength: data.length,
+      });
+      return result.url;
+    } catch (e) {
+      console.warn('[开黑啦] 图片上传失败');
+      console.warn(e);
+    }
+  }
+
   public get platform(): string {
     return PLATFORM;
   }

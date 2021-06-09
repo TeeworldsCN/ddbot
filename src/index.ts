@@ -8,6 +8,7 @@ import { assign, nuke } from './handlers/adminTools';
 
 import { bind } from './handlers/bind';
 import { me } from './handlers/me';
+import { points } from './handlers/points';
 import { startWebhook as webhookStart } from './webhook';
 
 /*
@@ -29,11 +30,13 @@ import { startWebhook as webhookStart } from './webhook';
 */
 kaiheilaAddCommand('nuke', nuke);
 kaiheilaAddCommand('assign', assign);
-kaiheilaAddCommand('bind', bind);
 kaiheilaAddCommand('me', me);
+kaiheilaAddCommand('bind', bind);
+kaiheilaAddCommand('points', points);
 
-wechatAddCommand('bind', bind);
 wechatAddCommand('me', me);
+wechatAddCommand('bind', bind);
+wechatAddCommand('points', points);
 
 /*
     启动机器人

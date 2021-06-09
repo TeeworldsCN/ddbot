@@ -7,6 +7,7 @@ import { ButtonHandler, TextHandler } from '../bottype';
 import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
 import { packID } from '../utils/helpers';
 import { parse, j2xParser } from 'fast-xml-parser';
+import FormData from 'form-data';
 
 const xmlParseOption = {
   ignoreAttributes: true,
@@ -74,6 +75,27 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
   public get platform(): string {
     return PLATFORM;
   }
+
+  public async uploadImage(name: string, type: string, imageData: Buffer) {
+    try {
+      const formData = new FormData();
+      formData.append('media', imageData, {
+        contentType: type,
+        filename: name,
+        knownLength: imageData.length,
+      });
+      const { data } = await this.instance.post('media/upload', formData, {
+        params: {
+          access_token: await accessToken(),
+          type: 'image',
+        },
+      });
+      return data.media_id;
+    } catch (e) {
+      console.warn('[微信] 图片上传失败');
+      console.warn(e);
+    }
+  }
 }
 
 class WechatMessage extends GenericMessage<AxiosInstance> {
@@ -134,25 +156,24 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   }
 
   public async fetchUserInfo() {
-    try {
-      const { data } = await this.bot.instance.get('user/info', {
-        params: {
-          access_token: await accessToken(),
-          openid: this.userId,
-          lang: 'zh_CN',
-        },
-      });
-
-      if (!data.subscribe) return;
-
-      this.author.nickname = data.nickname;
-      this.author.username = data.nickname;
-      this.author.tag = data.remark;
-      this.author.avatar = data.headimgurl;
-    } catch (e) {
-      console.warn(`[微信]获取用户信息(${this.userId})失败`);
-      console.warn(e);
-    }
+    // 订阅号不能用
+    //   try {
+    //     const { data } = await this.bot.instance.get('user/info', {
+    //       params: {
+    //         access_token: await accessToken(),
+    //         openid: this.userId,
+    //         lang: 'zh_CN',
+    //       },
+    //     });
+    //     if (!data.subscribe) return;
+    //     this.author.nickname = data.nickname;
+    //     this.author.username = data.nickname;
+    //     this.author.tag = data.remark;
+    //     this.author.avatar = data.headimgurl;
+    //   } catch (e) {
+    //     console.warn(`[微信]获取用户信息(${this.userId})失败`);
+    //     console.warn(e);
+    //   }
   }
 }
 

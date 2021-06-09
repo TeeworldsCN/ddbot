@@ -92,6 +92,8 @@ export abstract class GenericBot<BotType> {
     return this._instance;
   }
 
+  public abstract uploadImage(name: string, type: string, data: Buffer): Promise<string>;
+
   public abstract makeChannelContext(channelId: string): Partial<MessageAction>;
   public abstract makeUserContext(userId: string): Partial<MessageAction>;
   public abstract get platform(): string;
@@ -161,6 +163,10 @@ export abstract class GenericMessage<BotType> {
     return this._sessionType;
   }
 
+  public get type() {
+    return this._type;
+  }
+
   public get bot(): GenericBot<BotType> {
     return this._bot;
   }
@@ -173,6 +179,7 @@ export abstract class GenericMessage<BotType> {
   }
 
   public async fetchUserInfo(): Promise<void> {}
+  public async uploadAssets(): Promise<void> {}
 
   public abstract makeReply(): Partial<MessageReply>;
 }
