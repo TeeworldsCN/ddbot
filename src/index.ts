@@ -46,8 +46,8 @@ wechatAddCommand('bind', bind);
 wechatAddCommand('绑定', bind);
 wechatAddCommand('points', points);
 wechatAddCommand('点数', points);
-wechatAddCommand('rank', rank);
-wechatAddCommand('排名', rank);
+wechatAddCommand('rank', pointRank);
+wechatAddCommand('排名', pointRank);
 
 /*
     启动机器人
