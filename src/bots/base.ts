@@ -95,7 +95,18 @@ export abstract class GenericBot<BotType> {
     return this._instance;
   }
 
-  public abstract uploadImage(name: string, type: string, data: Buffer): Promise<string>;
+  // 上传图片获取URL
+  public async uploadImage(name: string, type: string, data: Buffer): Promise<string> {
+    return null;
+  }
+
+  // 上传到图片素材库（微信），若不支持素材库则上传成URL
+  public async uploadImageAsset(name: string, type: string, data: Buffer): Promise<string> {
+    return null;
+  }
+
+  // 从素材库删除图片素材
+  public async deleteImageAsset(id: string): Promise<void> {}
 
   public abstract makeChannelContext(channelId: string): Partial<MessageAction>;
   public abstract makeUserContext(userId: string): Partial<MessageAction>;

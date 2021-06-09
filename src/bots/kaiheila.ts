@@ -206,6 +206,10 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     }
   }
 
+  public async uploadImageAsset(name: string, type: string, data: Buffer) {
+    return this.uploadImage(name, type, data);
+  }
+
   public get platform(): string {
     return PLATFORM;
   }

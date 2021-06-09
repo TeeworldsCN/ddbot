@@ -84,7 +84,7 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
         filename: name,
         knownLength: imageData.length,
       });
-      const { data } = await this.instance.post('media/upload', formData, {
+      const { data } = await this.instance.post('/media/upload', formData, {
         params: {
           access_token: await accessToken(),
           type: 'image',
@@ -92,7 +92,27 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
       });
       return data.media_id;
     } catch (e) {
-      console.warn('[微信] 图片上传失败');
+      console.warn('[微信] 文章图片上传失败');
+      console.warn(e);
+    }
+  }
+
+  public async uploadImageAsset(name: string, type: string, imageData: Buffer) {
+    try {
+      const formData = new FormData();
+      formData.append('media', imageData, {
+        contentType: type,
+        filename: name,
+        knownLength: imageData.length,
+      });
+      const { data } = await this.instance.post('/media/uploadimg', formData, {
+        params: {
+          access_token: await accessToken(),
+        },
+      });
+      return data.media_id;
+    } catch (e) {
+      console.warn('[微信] 文章图片上传失败');
       console.warn(e);
     }
   }
@@ -174,23 +194,23 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
 
   public async fetchUserInfo() {
     // 订阅号不能用
-    //   try {
-    //     const { data } = await this.bot.instance.get('user/info', {
-    //       params: {
-    //         access_token: await accessToken(),
-    //         openid: this.userId,
-    //         lang: 'zh_CN',
-    //       },
-    //     });
-    //     if (!data.subscribe) return;
-    //     this.author.nickname = data.nickname;
-    //     this.author.username = data.nickname;
-    //     this.author.tag = data.remark;
-    //     this.author.avatar = data.headimgurl;
-    //   } catch (e) {
-    //     console.warn(`[微信]获取用户信息(${this.userId})失败`);
-    //     console.warn(e);
-    //   }
+    try {
+      const { data } = await this.bot.instance.get('/user/info', {
+        params: {
+          access_token: await accessToken(),
+          openid: this.userId,
+          lang: 'zh_CN',
+        },
+      });
+      if (!data.subscribe) return;
+      this.author.nickname = data.nickname;
+      this.author.username = data.nickname;
+      this.author.tag = data.remark;
+      this.author.avatar = data.headimgurl;
+    } catch (e) {
+      console.warn(`[微信]获取用户信息(${this.userId})失败`);
+      console.warn(e);
+    }
   }
 }
 
