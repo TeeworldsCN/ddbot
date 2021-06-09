@@ -133,7 +133,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   public makeReply(): Partial<MessageReply> {
     const res: express.Response = this._raw.res;
     return {
-      text: async (content: string, quote?: string, temp?: boolean | string) => {
+      text: async (content: string, quote?: string, temp?: boolean) => {
         if (this._sent) return null;
         const xml = json2xml.parse({
           xml: {
@@ -146,7 +146,24 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
         });
         res.send(xml);
         this._sent = true;
-        return null;
+        return 'wechatTextMessage';
+      },
+      image: async (mediaId: string, temp?: boolean) => {
+        if (this._sent) return null;
+        const xml = json2xml.parse({
+          xml: {
+            ToUserName: { __cdata: this.userId },
+            FromUserName: { __cdata: this.channelId },
+            CreateTime: DateTime.now().toMillis(),
+            MsgType: { __cdata: 'image' },
+            Image: {
+              MediaId: { __cdata: mediaId },
+            },
+          },
+        });
+        res.send(xml);
+        this._sent = true;
+        return 'wechatImageMessage';
       },
     };
   }

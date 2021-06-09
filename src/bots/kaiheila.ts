@@ -7,6 +7,10 @@ import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
 
 const MSG_TYPES = {
   text: 1,
+  image: 2,
+  video: 3,
+  file: 4,
+  markdown: 9,
   card: 10,
 };
 
@@ -14,15 +18,14 @@ const PLATFORM = 'kaiheila';
 class KaiheilaBotAdapter extends GenericBot<BotInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
-      text: async (content: string, quote?: string, temp?: string) => {
+      text: async (content: string, quote?: string, onlyTo?: string) => {
         try {
-          let type = MSG_TYPES.text;
           const result = await this.instance.API.message.create(
-            type,
+            MSG_TYPES.text,
             channelId,
             content,
             quote,
-            temp
+            onlyTo
           );
           return result.msgId;
         } catch (e) {
@@ -31,15 +34,30 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return null;
         }
       },
-      card: async (content: Card, quote?: string, temp?: string) => {
+      image: async (url: string, onlyTo?: string) => {
         try {
-          let type = MSG_TYPES.card;
           const result = await this.instance.API.message.create(
-            type,
+            MSG_TYPES.image,
+            channelId,
+            url,
+            undefined,
+            onlyTo
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送消息失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      card: async (content: Card, quote?: string, onlyTo?: string) => {
+        try {
+          const result = await this.instance.API.message.create(
+            MSG_TYPES.card,
             channelId,
             content.toString(),
             quote,
-            temp
+            onlyTo
           );
           return result.msgId;
         } catch (e) {
@@ -74,7 +92,7 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       },
       deleteReaction: async (msgId: string, emoji: string[], userId?: string) => {
         try {
-          await this.instance.API.message.deleteReaction(msgId, emoji[0], undefined);
+          await this.instance.API.message.deleteReaction(msgId, emoji[0], userId);
         } catch (e) {
           console.warn(`[开黑啦] 删除回应失败`);
           console.warn(e);
@@ -87,9 +105,8 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     return {
       text: async (content: string, quote?: string, temp?: string) => {
         try {
-          let type = MSG_TYPES.text;
           const result = await this.instance.API.directMessage.create(
-            type,
+            MSG_TYPES.text,
             userId,
             undefined,
             content,
@@ -102,11 +119,25 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return null;
         }
       },
+      image: async (url: string, onlyTo?: string) => {
+        try {
+          const result = await this.instance.API.directMessage.create(
+            MSG_TYPES.image,
+            userId,
+            undefined,
+            url
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送图片失败`);
+          console.warn(e);
+          return null;
+        }
+      },
       card: async (content: Card, quote?: string, temp?: string) => {
         try {
-          let type = MSG_TYPES.card;
           const result = await this.instance.API.directMessage.create(
-            type,
+            MSG_TYPES.card,
             userId,
             undefined,
             content.toString(),
@@ -229,6 +260,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       this.sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
     return {
       text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
+      image: (c, t) => context.image(c, t ? this.userId : undefined),
       card: (c, q, t) => context.card(c, q, t ? this.userId : undefined),
       update: (c, q) => context.update(this.msgId, c, q),
       delete: () => context.delete(this.msgId),

@@ -244,6 +244,15 @@ export const points: TextHandler = async msg => {
   }
 
   const player = result.data;
+  const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
+  allMaps.sort((a, b) => (b.firstFinish || 0) - (a.firstFinish || 0));
+  let imageID = null;
+  try {
+    imageID = await uploadGraph(msg.bot, allMaps);
+  } catch (e) {
+    console.warn('Image generation failed');
+    console.warn(e);
+  }
 
   if (isKaiheila) {
     card.addTitle(`${player.flag} DDNet玩家: ${searchName}`);
@@ -257,9 +266,6 @@ export const points: TextHandler = async msg => {
       ]);
     }
 
-    const allMaps = _.flatMap(player.servers, arr => arr.finishedMaps);
-
-    allMaps.sort((a, b) => (b.firstFinish || 0) - (a.firstFinish || 0));
     if (allMaps.length > 0) {
       let index = 0;
       while ((allMaps[index].points || 0) == 0 && index < allMaps.length) {
@@ -305,12 +311,8 @@ export const points: TextHandler = async msg => {
       card.addTable([table]);
     }
 
-    try {
-      const url = await uploadGraph(msg.bot, allMaps);
-      card.addImages([{ src: url }]);
-    } catch (e) {
-      console.warn('Image generation failed');
-      console.warn(e);
+    if (imageID) {
+      card.addImages([{ src: imageID }]);
     }
 
     card.addDivider();
@@ -325,7 +327,7 @@ export const points: TextHandler = async msg => {
     await msg.reply.card(card, undefined, temporary);
     card.setTheme('success');
   } else {
-    await msg.reply.text(`${player.points.points}`);
+    await msg.reply.image(imageID);
   }
 
   await msg.reply.deleteReaction(['⌛']);

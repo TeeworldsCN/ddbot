@@ -3,6 +3,7 @@ import { unpackID } from '../utils/helpers';
 
 export type MessageReply = {
   text: (content: string, quote?: string, temp?: boolean) => Promise<string>;
+  image: (image: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
   update: (content: string, quote?: string) => Promise<void>;
   delete: () => Promise<void>;
@@ -11,8 +12,9 @@ export type MessageReply = {
 };
 
 export type MessageAction = {
-  text: (content: string, quote?: string, temp?: string) => Promise<string>;
-  card: (content: Card, quote?: string, temp?: string) => Promise<string>;
+  text: (content: string, quote?: string, onlyTo?: string) => Promise<string>;
+  image: (image: string, onlyTo?: string) => Promise<string>;
+  card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
   update: (msgid: string, content: string, quote?: string) => Promise<void>;
   delete: (msgid: string) => Promise<void>;
   addReaction: (msgid: string, emoji: string[]) => Promise<void>;
@@ -22,6 +24,7 @@ export type MessageAction = {
 // empty stub
 const EMPTY_ACTIONS: MessageReply & MessageAction = {
   text: async () => null as string,
+  image: async () => null as string,
   card: async () => null as string,
   addReaction: async () => {},
   deleteReaction: async () => {},
