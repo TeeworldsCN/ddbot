@@ -254,11 +254,12 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
       }
     }
 
-    if (!isCommand) {
+    if (!isCommand && !reply.sent) {
       await wechatAutoReplyCommand(reply);
     }
 
-    return reply.sent || res.send();
+    if (!reply.sent) res.send();
+    return;
   }
 
   if (type === 'event') {
@@ -268,7 +269,8 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
       const reply = new WechatMessage(wechat, { req, res }, 'text');
       await wechatAutoReplyCommand(reply);
 
-      return reply.sent || res.send();
+      if (!reply.sent) res.send();
+      return;
     }
   }
 
