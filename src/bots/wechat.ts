@@ -3,11 +3,13 @@ import { webhook } from '../webhook';
 import { DateTime } from 'luxon';
 import axios, { AxiosInstance } from 'axios';
 import sha1 from 'sha1';
-import { ButtonHandler, TextHandler } from '../bottype';
+import { TextHandler } from '../bottype';
 import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
 import { packID } from '../utils/helpers';
 import { parse, j2xParser } from 'fast-xml-parser';
 import FormData from 'form-data';
+import { WechatReplyModel } from '../db/wechatReply';
+import _ from 'lodash';
 
 const xmlParseOption = {
   ignoreAttributes: true,
@@ -20,7 +22,7 @@ const xmlParseOption = {
 
 const json2xml = new j2xParser(xmlParseOption);
 
-const wechat = express.Router();
+const wechatHook = express.Router();
 const wechatState = {
   token: '',
   expireDate: DateTime.now(),
@@ -35,7 +37,7 @@ const wechatAPI = axios.create({
   timeout: 3000,
 });
 
-const accessToken = async () => {
+export const accessToken = async () => {
   if (DateTime.now() >= wechatState.expireDate) {
     wechatState.expireDate = DateTime.now();
     const result = await wechatAPI.get('/token', {
@@ -199,16 +201,31 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   }
 }
 
-const Commands: { [key: string]: { func: TextHandler; desc: string | true } } = {};
+export const wechat = new WechatBotAdapter(wechatAPI);
 
-wechat.get('/', checkSign, (req, res) => {
+// 不是个command，做成command好调试
+export const wechatAutoReplyCommand: TextHandler = async msg => {
+  const content = msg.content.replace('.wxtestkw ', '');
+  const autoReply = await WechatReplyModel.findOne({
+    keyword: content,
+  });
+
+  if (autoReply) {
+    if (autoReply.replyType == 'text') {
+      await msg.reply.text(autoReply.content);
+    } else if (autoReply.replyType == 'image') {
+      await msg.reply.image(autoReply.content);
+    }
+  }
+};
+
+// 微信Webhook
+wechatHook.get('/', checkSign, (req, res) => {
   if (req.query.echostr) return res.send(req.query.echostr);
   return res.sendStatus(404);
 });
 
-export const wechatBot = new WechatBotAdapter(wechatAPI);
-
-wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) => {
+wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) => {
   try {
     const data = parse(req.body, xmlParseOption);
     req.body = data.xml;
@@ -221,12 +238,14 @@ wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) =
   if (type === 'text') {
     let content = req.body.Content.__cdata;
     const command = content.split(' ')[0].toLowerCase();
-    const reply = new WechatMessage(wechatBot, { req, res }, 'text');
+    const reply = new WechatMessage(wechat, { req, res }, 'text');
 
-    for (let key in Commands) {
+    let isCommand = false;
+    for (let key in wechat.commands) {
       if (key == command) {
+        isCommand = true;
         try {
-          await Commands[key].func(reply);
+          await wechat.commands[key].func(reply);
         } catch (e) {
           console.error(`Error proccessing command '${content}'`);
           console.error(e);
@@ -235,8 +254,21 @@ wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) =
       }
     }
 
-    if (!reply.sent) {
-      return res.send();
+    if (!isCommand) {
+      wechatAutoReplyCommand(reply);
+    }
+
+    return reply.sent || res.send();
+  }
+
+  if (type === 'event') {
+    let event = req.body.Event.__cdata;
+    if (event === 'subscribe') {
+      _.set(req.body, 'Content.__cdata', 'subscribe');
+      const reply = new WechatMessage(wechat, { req, res }, 'text');
+      wechatAutoReplyCommand(reply);
+
+      return reply.sent || res.send();
     }
   }
 
@@ -246,24 +278,5 @@ wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) =
 export const wechatStart = () => {
   if (!process.env.WECHAT_APPID) return;
 
-  webhook.use('/wechat', wechat);
-};
-
-export const wechatAddCommand = (command: string, handler: TextHandler, desc?: string | true) => {
-  Commands[command] = { func: handler, desc };
-};
-
-export const wechatHelp: TextHandler = async msg => {
-  const lines = [];
-  const engHelp = [];
-
-  for (const key in Commands) {
-    if (Commands[key].desc === true) {
-      engHelp.push(key);
-    } else if (Commands[key].desc) {
-      lines.push(`${key} - ${Commands[key].desc}`);
-    }
-  }
-  lines.push(`\n * 还可以使用以下等同指令: \n${engHelp.join()}`);
-  msg.reply.text(lines.join('\n'));
+  webhook.use('/wechat', wechatHook);
 };

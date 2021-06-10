@@ -2,7 +2,7 @@ export class CommandParser {
   private matches;
   public constructor(command: string) {
     this.matches = command.match(
-      /((?:(?:\\")|[^"\s])+\s*)|('.*?(?:(?<!\\)'|$)\s*)|(".*?(?:(?<!\\)"|$)\s*)/g
+      /((?:(?:\\")|[^"\s])+\s*)|('.*?(?:(?<!\\)'|$)\s*)|(".*?(?:(?<!\\)"|$)\s*)/gs
     );
   }
 
@@ -20,6 +20,9 @@ export class CommandParser {
   }
 
   public getRest(index: number) {
-    return this.matches.slice(index).join('');
+    const str = this.matches.slice(index).join('');
+    if (str.startsWith('"')) return str.slice(1, str.length - (str.endsWith('"') ? 1 : 0));
+    if (str.startsWith("'")) return str.slice(1, str.length - (str.endsWith("'") ? 1 : 0));
+    return str;
   }
 }

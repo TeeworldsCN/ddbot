@@ -35,19 +35,36 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         }
       },
       image: async (url: string, onlyTo?: string) => {
-        try {
-          const result = await this.instance.API.message.create(
-            MSG_TYPES.image,
-            channelId,
-            url,
-            undefined,
-            onlyTo
-          );
-          return result.msgId;
-        } catch (e) {
-          console.warn(`[开黑啦] 发送消息失败`);
-          console.warn(e);
-          return null;
+        if (!url.startsWith('http')) {
+          try {
+            const result = await this.instance.API.message.create(
+              MSG_TYPES.text,
+              channelId,
+              `非正常图片消息：${url}`,
+              undefined,
+              onlyTo
+            );
+            return result.msgId;
+          } catch (e) {
+            console.warn(`[开黑啦] 发送非正常图片消息失败`);
+            console.warn(e);
+            return null;
+          }
+        } else {
+          try {
+            const result = await this.instance.API.message.create(
+              MSG_TYPES.image,
+              channelId,
+              url,
+              undefined,
+              onlyTo
+            );
+            return result.msgId;
+          } catch (e) {
+            console.warn(`[开黑啦] 发送消息失败`);
+            console.warn(e);
+            return null;
+          }
         }
       },
       card: async (content: Card, quote?: string, onlyTo?: string) => {
@@ -274,32 +291,29 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
   }
 }
 
-const Commands: { [key: string]: { func: TextHandler; desc: string } } = {};
-const Buttons: { [key: string]: ButtonHandler } = {};
-
-export let kaiheila: KaiheilaBotAdapter = null;
+export const kaiheila: KaiheilaBotAdapter = new KaiheilaBotAdapter(
+  process.env.KAIHEILA_BOT_TOKEN
+    ? new KaiheilaBot(
+        process.env.KAIHEILA_BOT_MODE == 'webhook'
+          ? {
+              mode: 'webhook',
+              token: process.env.KAIHEILA_BOT_TOKEN,
+              port: parseInt(process.env.KAIHEILA_BOT_PORT),
+              verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
+              key: process.env.KAIHEILA_BOT_KEY,
+              ignoreDecryptError: false,
+            }
+          : {
+              mode: 'websocket',
+              token: process.env.KAIHEILA_BOT_TOKEN,
+              ignoreDecryptError: false,
+            }
+      )
+    : null
+);
 
 export const kaiheilaStart = () => {
   if (!process.env.KAIHEILA_BOT_TOKEN) return;
-
-  kaiheila = new KaiheilaBotAdapter(
-    new KaiheilaBot(
-      process.env.KAIHEILA_BOT_MODE == 'webhook'
-        ? {
-            mode: 'webhook',
-            token: process.env.KAIHEILA_BOT_TOKEN,
-            port: parseInt(process.env.KAIHEILA_BOT_PORT),
-            verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
-            key: process.env.KAIHEILA_BOT_KEY,
-            ignoreDecryptError: false,
-          }
-        : {
-            mode: 'websocket',
-            token: process.env.KAIHEILA_BOT_TOKEN,
-            ignoreDecryptError: false,
-          }
-    )
-  );
 
   kaiheila.instance.on('textMessage', (e: TextMessage) => {
     // no bot message
@@ -316,9 +330,9 @@ export const kaiheilaStart = () => {
 
     const msg = new KaiheilaMessage(kaiheila, e, 'text');
 
-    for (let key in Commands) {
+    for (let key in kaiheila.commands) {
       if (key == command) {
-        Commands[key].func(msg).catch(reason => {
+        kaiheila.commands[key].func(msg).catch(reason => {
           console.error(`Error proccessing command '${text}'`);
           console.error(reason);
         });
@@ -329,18 +343,18 @@ export const kaiheilaStart = () => {
   kaiheila.instance.on('buttonClick', (e: ButtonClickEvent) => {
     if (e.value.startsWith('.')) {
       const command = e.value.split(' ')[0].slice(1);
-      for (let key in Commands) {
+      for (let key in kaiheila.commands) {
         if (key == command) {
-          Commands[key].func(new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
+          kaiheila.commands[key].func(new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
             console.error(`Error proccessing command button'${e.value}'`);
             console.error(reason);
           });
         }
       }
     } else {
-      for (let key in Buttons) {
+      for (let key in kaiheila.buttons) {
         if (e.value == key) {
-          Buttons[key](new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
+          kaiheila.buttons[key](new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
             console.error(`Error proccessing event button '${e.value}'`);
             console.error(reason);
           });
@@ -350,22 +364,4 @@ export const kaiheilaStart = () => {
   });
 
   kaiheila.instance.connect();
-};
-
-export const kaiheilaAddCommand = (command: string, handler: TextHandler, desc?: string) => {
-  Commands[command] = { func: handler, desc };
-};
-
-export const kaiheilaAddButton = (command: string, handler: ButtonHandler) => {
-  Buttons[command] = handler;
-};
-
-export const kaiheihaHelp: TextHandler = async msg => {
-  const lines = [];
-  for (const key in Commands) {
-    if (Commands[key].desc) {
-      lines.push(`${key} - ${Commands[key].desc}`);
-    }
-  }
-  msg.reply.text(lines.join('\n'));
 };

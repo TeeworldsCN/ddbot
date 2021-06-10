@@ -26,11 +26,11 @@ const uploadGraph = async (
   const title: any =
     size == 'lg'
       ? {
-          text: `点数: ${points}pts`,
+          text: ` ${name} 点数: ${points}pts`,
           anchor: 'start',
           color: '#F5F5F5',
           font: 'Noto Sans CJK SC',
-          fontSize: 12,
+          fontSize: 14,
         }
       : {
           text: `点数: ${points}pts`,

@@ -17,32 +17,47 @@ export const bind: TextHandler = async msg => {
       card.setTheme('danger');
       card.addContext([`(met)${msg.userId}(met)`]);
 
-      await msg.reply.delete();
-
       await msg.reply.card(card, undefined, true);
+      await msg.reply.delete();
     } else if (msg.bot.platform == 'wechat') {
       await msg.reply.text(`请提供您的DDNet昵称，例如：\n绑定 TsFreddie`);
     }
     return;
   }
 
-  await UserModel.updateOne(
+  const result = await UserModel.updateOne(
     { userKey: msg.userKey },
     { $set: { ddnetid: searchName } },
     { upsert: true }
-  );
+  ).exec();
 
-  if (msg.bot.platform == 'kaiheila') {
-    const card = new Card('sm');
-    card.addContext(['该消息只有您可见']);
+  if (result.ok) {
+    if (msg.bot.platform == 'kaiheila') {
+      const card = new Card('sm');
+      card.addContext(['该消息只有您可见']);
 
-    card.addTitle(`成功绑定DDNet ID ${searchName}`);
-    card.setTheme('info');
-    card.addContext([`(met)${msg.userId}(met)`]);
+      card.addTitle(`成功绑定DDNet ID ${searchName}`);
+      card.setTheme('info');
+      card.addContext([`(met)${msg.userId}(met)`]);
 
-    await msg.reply.delete();
-    await msg.reply.card(card, undefined, true);
-  } else if (msg.bot.platform == 'wechat') {
-    await msg.reply.text(`成功绑定DDNet ID: ${searchName}`);
+      await msg.reply.card(card, undefined, true);
+      await msg.reply.delete();
+    } else if (msg.bot.platform == 'wechat') {
+      await msg.reply.text(`成功绑定DDNet ID: ${searchName}`);
+    }
+  } else {
+    if (msg.bot.platform == 'kaiheila') {
+      const card = new Card('sm');
+      card.addContext(['该消息只有您可见']);
+
+      card.addTitle(`未知错误，绑定失败`);
+      card.setTheme('danger');
+      card.addContext([`(met)${msg.userId}(met)`]);
+
+      await msg.reply.card(card, undefined, true);
+      await msg.reply.delete();
+    } else if (msg.bot.platform == 'wechat') {
+      await msg.reply.text(`未知错误，绑定失败`);
+    }
   }
 };

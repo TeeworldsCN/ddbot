@@ -1,3 +1,4 @@
+import { ButtonHandler, TextHandler } from '../bottype';
 import { Card } from '../utils/cardBuilder';
 import { unpackID } from '../utils/helpers';
 
@@ -64,9 +65,19 @@ export interface UserInfo {
 
 export abstract class GenericBot<BotType> {
   protected _instance: any;
+  public commands: { [key: string]: { func: TextHandler; desc: string | boolean | number } } = {};
+  public buttons: { [key: string]: ButtonHandler } = {};
 
   constructor(instance: any) {
     this._instance = instance;
+  }
+
+  public addCommand(cmd: string, func: TextHandler, desc?: string | boolean | number) {
+    this.commands[cmd] = { func, desc };
+  }
+
+  public addButton(cmd: string, func: ButtonHandler) {
+    this.buttons[cmd] = func;
   }
 
   // 频道相关
