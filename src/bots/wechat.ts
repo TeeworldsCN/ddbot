@@ -199,8 +199,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   }
 }
 
-const Commands: { [key: string]: TextHandler } = {};
-const Buttons: { [key: string]: ButtonHandler } = {};
+const Commands: { [key: string]: { func: TextHandler; desc: string | true } } = {};
 
 wechat.get('/', checkSign, (req, res) => {
   if (req.query.echostr) return res.send(req.query.echostr);
@@ -227,7 +226,7 @@ wechat.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) =
     for (let key in Commands) {
       if (key == command) {
         try {
-          await Commands[key](reply);
+          await Commands[key].func(reply);
         } catch (e) {
           console.error(`Error proccessing command '${content}'`);
           console.error(e);
@@ -250,6 +249,21 @@ export const wechatStart = () => {
   webhook.use('/wechat', wechat);
 };
 
-export const wechatAddCommand = (command: string, handler: TextHandler) => {
-  Commands[command] = handler;
+export const wechatAddCommand = (command: string, handler: TextHandler, desc?: string | true) => {
+  Commands[command] = { func: handler, desc };
+};
+
+export const wechatHelp: TextHandler = async msg => {
+  const lines = [];
+  const engHelp = [];
+
+  for (const key in Commands) {
+    if (Commands[key].desc === true) {
+      engHelp.push(key);
+    } else if (Commands[key].desc) {
+      lines.push(`${key} - ${Commands[key].desc}`);
+    }
+  }
+  lines.push(`\n * 还可以使用以下等同指令: \n${engHelp.join()}`);
+  msg.reply.text(lines.join('\n'));
 };

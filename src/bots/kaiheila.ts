@@ -274,7 +274,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
   }
 }
 
-const Commands: { [key: string]: TextHandler } = {};
+const Commands: { [key: string]: { func: TextHandler; desc: string } } = {};
 const Buttons: { [key: string]: ButtonHandler } = {};
 
 export let kaiheila: KaiheilaBotAdapter = null;
@@ -318,7 +318,7 @@ export const kaiheilaStart = () => {
 
     for (let key in Commands) {
       if (key == command) {
-        Commands[key](msg).catch(reason => {
+        Commands[key].func(msg).catch(reason => {
           console.error(`Error proccessing command '${text}'`);
           console.error(reason);
         });
@@ -331,7 +331,7 @@ export const kaiheilaStart = () => {
       const command = e.value.split(' ')[0].slice(1);
       for (let key in Commands) {
         if (key == command) {
-          Commands[key](new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
+          Commands[key].func(new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
             console.error(`Error proccessing command button'${e.value}'`);
             console.error(reason);
           });
@@ -352,10 +352,20 @@ export const kaiheilaStart = () => {
   kaiheila.instance.connect();
 };
 
-export const kaiheilaAddCommand = (command: string, handler: TextHandler) => {
-  Commands[command] = handler;
+export const kaiheilaAddCommand = (command: string, handler: TextHandler, desc?: string) => {
+  Commands[command] = { func: handler, desc };
 };
 
 export const kaiheilaAddButton = (command: string, handler: ButtonHandler) => {
   Buttons[command] = handler;
+};
+
+export const kaiheihaHelp: TextHandler = async msg => {
+  const lines = [];
+  for (const key in Commands) {
+    if (Commands[key].desc) {
+      lines.push(`${key} - ${Commands[key].desc}`);
+    }
+  }
+  msg.reply.text(lines.join('\n'));
 };
