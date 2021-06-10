@@ -62,7 +62,7 @@ export const assign: TextHandler = async msg => {
 
 export const nuke: TextHandler = async msg => {
   const user = await getUser(msg.userKey);
-  if (user.level != 1) return;
+  if (user.level > LEVEL_ADMIN) return;
 
   const query = new CommandParser(msg.content);
   const userKey = query.getRest(1);
@@ -85,7 +85,7 @@ export const nuke: TextHandler = async msg => {
 
 export const wechatSetKeyword: TextHandler = async msg => {
   const user = await getUser(msg.userKey);
-  if (user.level > 2) return;
+  if (user.level > LEVEL_OPERATOR) return;
 
   const query = new CommandParser(msg.content);
   const keyword = query.getString(1);
@@ -128,7 +128,7 @@ export const wechatListKeywords: TextHandler = async msg => {
 
 export const wechatRemoveKeyword: TextHandler = async msg => {
   const user = await getUser(msg.userKey);
-  if (user.level > 2) return;
+  if (user.level > LEVEL_OPERATOR) return;
 
   const query = new CommandParser(msg.content);
   const keyword = query.getString(1);
@@ -148,5 +148,8 @@ export const wechatRemoveKeyword: TextHandler = async msg => {
 };
 
 export const wechatGetToken: TextHandler = async msg => {
+  const user = await getUser(msg.userKey);
+  if (user.level > LEVEL_ADMIN) return;
+
   msg.reply.text(await accessToken());
 };
