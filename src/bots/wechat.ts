@@ -255,7 +255,7 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
     }
 
     if (!isCommand) {
-      wechatAutoReplyCommand(reply);
+      await wechatAutoReplyCommand(reply);
     }
 
     return reply.sent || res.send();
@@ -266,7 +266,7 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
     if (event === 'subscribe') {
       _.set(req.body, 'Content.__cdata', 'subscribe');
       const reply = new WechatMessage(wechat, { req, res }, 'text');
-      wechatAutoReplyCommand(reply);
+      await wechatAutoReplyCommand(reply);
 
       return reply.sent || res.send();
     }
