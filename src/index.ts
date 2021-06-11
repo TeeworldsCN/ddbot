@@ -23,6 +23,7 @@ import { pointRank, points } from './handlers/points';
 import { rank } from './handlers/rank';
 import { top } from './handlers/top';
 import { kaiheilaHelp, wechatHelp } from './handlers/helps';
+import { counterToToken } from './db/matchSignup';
 
 /*
   连接数据库
@@ -32,6 +33,7 @@ import { kaiheilaHelp, wechatHelp } from './handlers/helps';
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useCreateIndex: true,
+    useFindAndModify: false,
   });
 
   // 生成定义的管理员账户

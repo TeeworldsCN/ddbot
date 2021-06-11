@@ -8,9 +8,11 @@ export const LEVEL_USER = 4;
 
 interface User extends Document {
   userKey: string;
-  level: number;
-  token: string;
   ddnetid: string;
+  level?: number;
+  token?: string;
+  converseKey?: string;
+  converseProgress?: number;
 }
 
 const schema = new Schema<User>({
@@ -18,6 +20,8 @@ const schema = new Schema<User>({
   level: { type: Number, default: 4 },
   token: { type: String },
   ddnetid: { type: String, required: true },
+  converseKey: { type: String },
+  converseProgress: { type: Number },
 });
 
 schema.index({ userKey: 1 });
