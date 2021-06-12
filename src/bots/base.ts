@@ -1,5 +1,5 @@
-import { ButtonHandler, TextHandler } from '../bottype';
-import { UserModel } from '../db/user';
+import { ButtonHandler, ConverseHandler, TextHandler } from '../bottype';
+import { getUser, LEVEL_USER, User, UserModel } from '../db/user';
 import { Card } from '../utils/cardBuilder';
 import { unpackID } from '../utils/helpers';
 
@@ -11,11 +11,6 @@ export type MessageReply = {
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
-};
-
-export type MessageBaseReply = {
-  setConverse: (key: string, progress: number) => Promise<void>;
-  checkConverse: (key: string) => number;
 };
 
 export type MessageAction = {
@@ -71,8 +66,15 @@ export interface UserInfo {
 
 export abstract class GenericBot<BotType> {
   protected _instance: any;
-  public commands: { [key: string]: { func: TextHandler; desc: string | boolean | number } } = {};
-  public buttons: { [key: string]: ButtonHandler } = {};
+  public commands: {
+    [key: string]: { func: TextHandler; desc: string | boolean | number };
+  } = {};
+  public buttons: {
+    [key: string]: ButtonHandler;
+  } = {};
+  public converses: {
+    [key: string]: { func: ConverseHandler; desc: string | boolean | number };
+  } = {};
 
   constructor(instance: any) {
     this._instance = instance;
@@ -84,6 +86,10 @@ export abstract class GenericBot<BotType> {
 
   public addButton(cmd: string, func: ButtonHandler) {
     this.buttons[cmd] = func;
+  }
+
+  public addConverse(cmd: string, func: ConverseHandler, desc?: string | boolean | number) {
+    this.converses[cmd] = { func, desc };
   }
 
   // 频道相关
@@ -144,10 +150,12 @@ export abstract class GenericMessage<BotType> {
   protected _author: UserInfo;
   protected _raw: any;
   protected _bot: GenericBot<BotType>;
+  protected _dbuser: User;
 
   public constructor(bot: GenericBot<BotType>, e: any) {
     this._raw = e;
     this._bot = bot;
+    this._dbuser = null;
   }
 
   public get raw(): any {
@@ -202,13 +210,61 @@ export abstract class GenericMessage<BotType> {
     return this._bot;
   }
 
-  public get reply(): MessageReply & MessageBaseReply {
+  public async fetchUser() {
+    if (this._dbuser) return this._dbuser;
+    try {
+      this._dbuser = await getUser(this.userKey);
+    } catch (e) {
+      this._dbuser = null;
+    }
+    return this._dbuser;
+  }
+
+  public get user() {
+    return this._dbuser;
+  }
+
+  public get userLevel() {
+    return this.user?.level || LEVEL_USER;
+  }
+
+  public async setConverse(key: string, progress: number, context: any) {
+    if (this._dbuser) {
+      this._dbuser.converseKey = key;
+      this._dbuser.converseProgress = progress;
+      this._dbuser.converseContext = JSON.stringify(context);
+      await this._dbuser.save();
+    } else {
+      await UserModel.updateOne(
+        { userKey: this._userKey },
+        {
+          $set: {
+            converseKey: key,
+            converseProgress: progress,
+            converseContext: JSON.stringify(context),
+          },
+        },
+        { upsert: true }
+      ).exec();
+    }
+  }
+
+  public async finishConverse() {
+    await this.setConverse('', 0, {});
+  }
+
+  public async getConverse() {
+    return {
+      key: this.user?.converseKey || '',
+      progress: this.user?.converseProgress || 0,
+      context: JSON.parse(this.user?.converseContext || '{}'),
+    };
+  }
+
+  public get reply(): MessageReply {
     return {
       ...EMPTY_ACTIONS,
       ...this.makeReply(),
-      setConverse: async (key: string, progress: number) => {
-        UserModel.findOne;
-      },
     };
   }
 

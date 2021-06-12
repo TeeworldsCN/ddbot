@@ -240,21 +240,15 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
     const command = content.split(' ')[0].toLowerCase();
     const reply = new WechatMessage(wechat, { req, res }, 'text');
 
-    let isCommand = false;
-    for (let key in wechat.commands) {
-      if (key == command) {
-        isCommand = true;
-        try {
-          await wechat.commands[key].func(reply);
-        } catch (e) {
-          console.error(`Error proccessing command '${content}'`);
-          console.error(e);
-        }
-        break;
+    if (wechat.commands[command]) {
+      try {
+        reply.fetchUser();
+        await wechat.commands[command].func(reply);
+      } catch (e) {
+        console.error(`Error proccessing command '${content}'`);
+        console.error(e);
       }
-    }
-
-    if (!isCommand && !reply.sent) {
+    } else {
       await wechatAutoReplyCommand(reply);
     }
 

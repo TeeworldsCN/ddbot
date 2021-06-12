@@ -11,19 +11,19 @@ import {
   wechatSetKeyword,
   wechatRemoveKeyword,
   wechatGetToken,
-} from './handlers/adminTools';
+} from './commands/adminTools';
 import { startWebhook as webhookStart } from './webhook';
 
-import { bind } from './handlers/bind';
-import { ddnetStatus } from './handlers/ddnetStatus';
-import { find } from './handlers/find';
-import { maps } from './handlers/maps';
-import { me } from './handlers/me';
-import { pointRank, points } from './handlers/points';
-import { rank } from './handlers/rank';
-import { top } from './handlers/top';
-import { kaiheilaHelp, wechatHelp } from './handlers/helps';
-import { randomToken } from './db/matchSignup';
+import { bind } from './commands/bind';
+import { ddnetStatus } from './commands/ddnetStatus';
+import { find } from './commands/find';
+import { maps } from './commands/maps';
+import { me } from './commands/me';
+import { pointRank, points } from './commands/points';
+import { rank } from './commands/rank';
+import { top } from './commands/top';
+import { kaiheilaHelp, wechatHelp } from './commands/helps';
+import { matchSignup } from './conversations/matchSignup';
 
 /*
   连接数据库
@@ -38,7 +38,6 @@ import { randomToken } from './db/matchSignup';
 
   // 生成定义的管理员账户
   await initAdmins();
-  console.log(await randomToken());
 })();
 
 /*
@@ -67,6 +66,7 @@ kaiheila.addCommand('help', kaiheilaHelp, '显示该帮助消息');
 // 通过开黑啦测试简单的微信指令
 kaiheila.addCommand('pointrank', pointRank);
 kaiheila.addCommand('helpwechat', wechatHelp);
+kaiheila.addConverse('testmatch', matchSignup);
 
 // 微信指令
 wechat.addCommand('me', me);

@@ -4,7 +4,6 @@ import { AxiosError } from 'axios';
 import _ from 'lodash';
 import { CommandParser } from '../utils/commandParser';
 import { FLAGS } from '../utils/consts';
-import { getUser } from '../db/user';
 import { API } from '../utils/axios';
 import { dateTime, secTime } from '../utils/helpers';
 
@@ -16,7 +15,7 @@ export const rank: TextHandler = async msg => {
     return;
   }
 
-  const playerName = query.getRest(2) || (await getUser(msg.userKey))?.ddnetid;
+  const playerName = query.getRest(2) || msg.user?.ddnetid;
   const card = new Card('lg');
   const isButton = msg.type == 'button';
 

@@ -6,3 +6,8 @@ type HandlerMessageType = 'text' | 'button' | 'system';
 
 type TextHandler = (msg: GenericMessage<any>) => Promise<void>;
 type ButtonHandler = (msg: GenericMessage<any>) => Promise<void>;
+type ConverseHandler = <T>(
+  msg: GenericMessage<any>,
+  progress: number,
+  context: T
+) => Promise<number>;

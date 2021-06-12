@@ -1,13 +1,6 @@
 import { CommandParser } from '../utils/commandParser';
 import { TextHandler } from '../bottype';
-import {
-  getUser,
-  LEVEL_ADMIN,
-  LEVEL_OPERATOR,
-  LEVEL_TESTER,
-  LEVEL_USER,
-  UserModel,
-} from '../db/user';
+import { LEVEL_ADMIN, LEVEL_OPERATOR, LEVEL_TESTER, LEVEL_USER, UserModel } from '../db/user';
 import { WechatReplyModel } from '../db/wechatReply';
 import _ from 'lodash';
 import { accessToken } from '../bots/wechat';
@@ -29,8 +22,7 @@ import { accessToken } from '../bots/wechat';
 // };
 
 export const assign: TextHandler = async msg => {
-  const user = await getUser(msg.userKey);
-  if (user.level != 1) return;
+  if (msg.userLevel > LEVEL_ADMIN) return;
 
   const query = new CommandParser(msg.content);
   const level = query.getNumber(1);
@@ -61,8 +53,7 @@ export const assign: TextHandler = async msg => {
 };
 
 export const nuke: TextHandler = async msg => {
-  const user = await getUser(msg.userKey);
-  if (user.level > LEVEL_ADMIN) return;
+  if (msg.userLevel > LEVEL_ADMIN) return;
 
   const query = new CommandParser(msg.content);
   const userKey = query.getRest(1);
@@ -84,8 +75,7 @@ export const nuke: TextHandler = async msg => {
 };
 
 export const wechatSetKeyword: TextHandler = async msg => {
-  const user = await getUser(msg.userKey);
-  if (user.level > LEVEL_OPERATOR) return;
+  if (msg.userLevel > LEVEL_OPERATOR) return;
 
   const query = new CommandParser(msg.content);
   const keyword = query.getString(1);
@@ -116,8 +106,7 @@ export const wechatSetKeyword: TextHandler = async msg => {
 };
 
 export const wechatListKeywords: TextHandler = async msg => {
-  const user = await getUser(msg.userKey);
-  if (user.level > 2) return;
+  if (msg.userLevel > LEVEL_OPERATOR) return;
 
   const keywords = await WechatReplyModel.find({}, 'keyword').exec();
   await msg.reply.text(
@@ -127,8 +116,7 @@ export const wechatListKeywords: TextHandler = async msg => {
 };
 
 export const wechatRemoveKeyword: TextHandler = async msg => {
-  const user = await getUser(msg.userKey);
-  if (user.level > LEVEL_OPERATOR) return;
+  if (msg.userLevel > LEVEL_OPERATOR) return;
 
   const query = new CommandParser(msg.content);
   const keyword = query.getString(1);
@@ -148,8 +136,7 @@ export const wechatRemoveKeyword: TextHandler = async msg => {
 };
 
 export const wechatGetToken: TextHandler = async msg => {
-  const user = await getUser(msg.userKey);
-  if (user.level > LEVEL_ADMIN) return;
+  if (msg.userLevel > LEVEL_OPERATOR) return;
 
   msg.reply.text(await accessToken());
 };

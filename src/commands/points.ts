@@ -7,7 +7,6 @@ import { dateTime, ddnetEncode, secTime } from '../utils/helpers';
 import { Card, SMD } from '../utils/cardBuilder';
 import { TextHandler } from '../bottype';
 import { CommandParser } from '../utils/commandParser';
-import { getUser } from '../db/user';
 import { API } from '../utils/axios';
 import { FLAGS, SERVERS_SHORT } from '../utils/consts';
 import _ from 'lodash';
@@ -208,7 +207,7 @@ export const points: TextHandler = async msg => {
   const query = new CommandParser(msg.content);
   const name = query.getRest(1);
 
-  const searchName = name || (await getUser(msg.userKey))?.ddnetid;
+  const searchName = name || msg.user?.ddnetid;
 
   const temporary = msg.type == 'button';
   const card = new Card('lg');
@@ -379,7 +378,7 @@ export const pointRank: TextHandler = async msg => {
   const query = new CommandParser(msg.content);
   const name = query.getRest(1);
 
-  const searchName = name || (await getUser(msg.userKey))?.ddnetid;
+  const searchName = name || msg.user?.ddnetid;
 
   if (!searchName) {
     await msg.reply.text(

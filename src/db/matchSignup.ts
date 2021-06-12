@@ -21,13 +21,6 @@ schema.index({ userKey: 1 });
 schema.index({ teamToken: 1 });
 export const MatchSignUpModel = model<MatchSignUp>('MatchSignUp', schema);
 
-// export const counterToToken = (count: number) => {
-//   const first = count % 20;
-//   const second = (first + Math.floor(count / 20)) % 20;
-
-//   return `${TOKENS_PARTS[first][0]}${TOKENS_PARTS[second][1]}`;
-// };
-
 export const randomToken = async () => {
   const name = crn.names.get2();
   let tokenExists = await MatchSignUpModel.findOne({ teamToken: name }).exec();
