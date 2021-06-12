@@ -1,4 +1,5 @@
 import { ButtonHandler, TextHandler } from '../bottype';
+import { UserModel } from '../db/user';
 import { Card } from '../utils/cardBuilder';
 import { unpackID } from '../utils/helpers';
 
@@ -10,6 +11,11 @@ export type MessageReply = {
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
+};
+
+export type MessageBaseReply = {
+  setConverse: (key: string, progress: number) => Promise<void>;
+  checkConverse: (key: string) => number;
 };
 
 export type MessageAction = {
@@ -196,10 +202,13 @@ export abstract class GenericMessage<BotType> {
     return this._bot;
   }
 
-  public get reply(): MessageReply {
+  public get reply(): MessageReply & MessageBaseReply {
     return {
       ...EMPTY_ACTIONS,
       ...this.makeReply(),
+      setConverse: async (key: string, progress: number) => {
+        UserModel.findOne;
+      },
     };
   }
 

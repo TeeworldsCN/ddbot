@@ -23,7 +23,7 @@ import { pointRank, points } from './handlers/points';
 import { rank } from './handlers/rank';
 import { top } from './handlers/top';
 import { kaiheilaHelp, wechatHelp } from './handlers/helps';
-import { counterToToken } from './db/matchSignup';
+import { randomToken } from './db/matchSignup';
 
 /*
   连接数据库
@@ -38,6 +38,7 @@ import { counterToToken } from './db/matchSignup';
 
   // 生成定义的管理员账户
   await initAdmins();
+  console.log(await randomToken());
 })();
 
 /*
