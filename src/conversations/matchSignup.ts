@@ -45,16 +45,15 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
     DateTime.now() < DateTime.fromISO('2021-06-20T00:00:00+0800') &&
     msg.userLevel > LEVEL_TESTER
   ) {
-    msg.reply.text('报名还没有开始，请在6月20号0点之后再次尝试[擦汗]');
+    await msg.reply.text('报名还没有开始，请在6月20号0点之后再次尝试[擦汗]');
     return -1;
   }
 
-  if (
-    DateTime.now() < DateTime.fromISO('2021-06-20T00:00:00+0800') &&
-    msg.userLevel > LEVEL_TESTER
-  ) {
-    msg.reply.text('报名还没有开始，请在6月20号之后重试【报名取消】');
+  if (DateTime.now() >= DateTime.fromISO('2021-07-20T00:00:00+0800')) {
+    await msg.reply.text('啊。报名已经结束了哦。（报名期间：6月20日至7月19日）');
+    return -1;
   }
+
   const isPositiveReply = () => {
     return msg.content.match(
       /([^不]|^)(是([^个吗]|$)|要([^不么麽个]|$)|恩([^?？]|$)|嗯([^?？]|$)|好|可([^别个]|$)|行|ye|^y$)([^个]|$)/i
@@ -62,7 +61,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
   };
 
   const isSignupReply = () => {
-    return msg.content.match(/([^不]|^)报/i);
+    return msg.content.match(/([^不]|^)(报|继续)/i);
   };
 
   const isNegativeReply = () => {
@@ -90,7 +89,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
   };
 
   const MATCHINFO =
-    '请保留好参赛码，不要泄露给他人！\n比赛会在7月24日下午1点30分开始，请到时准备好参赛码进入比赛服务器就位。迟到20分钟将视为弃赛。比赛详情和进入比赛服务器的方式请点击右上角查看订阅号文章。\n再次发送“报名”可查看你的报名信息。\n若要修改你的报名信息或取消报名，请发邮件联系event@teeworlds.cn【报名完成】';
+    '----------\n请保留好参赛码！\n不要泄露给他人！\n----------\n\n比赛会在7月24日下午1点30分开始，请到时准备好参赛码进入比赛服务器就位。迟到20分钟将视为弃赛。比赛详情和进入比赛服务器的方式请点击右上角查看订阅号文章。\n再次发送“报名”可查看你的报名信息。\n若要修改你的报名信息或取消报名，请发邮件联系event@teeworlds.cn【报名完成】';
 
   const signedUp = await MatchSignUpModel.findOne({ userKey: msg.userKey })
     .populate('teamCreator')
@@ -98,9 +97,9 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
 
   if (isCancelReply()) {
     if (signedUp) {
-      msg.reply.text('好的，豆豆祝你比赛顺利。');
+      await msg.reply.text('好的，豆豆祝你比赛顺利。');
     } else {
-      msg.reply.text(
+      await msg.reply.text(
         '知道了，那就先帮你取消报名了。若要再次开始报名。再次回复“报名”即可。【报名取消】'
       );
     }
@@ -113,27 +112,28 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
       if (signedUp) {
         if (!signedUp.registered) {
           if (signedUp.teamCreator) {
-            msg.reply.text(
+            await msg.reply.text(
               `你的报名被取消了。这是你之前的报名信息：\n==========\n报名ID：${signedUp.ddnetid}\n队伍：${signedUp.teamCreator.createdTeamName}\n参赛码：${signedUp.entryToken}\n==========\n\n想要恢复报名的话可以邮件联系event@teeworlds.cn`
             );
           } else {
-            msg.reply.text(
+            await msg.reply.text(
               `你的报名被取消了。这是你之前的报名信息：\n==========\n报名ID：${signedUp.ddnetid}\n参赛码：${signedUp.entryToken}\n==========\n\n想要恢复报名的话可以邮件联系event@teeworlds.cn`
             );
           }
+          return -1;
         } else if (signedUp.teamCreator) {
-          msg.reply.text(
+          await msg.reply.text(
             `欢迎回来，你的FNG报名信息如下：\n==========\n报名ID：${signedUp.ddnetid}\n队伍：${signedUp.teamCreator.createdTeamName}\n参赛码：${signedUp.entryToken}\n==========\n\n想要修改报名信息的话请用邮件联系event@teeworlds.cn`
           );
         } else {
-          msg.reply.text(
+          await msg.reply.text(
             `欢迎回来，你的FNG报名信息如下：\n==========\n报名ID：${signedUp.ddnetid}\n参赛码：${signedUp.entryToken}\n==========\n\n想要修改报名信息的话请用邮件联系event@teeworlds.cn`
           );
         }
         return -1;
       }
 
-      msg.reply.text(
+      await msg.reply.text(
         '欢迎参加「TWCN “重获新生” 2021年夏季比赛」的报名。\n\n只有团队冰冻献祭模式需要报名，合作竞速(DDrace)模式的参与方式请查看比赛通知的订阅号文章。\n\nFNG比赛会在7月24日下午1点30分开始，为了方便管理和通知，比赛要求所有参赛玩家按时进入比赛服务器就位，并全程观战。所有对局将在三到四个小时内完成。\n\n请问是要继续报名FNG比赛吗？'
       );
       return 1;
@@ -144,34 +144,35 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
         if (msg.user?.ddnetid) {
           const bindReadID = truncate(msg.user.ddnetid, 16);
           if (msg.user.ddnetid != bindReadID) {
-            msg.reply.text(
+            await msg.reply.text(
               `你绑定的游戏名"${msg.user.ddnetid}"过长，在游戏里不能显示（会显示为"${bindReadID}")，请告诉豆豆一个短一点的ID。`
             );
             return 2;
           }
-
-          msg.reply.text(
+          await msg.reply.text(
             `了解！那现在开始帮你报名，若要取消报名流程，随时回复“取消”即可。\n\n请问你是要用"${msg.user.ddnetid}"这个ID报名吗？`
           );
           context.name = msg.user.ddnetid;
           return 3;
         }
-        msg.reply.text(
+        await msg.reply.text(
           `了解！那现在开始帮你报名，若要取消报名流程，随时回复“取消”即可。\n\n那能提供下你的游戏ID吗？`
         );
         return 2;
       }
       if (isNegativeReply()) {
-        msg.reply.text(`好的，那就先不报名了。又想报名了的话，再次回复“报名”即可。【报名取消】`);
+        await msg.reply.text(
+          `好的，那就先不报名了。又想报名了的话，再次回复“报名”即可。【报名取消】`
+        );
         return -1;
       }
       if (isConfusionReply()) {
-        msg.reply.text(
+        await msg.reply.text(
           `[发呆]豆豆想知道你是不是要报名FNG比赛，是的话回复“是”，不是的话回复“不是”。`
         );
         return 1;
       }
-      msg.reply.text(
+      await msg.reply.text(
         `额。。豆豆没明白[疑问]，那我就先当作你不需要报名了。还是想报名的话，再次回复“报名”即可。【报名失败】`
       );
       return -1;
@@ -179,13 +180,13 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
     // 请提供你的ID
     case 2:
       if (!msg.content) {
-        msg.reply.text(`啊，豆豆没看到你的ID。能再告诉豆豆一下你的游戏ID吗？`);
+        await msg.reply.text(`啊，豆豆没看到你的ID。能再告诉豆豆一下你的游戏ID吗？`);
         return 2;
       }
 
       const providedRealID = truncate(msg.content, 16);
       if (msg.content != providedRealID) {
-        msg.reply.text(
+        await msg.reply.text(
           `"${msg.content}"这个ID太长了[吓]，在游戏里显示不出来（会显示为"${providedRealID}")，请告诉豆豆一个短一点的ID。`
         );
         return 2;
@@ -193,11 +194,13 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
 
       if (context.name) {
         context.name = msg.content;
-        msg.reply.text(`是想换成"${context.name}"这个ID报名吗？不想报名了的话，回复“取消”即可`);
+        await msg.reply.text(
+          `是想换成"${context.name}"这个ID报名吗？不想报名了的话，回复“取消”即可`
+        );
         return 3;
       }
 
-      msg.reply.text(`好，以防你打错，再确认下是用"${msg.content}"这个ID报名吗？`);
+      await msg.reply.text(`好，以防你打错，再确认下是用"${msg.content}"这个ID报名吗？`);
       context.name = msg.content;
       return 3;
 
@@ -207,14 +210,14 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
         break;
       }
       if (isPositiveReply() || msg.content == context.name) {
-        msg.reply.text(
+        await msg.reply.text(
           `OK，那就帮你用"${context.name}"这个ID报名。\n那请问你已经有队友了吗？还是想要以个人名义报名让我们来随机帮你找队伍？`
         );
         return 4;
       }
 
       if (isNegativeReply() || isRegretReply()) {
-        msg.reply.text(`不是的话，那重新告诉下我你的ID吧。`);
+        await msg.reply.text(`不是的话，那重新告诉下我你的ID吧。`);
         return 2;
       }
 
@@ -224,15 +227,15 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
     // 有队友吗
     case 4:
       if (isConfusionReply()) {
-        msg.reply.text(
+        await msg.reply.text(
           `是这样的，比赛分固定三人队伍和个人随机组队两种队伍。\n固定队伍固定三人配置，可以附带一位第四名队员作为替补。\n以个人名义报名的玩家则会被随机匹配一名或两名队友。具体的分组规则建议查看订阅号的比赛公告。\n\n那么，如果是已经有组好队的队友的话请回复“有队友”，没有的话请回复“个人”。`
         );
         return 4;
       }
 
       if (isTeamedReply()) {
-        msg.reply.text(
-          `好的[机智]，你是队长吗？如果不是队长的话，你的队长应该有发给你一个队伍代号。不太确定的话建议先跟队友确认下。`
+        await msg.reply.text(
+          `好的[机智]，你是队长吗？是队长的话豆豆帮你创建一个新的队伍。如果不是队长的话，你的队长应该有发给你一个队伍代号。不太确定的话建议先跟队友确认下。`
         );
         return 5;
       }
@@ -246,12 +249,12 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
           registered: true,
         });
 
-        msg.reply.text(
+        await msg.reply.text(
           `[好的] OK了，那就已经帮你报上名了，最后的分组和比赛服务器会在7月20日通过微信订阅号的文章公布。\n==========\n报名ID：${context.name}\n参赛码：${token}\n==========\n\n${MATCHINFO}`
         );
         return -1;
       }
-      msg.reply.text(
+      await msg.reply.text(
         `[天啊]豆豆没明白你的意思。如果有队友的话请回复“有”，个人名义报名的话请回复“个人”`
       );
       return 4;
@@ -259,7 +262,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
     // 是队长吗
     case 5:
       if (isConfusionReply()) {
-        msg.reply.text(
+        await msg.reply.text(
           `哦哦，队长是负责创建队伍的玩家。\n\n如果你的其他队友还没有报名，回复“是”豆豆就帮你创建个新的队伍代号，你可以邀请队友加入你的队伍。\n\n如果已经有队伍代号的话，直接回复队伍代号即可。\n\n不确定的话，建议先跟队友确认一下，回复“取消”可以暂时取消报名，之后再来报名。`
         );
         return 5;
@@ -273,16 +276,16 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
       }
 
       if (isPositiveReply()) {
-        msg.reply.text(`了解了，那能不能提供下你的队伍名？`);
+        await msg.reply.text(`了解了，那能不能提供下你的队伍名？`);
         return 6;
       }
 
       if (isNegativeReply()) {
-        msg.reply.text(`那么，能不能提供下队长发给你的队伍代号？豆豆好帮你们组成比赛队伍。`);
+        await msg.reply.text(`那么，能不能提供下队长发给你的队伍代号？豆豆好帮你们组成比赛队伍。`);
         return 8;
       }
 
-      msg.reply.text(
+      await msg.reply.text(
         `抱歉，豆豆不太明白你的意思[疑问]。\n\n如果你的其他队友还没有报名，回复“是”豆豆就帮你创建个新的队伍代号，你可以邀请队友加入你的队伍。\n\n如果已经有队伍代号的话，直接回复队伍代号即可。\n\n不确定的话，建议先跟队友确认一下，回复“取消”可以暂时取消报名，之后再来报名。`
       );
       return 5;
@@ -290,20 +293,24 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
     // 提供队伍名
     case 6:
       if (!msg.content) {
-        msg.reply.text(`啊，豆豆没看到你输入的队伍名。能再告诉豆豆一下你要报名的队伍名吗？[委屈]`);
+        await msg.reply.text(
+          `啊，豆豆没看到你输入的队伍名。能再告诉豆豆一下你要报名的队伍名吗？[委屈]`
+        );
         return 6;
       }
 
       context.teamName = msg.content;
       const realTeamName = truncate(msg.content, 12);
       if (context.teamName != realTeamName) {
-        msg.reply.text(
+        await msg.reply.text(
           `战队名"${context.teamName}"有点长，在游戏里会显示为"${realTeamName}"。不过豆豆依然可以按"${context.teamName}"这个战队名帮你创建队伍，这样可以吗？`
         );
         return 7;
       }
 
-      msg.reply.text(`好的，豆豆确认下，就按"${context.teamName}"这个战队名帮你创建队伍可以吗？`);
+      await msg.reply.text(
+        `好的，豆豆确认下，就按"${context.teamName}"这个战队名帮你创建队伍可以吗？`
+      );
       return 7;
 
     // 确认队伍名
@@ -320,25 +327,25 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
           createdTeamName: context.teamName,
           createdTeamToken: context.teamToken,
         });
-        msg.reply.text(
+        await msg.reply.text(
           `好的，那就帮你以"${context.teamName}"的队长名义报名了。\n==========\n报名ID：${context.name}\n队伍名称：${context.teamName}\n队伍代号：${context.teamToken}\n参赛码：${token}\n==========\n\n你的队伍代号是：“${context.teamToken}”。将队伍代号发送给你的队友并邀请他们来公众号报名即可。（请不要将队伍代码提供给其他队伍）\n\n${MATCHINFO}`
         );
         return -1;
       }
 
       if (isNegativeReply() || isRegretReply()) {
-        msg.reply.text(`好吧，那能再告诉豆豆一下你要创建的队伍名吗？`);
+        await msg.reply.text(`好吧，那能再告诉豆豆一下你要创建的队伍名吗？`);
         return 6;
       }
 
-      msg.reply.text(
+      await msg.reply.text(
         `豆豆没明白你的意思。请问是想用"${context.teamName}"这个队伍名吗？是的话回复“是”，不是的话回复“不是”。`
       );
       return 7;
 
     // 输入你的队伍代号
     case 8:
-      const teamName = context.teamName || (await findTeamCreator(msg.content)).createdTeamName;
+      const teamName = context.teamName || (await findTeamCreator(msg.content))?.createdTeamName;
       if (teamName) {
         context.teamName = teamName;
         context.teamToken = msg.content;
@@ -346,30 +353,30 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
         const teammates = await findTeam(msg.content);
         const teamList = teammates.map(t => `"${t.ddnetid}"`).join();
         if (teammates.length >= 4) {
-          msg.reply.text(
+          await msg.reply.text(
             `啊，"${teamName}"这个队伍已经有四个队员了：\n${teamList}\n\n豆豆暂时先取消你的报名流程了，你可以去和队长确认下。再次发送“报名”可以重新报名。【报名失败】`
           );
           return -1;
         } else if (teammates.length == 3) {
-          msg.reply.text(
+          await msg.reply.text(
             `"${teamName}"这个队伍已经有三个队员了：\n${teamList}\n豆豆还是可以帮你作为"${teamName}"的一员报名，但是比赛的时候会有一位队员是替补，具体谁是替补可以在比赛的时候决定。\n\n帮你作为"${teamName}"的一员报名可以吗？`
           );
           return 9;
         } else if (teammates.length > 0) {
-          msg.reply.text(
+          await msg.reply.text(
             `好的，目前"${teamName}"队伍有这些队员：\n${teamList}\n\n那豆豆帮你作为"${teamName}"的一员报名可以吗？`
           );
           return 9;
         } else {
-          msg.reply.text(
+          await msg.reply.text(
             `啊，目前"${teamName}"队伍没有队员，说明创建队伍的队长抛弃了这个队伍。\n\n不过豆豆依然可以帮你作为"${teamName}"的一员报名，确定要报名吗？`
           );
           return 9;
         }
       }
 
-      msg.reply.text(
-        `抱歉，豆豆找不到代号为"${msg.content}"的队伍。请确认下再发送一遍，或者回复“取消”再重新报名。【报名失败】`
+      await msg.reply.text(
+        `抱歉，豆豆找不到代号为"${msg.content}"的队伍。请确认下再发送一遍，或者回复“取消”再重新报名。`
       );
       return 8;
 
@@ -385,26 +392,26 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
           teamToken: context.teamToken,
         });
 
-        msg.reply.text(
+        await msg.reply.text(
           `好的，那就帮你报名到"${context.teamName}"这个队伍里了。\n==========\n报名ID：${context.name}\n队伍名称：${context.teamName}\n参赛码：${token}\n==========\n\n${MATCHINFO}`
         );
         return -1;
       }
 
       if (isNegativeReply() || isRegretReply()) {
-        msg.reply.text(
+        await msg.reply.text(
           `好的，那豆豆只能先帮你取消报名流程了。想重新报名的话，再次发送“报名”就可以了。【报名取消】`
         );
         return -1;
       }
 
-      msg.reply.text(
+      await msg.reply.text(
         `抱歉，豆豆不太明白你的意思。\n\n如果你确定要报名到${context.teamName}这个队伍里，回复“是”。否则的话回复“不是”。`
       );
       return 9;
   }
 
-  msg.reply.text(
+  await msg.reply.text(
     `呀，豆豆的脑回路变成豆腐脑彻底混乱掉了。先帮你取消了报名流程，回复“报名”可以重试。【报名失败】`
   );
   return -1;
