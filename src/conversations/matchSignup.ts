@@ -90,7 +90,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
   };
 
   const MATCHINFO =
-    '请保留好参赛码，不要泄露给他人！\n比赛会在7月24日下午1点30分开始，请到时准备好参赛码进入比赛服务器就位。迟到20分钟将视为弃赛。\n再次发送“报名”可查看你的报名信息。\n若要修改你的报名信息或取消报名，请发邮件联系event@teeworlds.cn【报名完成】';
+    '请保留好参赛码，不要泄露给他人！\n比赛会在7月24日下午1点30分开始，请到时准备好参赛码进入比赛服务器就位。迟到20分钟将视为弃赛。比赛详情和进入比赛服务器的方式请点击右上角查看订阅号文章。\n再次发送“报名”可查看你的报名信息。\n若要修改你的报名信息或取消报名，请发邮件联系event@teeworlds.cn【报名完成】';
 
   const signedUp = await MatchSignUpModel.findOne({ userKey: msg.userKey })
     .populate('teamCreator')
@@ -321,7 +321,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
           createdTeamToken: context.teamToken,
         });
         msg.reply.text(
-          `好的，那就帮你以"${context.teamName}"的队长名义报名了。\n==========\n报名ID：${context.name}\n队伍名称：${context.teamName}\n队伍代号：${context.teamToken}\n参赛码：${token}\n==========\n\n你的队伍代号是：“${context.teamToken}”。将队伍代号发送给你的队友并邀请他们来公众号报名即可。（请只将队伍代码发送给队友，否则可能会影响你的队伍正常报名）\n\n${MATCHINFO}`
+          `好的，那就帮你以"${context.teamName}"的队长名义报名了。\n==========\n报名ID：${context.name}\n队伍名称：${context.teamName}\n队伍代号：${context.teamToken}\n参赛码：${token}\n==========\n\n你的队伍代号是：“${context.teamToken}”。将队伍代号发送给你的队友并邀请他们来公众号报名即可。（请不要将队伍代码提供给其他队伍）\n\n${MATCHINFO}`
         );
         return -1;
       }
