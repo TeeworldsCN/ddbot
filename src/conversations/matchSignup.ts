@@ -247,7 +247,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
         });
 
         msg.reply.text(
-          `[好的] OK了，那就已经帮你报上名了，最后的分组和比赛服务器会在7月19日通过微信订阅号的文章公布。\n==========\n报名ID：${context.name}\n参赛码：${token}\n==========\n\n${MATCHINFO}`
+          `[好的] OK了，那就已经帮你报上名了，最后的分组和比赛服务器会在7月20日通过微信订阅号的文章公布。\n==========\n报名ID：${context.name}\n参赛码：${token}\n==========\n\n${MATCHINFO}`
         );
         return -1;
       }
