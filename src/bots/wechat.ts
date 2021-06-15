@@ -239,7 +239,7 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
     let content = req.body.Content.__cdata;
     const command = content.split(' ')[0].toLowerCase();
     const reply = new WechatMessage(wechat, { req, res }, 'text');
-    reply.fetchUser();
+    await reply.fetchUser();
 
     const converse = await reply.getConverse();
     const context = converse.context;
@@ -260,7 +260,6 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
 
     if (wechat.commands[command]) {
       try {
-        reply.fetchUser();
         await wechat.commands[command].func(reply);
       } catch (e) {
         console.error(`Error proccessing command '${content}'`);
