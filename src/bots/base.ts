@@ -6,6 +6,7 @@ import { unpackID } from '../utils/helpers';
 export type MessageReply = {
   text: (content: string, quote?: string, temp?: boolean) => Promise<string>;
   image: (image: string, temp?: boolean) => Promise<string>;
+  file: (file: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
   update: (content: string, quote?: string) => Promise<void>;
   delete: () => Promise<void>;
@@ -16,6 +17,7 @@ export type MessageReply = {
 export type MessageAction = {
   text: (content: string, quote?: string, onlyTo?: string) => Promise<string>;
   image: (image: string, onlyTo?: string) => Promise<string>;
+  file: (file: string, onlyTo?: string) => Promise<string>;
   card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
   update: (msgid: string, content: string, quote?: string) => Promise<void>;
   delete: (msgid: string) => Promise<void>;
@@ -27,6 +29,7 @@ export type MessageAction = {
 const EMPTY_ACTIONS: MessageReply & MessageAction = {
   text: async () => null as string,
   image: async () => null as string,
+  file: async () => null as string,
   card: async () => null as string,
   addReaction: async () => {},
   deleteReaction: async () => {},
@@ -130,6 +133,10 @@ export abstract class GenericBot<BotType> {
 
   // 从素材库删除图片素材
   public async deleteImageAsset(id: string): Promise<void> {}
+
+  public async uploadFile(name: string, data: Buffer): Promise<string> {
+    return null;
+  }
 
   public abstract makeChannelContext(channelId: string): Partial<MessageAction>;
   public abstract makeUserContext(userId: string): Partial<MessageAction>;
@@ -269,7 +276,5 @@ export abstract class GenericMessage<BotType> {
   }
 
   public async fetchUserInfo(): Promise<void> {}
-  public async uploadAssets(): Promise<void> {}
-
   public abstract makeReply(): Partial<MessageReply>;
 }

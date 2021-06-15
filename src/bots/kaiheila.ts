@@ -60,10 +60,26 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
             );
             return result.msgId;
           } catch (e) {
-            console.warn(`[开黑啦] 发送消息失败`);
+            console.warn(`[开黑啦] 发送图片消息失败`);
             console.warn(e);
             return null;
           }
+        }
+      },
+      file: async (url: string, onlyTo?: string) => {
+        try {
+          const result = await this.instance.API.message.create(
+            MSG_TYPES.file,
+            channelId,
+            url,
+            undefined,
+            onlyTo
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送文件消息失败`);
+          console.warn(e);
+          return null;
         }
       },
       card: async (content: Card, quote?: string, onlyTo?: string) => {
@@ -119,7 +135,7 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
 
   public makeUserContext(userId: string): Partial<MessageAction> {
     return {
-      text: async (content: string, quote?: string, temp?: string) => {
+      text: async (content: string, quote?: string, onlyTo?: string) => {
         try {
           const result = await this.instance.API.directMessage.create(
             MSG_TYPES.text,
@@ -146,6 +162,21 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return result.msgId;
         } catch (e) {
           console.warn(`[开黑啦] 发送图片失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      file: async (url: string, onlyTo?: string) => {
+        try {
+          const result = await this.instance.API.directMessage.create(
+            MSG_TYPES.file,
+            userId,
+            undefined,
+            url
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送文件失败`);
           console.warn(e);
           return null;
         }
@@ -226,6 +257,20 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     return this.uploadImage(name, data);
   }
 
+  public async uploadFile(name: string, data: Buffer) {
+    try {
+      const result = await this.instance.API.asset.create(data, {
+        filename: name,
+        knownLength: data.length,
+      });
+      return result.url;
+    } catch (e) {
+      console.warn('[开黑啦] 文件上传失败');
+      console.warn(e);
+    }
+    return null;
+  }
+
   public get platform(): string {
     return PLATFORM;
   }
@@ -281,6 +326,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     return {
       text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
       image: (c, t) => context.image(c, t ? this.userId : undefined),
+      file: (c, t) => context.file(c, t ? this.userId : undefined),
       card: (c, q, t) => context.card(c, q, t ? this.userId : undefined),
       update: (c, q) => context.update(this.msgId, c, q),
       delete: () => context.delete(this.msgId),
@@ -334,6 +380,8 @@ export const kaiheilaStart = () => {
         } else {
           await msg.finishConverse();
         }
+      } else if (converse.key) {
+        await msg.finishConverse();
       }
       return;
     }

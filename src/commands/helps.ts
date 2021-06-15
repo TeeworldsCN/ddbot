@@ -23,6 +23,14 @@ export const wechatHelp: TextHandler = async msg => {
       lines.push(`${key} - ${wechat.commands[key].desc}`);
     }
   }
+  for (const key in wechat.converses) {
+    if (wechat.converses[key].desc === true) {
+      engHelp.push(key);
+    } else if (wechat.converses[key].desc) {
+      lines.push(`${key} - ${wechat.converses[key].desc}`);
+    }
+  }
+
   lines.push(`\n * 还可以使用以下等同指令: \n${engHelp.join()}`);
   msg.reply.text(lines.join('\n'));
 };

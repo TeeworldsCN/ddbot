@@ -24,6 +24,7 @@ import { rank } from './commands/rank';
 import { top } from './commands/top';
 import { kaiheilaHelp, wechatHelp } from './commands/helps';
 import { matchSignup } from './conversations/matchSignup';
+import { exportRegistration, registrationCheck } from './commands/signupManage';
 
 /*
   连接数据库
@@ -68,6 +69,10 @@ kaiheila.addCommand('pointrank', pointRank);
 kaiheila.addCommand('helpwechat', wechatHelp);
 kaiheila.addConverse('testmatch', matchSignup);
 
+// 开黑啦报名管理指令
+kaiheila.addCommand('setreg', registrationCheck);
+kaiheila.addCommand('exportreg', exportRegistration);
+
 // 微信指令
 wechat.addCommand('me', me);
 wechat.addCommand('bind', bind, true);
@@ -86,6 +91,7 @@ wechat.addCommand('排名', pointRank, '查询我的点数排名');
 // wechat.addCommand('纪录', pointRank, '查询我的地图记录\n     * 例: 纪录 YunGu');
 // wechat.addCommand('记录', pointRank);
 wechat.addCommand('帮助', wechatHelp, '显示该帮助消息');
+wechat.addConverse('报名', matchSignup, '2021暑期赛FNG报名');
 
 /*
     启动机器人

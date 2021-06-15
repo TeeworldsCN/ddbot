@@ -181,23 +181,23 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
 
   public async fetchUserInfo() {
     // 订阅号不能用
-    try {
-      const { data } = await this.bot.instance.get('/user/info', {
-        params: {
-          access_token: await accessToken(),
-          openid: this.userId,
-          lang: 'zh_CN',
-        },
-      });
-      if (!data.subscribe) return;
-      this.author.nickname = data.nickname;
-      this.author.username = data.nickname;
-      this.author.tag = data.remark;
-      this.author.avatar = data.headimgurl;
-    } catch (e) {
-      console.warn(`[微信]获取用户信息(${this.userId})失败`);
-      console.warn(e);
-    }
+    // try {
+    //   const { data } = await this.bot.instance.get('/user/info', {
+    //     params: {
+    //       access_token: await accessToken(),
+    //       openid: this.userId,
+    //       lang: 'zh_CN',
+    //     },
+    //   });
+    //   if (!data.subscribe) return;
+    //   this.author.nickname = data.nickname;
+    //   this.author.username = data.nickname;
+    //   this.author.tag = data.remark;
+    //   this.author.avatar = data.headimgurl;
+    // } catch (e) {
+    //   console.warn(`[微信]获取用户信息(${this.userId})失败`);
+    //   console.warn(e);
+    // }
   }
 }
 
@@ -239,6 +239,24 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
     let content = req.body.Content.__cdata;
     const command = content.split(' ')[0].toLowerCase();
     const reply = new WechatMessage(wechat, { req, res }, 'text');
+    reply.fetchUser();
+
+    const converse = await reply.getConverse();
+    const context = converse.context;
+    if (converse.key && wechat.converses[converse.key]) {
+      const progress = await wechat.converses[converse.key].func<any>(
+        reply,
+        converse.progress,
+        context
+      );
+      if (progress && progress >= 0) {
+        await reply.setConverse(converse.key, progress, context);
+      } else {
+        await reply.finishConverse();
+      }
+    } else if (converse.key) {
+      await reply.finishConverse();
+    }
 
     if (wechat.commands[command]) {
       try {
@@ -247,6 +265,14 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
       } catch (e) {
         console.error(`Error proccessing command '${content}'`);
         console.error(e);
+      }
+    } else if (wechat.converses[command]) {
+      const context = {};
+      const progress = await wechat.converses[command].func<any>(reply, 0, context);
+      if (progress && progress >= 0) {
+        await reply.setConverse(command, progress, context);
+      } else {
+        await reply.finishConverse();
       }
     } else {
       await wechatAutoReplyCommand(reply);

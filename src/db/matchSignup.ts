@@ -8,7 +8,7 @@ interface MatchSignUp extends Document {
   teamToken?: string;
   createdTeamName?: string;
   createdTeamToken?: string;
-  teamCreator?: MatchSignUp;
+  teamCreator?: Partial<MatchSignUp>;
 }
 
 const schema = new Schema<MatchSignUp>({
@@ -22,6 +22,7 @@ const schema = new Schema<MatchSignUp>({
 });
 
 schema.index({ userKey: 1 });
+schema.index({ entryToken: 1 });
 schema.index({ createdTeamToken: 1 });
 schema.virtual('teamCreator', {
   ref: 'MatchSignUp',
