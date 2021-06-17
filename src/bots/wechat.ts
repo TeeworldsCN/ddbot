@@ -56,7 +56,7 @@ export const accessToken = async () => {
 };
 
 const checkSign = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const signData = [process.env.WECHAT_TOKEN, req.query.timestamp, req.query.nonce];
+  const signData = [process.env.BOT_AUTH_TOKEN, req.query.timestamp, req.query.nonce];
   const sign = sha1(signData.sort().join(''));
 
   if (req.query.signature === sign) {
@@ -304,4 +304,5 @@ export const wechatStart = () => {
   if (!process.env.WECHAT_APPID) return;
 
   webhook.use('/wechat', wechatHook);
+  wechat.started = true;
 };

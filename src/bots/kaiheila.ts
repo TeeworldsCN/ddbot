@@ -436,4 +436,5 @@ export const kaiheilaStart = () => {
   });
 
   kaiheila.instance.connect();
+  kaiheila.started = true;
 };

@@ -16,13 +16,18 @@ export const subscribe: TextHandler = async msg => {
 
   const query = new CommandParser(msg.content);
   const name = query.getString(1);
+  const channel = query.getString(2) || msg.channelKey;
   const result = await SubscriptionModel.updateOne(
     { name },
-    { $addToSet: { channels: msg.channelKey } },
+    { $addToSet: { channels: channel } },
     { upsert: msg.userLevel <= LEVEL_OPERATOR }
   ).exec();
   if (result.ok) {
-    await msg.reply.text(`成功在这里订阅"${name}"消息`);
+    if (channel == msg.channelKey) {
+      await msg.reply.text(`成功在这里订阅"${name}"消息`);
+    } else {
+      await msg.reply.text(`成功在"${channel}"订阅"${name}"消息`);
+    }
   } else {
     await msg.reply.text(`未知错误，订阅"${name}"失败`);
   }

@@ -6,6 +6,8 @@ import { dateTime, unpackID } from '../utils/helpers';
 import { FeedEntry, FeedHandler } from '../utils/rssFeeder';
 
 const sendKaiheila = async (item: FeedEntry, channelKey: string) => {
+  if (!kaiheila.started) return;
+
   const card = new Card('lg');
   const data = (item.title as string).match(
     /\[([A-Z]*)\] (.* rank).*on \[([A-Za-z]*)\] ([^:]*): ([0-9:.]*) (.*) \(([^-)]*)(?: - (.*%).*)?\)/
@@ -60,6 +62,7 @@ export const recordFeed: FeedHandler = async item => {
     return false;
   }
 
+  // broadcast
   for (const channel of doc.channels) {
     const unpacked = unpackID(channel);
     if (unpacked.platform == 'kaiheila') {

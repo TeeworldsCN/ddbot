@@ -69,6 +69,8 @@ export interface UserInfo {
 
 export abstract class GenericBot<BotType> {
   protected _instance: any;
+  public started: boolean = false;
+
   public commands: {
     [key: string]: {
       func: TextHandler;

@@ -18,6 +18,8 @@ interface MapDetail {
 }
 
 const sendKaiheila = async (item: MapDetail, channelKey: string) => {
+  if (!kaiheila.started) return;
+
   const card = new Card('lg');
 
   card.addTitle(`DDNet 新地图发布`);
@@ -148,6 +150,7 @@ export const mapFeed: FeedHandler = async item => {
 
   MAP_RETRY = 0;
 
+  // broadcast
   for (const channel of doc.channels) {
     const unpacked = unpackID(channel);
     if (unpacked.platform == 'kaiheila') {
