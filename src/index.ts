@@ -1,8 +1,7 @@
 require('dotenv').config();
 
 import mongoose from 'mongoose';
-import { kaiheila, kaiheilaStart } from './bots/kaiheila';
-import { wechatAutoReplyCommand, wechatStart, wechat } from './bots/wechat';
+import { wechatAutoReplyCommand } from './bots/wechat';
 import {
   initAdmins,
   LEVEL_ADMIN,
@@ -18,7 +17,7 @@ import {
   wechatRemoveKeyword,
   wechatGetToken,
 } from './commands/wechatManage';
-import { startWebhook as webhookStart } from './webhook';
+import { startWebhook as webhookStart, webhook } from './webhook';
 
 import { bind } from './commands/bind';
 import { ddnetStatus } from './commands/ddnetStatus';
@@ -32,6 +31,8 @@ import { generalHelp, wechatHelp } from './commands/helps';
 import { matchSignup } from './conversations/matchSignup';
 import { exportRegistration, registrationCheck } from './commands/signupManage';
 import { feederStart } from './rss';
+import { kaiheila, oicq, wechat } from './bots';
+import { hookMsg } from './hookMsg';
 
 /*
   连接数据库
@@ -101,13 +102,27 @@ wechat.addCommand(LEVEL_USER, '排名', pointRank, '查询我的点数排名');
 wechat.addCommand(LEVEL_USER, '帮助', wechatHelp, '显示该帮助消息');
 wechat.addConverse(LEVEL_USER, '报名', matchSignup, '2021暑期赛FNG报名');
 
+// QQ指令
+oicq.addCommand(LEVEL_USER, 'me', me);
+oicq.addCommand(LEVEL_USER, 'bind', bind, '绑定DDNetID (.bind tee)');
+oicq.addCommand(LEVEL_USER, 'points', points, '查询DDN点数 (.points [tee])');
+oicq.addCommand(LEVEL_USER, 'rank', pointRank, '查询DDN点数排名 (.rank [tee])');
+oicq.addCommand(LEVEL_USER, 'help', generalHelp, '显示该帮助消息');
+
 /*
   启动机器人
 */
-kaiheilaStart();
-wechatStart();
+if (kaiheila) kaiheila.connect();
+if (wechat) wechat.connect();
+if (oicq) oicq.connect();
+
 /*
-  启动WebHook
+  挂载订阅消息Webhook
+*/
+webhook.use('/wh', hookMsg);
+
+/*
+  启动Webhook
 */
 webhookStart();
 /*

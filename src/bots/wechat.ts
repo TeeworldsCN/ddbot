@@ -22,13 +22,12 @@ const xmlParseOption = {
 
 const json2xml = new j2xParser(xmlParseOption);
 
-const wechatHook = express.Router();
 const wechatState = {
   token: '',
   expireDate: DateTime.now(),
 };
 
-const wechatAPI = axios.create({
+export const wechatAPI = axios.create({
   baseURL: 'https://api.weixin.qq.com/cgi-bin/',
   headers: {
     'Accept-Encoding': 'gzip, deflate',
@@ -67,7 +66,7 @@ const checkSign = (req: express.Request, res: express.Response, next: express.Ne
 
 const PLATFORM = 'wechat';
 
-class WechatBotAdapter extends GenericBot<AxiosInstance> {
+export class WechatBotAdapter extends GenericBot<AxiosInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {};
   }
@@ -103,33 +102,115 @@ class WechatBotAdapter extends GenericBot<AxiosInstance> {
     }
     return null;
   }
+
+  public connect() {
+    const wechatHook = express.Router();
+
+    // 微信Webhook
+    wechatHook.get('/', checkSign, (req, res) => {
+      if (req.query.echostr) return res.send(req.query.echostr);
+      return res.sendStatus(404);
+    });
+
+    wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) => {
+      try {
+        const data = parse(req.body, xmlParseOption);
+        req.body = data.xml;
+      } catch (e) {
+        return res.send();
+      }
+
+      const type = req.body.MsgType.__cdata;
+
+      if (type === 'text') {
+        let content = req.body.Content.__cdata;
+        const command = content.split(' ')[0].toLowerCase();
+        const reply = new WechatMessage(this, { req, res });
+        await reply.fetchUser();
+
+        const converse = await reply.getConverse();
+        const context = converse.context;
+        if (converse.key && this.converses[converse.key]) {
+          if (reply.userLevel > this.converses[command].level) return;
+
+          const progress = await this.converses[converse.key].func<any>(
+            reply,
+            converse.progress,
+            context
+          );
+          if (progress && progress >= 0) {
+            await reply.setConverse(converse.key, progress, context);
+          } else {
+            await reply.finishConverse();
+          }
+        } else if (converse.key) {
+          await reply.finishConverse();
+        }
+
+        if (this.commands[command]) {
+          try {
+            if (reply.userLevel > this.commands[command].level) return;
+            await this.commands[command].func(reply);
+          } catch (e) {
+            console.error(`Error proccessing command '${content}'`);
+            console.error(e);
+          }
+        } else if (this.converses[command]) {
+          if (reply.userLevel > this.converses[command].level) return;
+          const context = {};
+          const progress = await this.converses[command].func<any>(reply, 0, context);
+          if (progress && progress >= 0) {
+            await reply.setConverse(command, progress, context);
+          } else {
+            await reply.finishConverse();
+          }
+        } else {
+          await wechatAutoReplyCommand(reply);
+        }
+
+        if (!reply.sent) res.send();
+        return;
+      }
+
+      if (type === 'event') {
+        let event = req.body.Event.__cdata;
+        if (event === 'subscribe') {
+          _.set(req.body, 'Content.__cdata', 'subscribe');
+          const reply = new WechatMessage(this, { req, res });
+          await wechatAutoReplyCommand(reply);
+
+          if (!reply.sent) res.send();
+          return;
+        }
+      }
+
+      res.send();
+    });
+
+    webhook.use('/wechat', wechatHook);
+    this.started = true;
+  }
 }
 
 class WechatMessage extends GenericMessage<AxiosInstance> {
   private _sent = false;
 
-  public constructor(
-    bot: WechatBotAdapter,
-    e: { req: express.Request; res: express.Response },
-    type: 'text'
-  ) {
+  public constructor(bot: WechatBotAdapter, e: { req: express.Request; res: express.Response }) {
     super(bot, e);
     const { req } = e;
-    this._type = type;
+    this._type = 'text';
 
-    if (type == 'text') {
-      this._userId = req.body.FromUserName.__cdata;
-      this._userKey = packID({ platform: this.bot.platform, id: this._userId });
-      this._content = req.body.Content.__cdata;
-      this._msgId = req.body.MsgId;
-      this._eventMsgId = req.body.MsgId;
-      this._author = {
-        tag: 'Anonymous',
-        nickname: '公众号用户',
-        username: 'WechatUser',
-      };
-      if (!this._author.nickname) this._author.nickname = this._author.username;
-    }
+    this._userId = req.body.FromUserName.__cdata;
+    this._userKey = packID({ platform: this.bot.platform, id: this._userId });
+    this._content = [{ type: 'text', content: req.body.Content.__cdata }];
+    this._msgId = req.body.MsgId;
+    this._eventMsgId = req.body.MsgId;
+    this._author = {
+      tag: 'Anonymous',
+      nickname: '公众号用户',
+      username: 'WechatUser',
+    };
+    if (!this._author.nickname) this._author.nickname = this._author.username;
 
     this._channelId = req.body.ToUserName.__cdata;
     this._channelKey = packID({ platform: this.bot.platform, id: req.body.ToUserName.__cdata });
@@ -201,11 +282,9 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   }
 }
 
-export const wechat = new WechatBotAdapter(wechatAPI);
-
 // 不是个command，做成command好调试
 export const wechatAutoReplyCommand: TextHandler = async msg => {
-  const content = msg.content.replace('.wxtestkw ', '');
+  const content = msg.text.replace('.wxtestkw ', '');
   const autoReply = await WechatReplyModel.findOne({
     keyword: content,
   });
@@ -217,92 +296,4 @@ export const wechatAutoReplyCommand: TextHandler = async msg => {
       await msg.reply.image(autoReply.content);
     }
   }
-};
-
-// 微信Webhook
-wechatHook.get('/', checkSign, (req, res) => {
-  if (req.query.echostr) return res.send(req.query.echostr);
-  return res.sendStatus(404);
-});
-
-wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, res) => {
-  try {
-    const data = parse(req.body, xmlParseOption);
-    req.body = data.xml;
-  } catch (e) {
-    return res.send();
-  }
-
-  const type = req.body.MsgType.__cdata;
-
-  if (type === 'text') {
-    let content = req.body.Content.__cdata;
-    const command = content.split(' ')[0].toLowerCase();
-    const reply = new WechatMessage(wechat, { req, res }, 'text');
-    await reply.fetchUser();
-
-    const converse = await reply.getConverse();
-    const context = converse.context;
-    if (converse.key && wechat.converses[converse.key]) {
-      if (reply.userLevel > wechat.converses[command].level) return;
-
-      const progress = await wechat.converses[converse.key].func<any>(
-        reply,
-        converse.progress,
-        context
-      );
-      if (progress && progress >= 0) {
-        await reply.setConverse(converse.key, progress, context);
-      } else {
-        await reply.finishConverse();
-      }
-    } else if (converse.key) {
-      await reply.finishConverse();
-    }
-
-    if (wechat.commands[command]) {
-      try {
-        if (reply.userLevel > wechat.commands[command].level) return;
-        await wechat.commands[command].func(reply);
-      } catch (e) {
-        console.error(`Error proccessing command '${content}'`);
-        console.error(e);
-      }
-    } else if (wechat.converses[command]) {
-      if (reply.userLevel > wechat.converses[command].level) return;
-      const context = {};
-      const progress = await wechat.converses[command].func<any>(reply, 0, context);
-      if (progress && progress >= 0) {
-        await reply.setConverse(command, progress, context);
-      } else {
-        await reply.finishConverse();
-      }
-    } else {
-      await wechatAutoReplyCommand(reply);
-    }
-
-    if (!reply.sent) res.send();
-    return;
-  }
-
-  if (type === 'event') {
-    let event = req.body.Event.__cdata;
-    if (event === 'subscribe') {
-      _.set(req.body, 'Content.__cdata', 'subscribe');
-      const reply = new WechatMessage(wechat, { req, res }, 'text');
-      await wechatAutoReplyCommand(reply);
-
-      if (!reply.sent) res.send();
-      return;
-    }
-  }
-
-  res.send();
-});
-
-export const wechatStart = () => {
-  if (!process.env.WECHAT_APPID) return;
-
-  webhook.use('/wechat', wechatHook);
-  wechat.started = true;
 };

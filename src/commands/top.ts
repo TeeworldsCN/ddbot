@@ -66,7 +66,7 @@ const topMapRoutine = async (isButton: boolean, map: string, server: string) => 
 };
 
 export const top: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   let region = (query.getString(1) || '').toLowerCase();
   let mapQueryString = null;
   const card = new Card('lg');

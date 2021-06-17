@@ -8,7 +8,7 @@ export type MessageReply = {
   image: (image: string, temp?: boolean) => Promise<string>;
   file: (file: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
-  update: (content: string, quote?: string) => Promise<void>;
+  update: (content: string, quote?: string) => Promise<string>;
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
@@ -19,7 +19,7 @@ export type MessageAction = {
   image: (image: string, onlyTo?: string) => Promise<string>;
   file: (file: string, onlyTo?: string) => Promise<string>;
   card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
-  update: (msgid: string, content: string, quote?: string) => Promise<void>;
+  update: (msgid: string, content: string, quote?: string) => Promise<string>;
   delete: (msgid: string) => Promise<void>;
   addReaction: (msgid: string, emoji: string[]) => Promise<void>;
   deleteReaction: (msgid: string, emoji: string[], userId?: string) => Promise<void>;
@@ -33,18 +33,26 @@ const EMPTY_ACTIONS: MessageReply & MessageAction = {
   card: async () => null as string,
   addReaction: async () => {},
   deleteReaction: async () => {},
-  update: async () => {},
+  update: async () => null as string,
   delete: async () => {},
 };
 
 export interface UserInfo {
+  // 用户名
   username: string;
+  // 昵称|群名片
   nickname: string;
+  // 头像
   avatar?: string;
+  // 是否在线
   online?: boolean;
+  // 开黑啦：四位ID
   identifyNum?: string;
+  // 开黑啦：用户名#四位ID
   tag?: string;
+  // 开黑啦：角色ID
   roles?: number[];
+  // 开黑啦：目前游戏信息
   game?: {
     icon: string;
     id: number;
@@ -52,20 +60,68 @@ export interface UserInfo {
     startTime: number;
     type: number;
   };
+  // 开黑啦：目前听歌信息
   music?: {
     musicName: string;
     singer: string;
     software: string;
     startTime: number;
   };
+  // 开黑啦：是否为服主 | OICQ: 是否为群主
   isMaster?: boolean;
+  // 开黑啦：是否为认证用户
   mobileVerified?: boolean;
+  // 开黑啦：用户优先显示的角色 | OICQ：name - 头衔, roleId: 1 - 管理, 2 - 群主
   hoistInfo?: {
-    color: number;
+    color?: number;
     name: string;
     roleId: number;
   };
+  // OICQ：群等级
+  level?: number;
 }
+
+interface GenericMessageElementChannel {
+  type: 'channel';
+  channelKey: string;
+  content: string;
+}
+
+interface GenericMessageElementMention {
+  type: 'mention';
+  userKey: string;
+  content: string;
+}
+
+interface GenericMessageElementImage {
+  type: 'image';
+  url: string;
+  content: Buffer;
+}
+
+interface GenericMessageElementQuote {
+  type: 'quote';
+  msgId: string;
+  content: string;
+}
+
+interface GenericMessageElementText {
+  type: 'text';
+  content: string;
+}
+
+interface GenericMessageElementUnknown {
+  type: 'unknown';
+  content: any;
+}
+
+type GenericMessageElement =
+  | GenericMessageElementText
+  | GenericMessageElementQuote
+  | GenericMessageElementImage
+  | GenericMessageElementMention
+  | GenericMessageElementChannel
+  | GenericMessageElementUnknown;
 
 export abstract class GenericBot<BotType> {
   protected _instance: any;
@@ -161,15 +217,17 @@ export abstract class GenericBot<BotType> {
   public abstract makeChannelContext(channelId: string): Partial<MessageAction>;
   public abstract makeUserContext(userId: string): Partial<MessageAction>;
   public abstract get platform(): string;
+  public abstract connect(): void;
 }
 
 export abstract class GenericMessage<BotType> {
   protected _userKey: string;
   protected _userId: string;
-  protected _channelKey: string;
-  protected _channelId: string;
+  protected _channelKey?: string;
+  protected _channelId?: string;
+  protected _channelName?: string;
   protected _sessionType: 'CHANNEL' | 'DM';
-  protected _content: string;
+  protected _content: GenericMessageElement[];
   protected _msgId: string;
   protected _eventMsgId: string;
   protected _msgTimestamp: number;
@@ -178,6 +236,7 @@ export abstract class GenericMessage<BotType> {
   protected _raw: any;
   protected _bot: GenericBot<BotType>;
   protected _dbuser: User;
+  protected _text: string = null;
 
   public constructor(bot: GenericBot<BotType>, e: any) {
     this._raw = e;
@@ -205,6 +264,12 @@ export abstract class GenericMessage<BotType> {
     return this._content;
   }
 
+  public get text() {
+    if (this._text) return this._text;
+    this._text = this._content.map(e => (e.type == 'text' ? e.content : ' ')).join('');
+    return this._text;
+  }
+
   public get author() {
     return this._author;
   }
@@ -223,6 +288,10 @@ export abstract class GenericMessage<BotType> {
 
   public get channelId() {
     return this._channelId;
+  }
+
+  public get channelName() {
+    return this._channelName;
   }
 
   public get sessionType() {
@@ -296,5 +365,6 @@ export abstract class GenericMessage<BotType> {
   }
 
   public async fetchUserInfo(): Promise<void> {}
+  public async fetchMsgAssets(): Promise<void> {}
   public abstract makeReply(): Partial<MessageReply>;
 }

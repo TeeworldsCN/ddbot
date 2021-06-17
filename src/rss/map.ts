@@ -4,7 +4,7 @@ import { FeedHandler } from '../utils/rssFeeder';
 import cheerio from 'cheerio';
 import { Card } from '../utils/cardBuilder';
 import { dateTime, unpackID } from '../utils/helpers';
-import { kaiheila } from '../bots/kaiheila';
+import { kaiheila } from '../bots';
 
 interface MapDetail {
   name: string;
@@ -18,7 +18,7 @@ interface MapDetail {
 }
 
 const sendKaiheila = async (item: MapDetail, channelKey: string) => {
-  if (!kaiheila.started) return;
+  if (!kaiheila) return;
 
   const card = new Card('lg');
 

@@ -6,7 +6,7 @@ import { accessToken } from '../bots/wechat';
 
 // 设置微信自动回复关键字
 export const wechatSetKeyword: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const keyword = query.getString(1);
   const replyType = query.getString(2);
   const content = query.getRest(3);
@@ -45,7 +45,7 @@ export const wechatListKeywords: TextHandler = async msg => {
 
 // 删除微信自动回复关键字
 export const wechatRemoveKeyword: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const keyword = query.getString(1);
 
   const result = await WechatReplyModel.deleteOne({ keyword }).exec();

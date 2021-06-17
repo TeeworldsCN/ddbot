@@ -2,7 +2,7 @@ import { TextHandler } from '../bottype';
 import { WechatReplyModel } from '../db/wechatReply';
 
 export const wechatAutoReplyCommand: TextHandler = async msg => {
-  const content = msg.content.replace('.wxtestkw ', '');
+  const content = msg.text.replace('.wxtestkw ', '');
   const autoReply = await WechatReplyModel.findOne({
     keyword: content,
   });

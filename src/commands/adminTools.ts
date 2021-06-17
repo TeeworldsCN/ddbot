@@ -14,7 +14,7 @@ import { SubscriptionModel } from '../db/subscription';
 export const subscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
 
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const name = query.getString(1);
   const channel = query.getString(2) || msg.channelKey;
   const result = await SubscriptionModel.updateOne(
@@ -36,7 +36,7 @@ export const subscribe: TextHandler = async msg => {
 export const listSub: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
 
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const name = query.getString(1);
 
   if (name) {
@@ -55,7 +55,7 @@ export const listSub: TextHandler = async msg => {
 export const unsubscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
 
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const name = query.getString(1);
   const destroy = msg.userLevel > LEVEL_OPERATOR ? '' : query.getString(2);
 
@@ -92,7 +92,7 @@ export const unsubscribe: TextHandler = async msg => {
 // 设定管理权限 .assign level userKey
 // userKey 使用 .me 获取
 export const assign: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const level = query.getNumber(1);
   const userKey = query.getRest(2);
 
@@ -112,7 +112,7 @@ export const assign: TextHandler = async msg => {
 
 // 撤回一个权限 .revoke level
 export const revoke: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const level = query.getNumber(1);
 
   if (level == LEVEL_ADMIN) {
@@ -134,7 +134,7 @@ export const revoke: TextHandler = async msg => {
 
 // 删除一个用户
 export const nuke: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const userKey = query.getRest(1);
 
   if (userKey == msg.userKey) {

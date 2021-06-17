@@ -55,37 +55,37 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
   }
 
   const isPositiveReply = () => {
-    return msg.content.match(
+    return msg.text.match(
       /([^不]|^)(是([^个吗]|$)|要([^不么麽个]|$)|恩([^?？]|$)|嗯([^?？]|$)|好|可([^别个]|$)|行|ye|^y$)([^个]|$)/i
     );
   };
 
   const isSignupReply = () => {
-    return msg.content.match(/([^不]|^)(报|继续)/i);
+    return msg.text.match(/([^不]|^)(报|继续)/i);
   };
 
   const isNegativeReply = () => {
-    return msg.content.match(/(没|不|别|否|no|na|^n$)/i);
+    return msg.text.match(/(没|不|别|否|no|na|^n$)/i);
   };
 
   const isCancelReply = () => {
-    return msg.content.match(/(算了|取消|等会|待会|一会|再说)/i);
+    return msg.text.match(/(算了|取消|等会|待会|一会|再说)/i);
   };
 
   const isConfusionReply = () => {
-    return msg.content.match(/(恩|嗯|额|什|啥|没[懂明]|\?|？)/i);
+    return msg.text.match(/(恩|嗯|额|什|啥|没[懂明]|\?|？)/i);
   };
 
   const isTeamedReply = () => {
-    return msg.content.match(/([^没]|^)有/i);
+    return msg.text.match(/([^没]|^)有/i);
   };
 
   const isPersonalReply = () => {
-    return msg.content.match(/没|个|人|随|机|帮|自|己/i);
+    return msg.text.match(/没|个|人|随|机|帮|自|己/i);
   };
 
   const isRegretReply = () => {
-    return msg.content.match(/错|改|不对|换/i);
+    return msg.text.match(/错|改|不对|换/i);
   };
 
   const MATCHINFO =
@@ -179,29 +179,29 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
 
     // 请提供你的ID
     case 2:
-      if (!msg.content) {
+      if (!msg.text) {
         await msg.reply.text(`啊，豆豆没看到你的ID。能再告诉豆豆一下你的游戏ID吗？`);
         return 2;
       }
 
-      const providedRealID = truncate(msg.content, 16);
-      if (msg.content != providedRealID) {
+      const providedRealID = truncate(msg.text, 16);
+      if (msg.text != providedRealID) {
         await msg.reply.text(
-          `"${msg.content}"这个ID太长了[吓]，在游戏里显示不出来（会显示为"${providedRealID}")，请告诉豆豆一个短一点的ID。`
+          `"${msg.text}"这个ID太长了[吓]，在游戏里显示不出来（会显示为"${providedRealID}")，请告诉豆豆一个短一点的ID。`
         );
         return 2;
       }
 
       if (context.name) {
-        context.name = msg.content;
+        context.name = msg.text;
         await msg.reply.text(
           `是想换成"${context.name}"这个ID报名吗？不想报名了的话，回复“取消”即可`
         );
         return 3;
       }
 
-      await msg.reply.text(`好，以防你打错，再确认下是用"${msg.content}"这个ID报名吗？`);
-      context.name = msg.content;
+      await msg.reply.text(`好，以防你打错，再确认下是用"${msg.text}"这个ID报名吗？`);
+      context.name = msg.text;
       return 3;
 
     // 确定要用你输入的ID报名吗
@@ -209,7 +209,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
       if (!context.name) {
         break;
       }
-      if (isPositiveReply() || msg.content == context.name) {
+      if (isPositiveReply() || msg.text == context.name) {
         await msg.reply.text(
           `OK，那就帮你用"${context.name}"这个ID报名。\n那请问你已经有队友了吗？还是想要以个人名义报名让我们来随机帮你找队伍？`
         );
@@ -268,7 +268,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
         return 5;
       }
 
-      const creator = await findTeamCreator(msg.content);
+      const creator = await findTeamCreator(msg.text);
       if (creator) {
         // 有这个代号，直接跳到输入代号的进度
         context.teamName = creator.createdTeamName;
@@ -292,15 +292,15 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
 
     // 提供队伍名
     case 6:
-      if (!msg.content) {
+      if (!msg.text) {
         await msg.reply.text(
           `啊，豆豆没看到你输入的队伍名。能再告诉豆豆一下你要报名的队伍名吗？[委屈]`
         );
         return 6;
       }
 
-      context.teamName = msg.content;
-      const realTeamName = truncate(msg.content, 12);
+      context.teamName = msg.text;
+      const realTeamName = truncate(msg.text, 12);
       if (context.teamName != realTeamName) {
         await msg.reply.text(
           `战队名"${context.teamName}"有点长，在游戏里会显示为"${realTeamName}"。不过豆豆依然可以按"${context.teamName}"这个战队名帮你创建队伍，这样可以吗？`
@@ -345,12 +345,12 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
 
     // 输入你的队伍代号
     case 8:
-      const teamName = context.teamName || (await findTeamCreator(msg.content))?.createdTeamName;
+      const teamName = context.teamName || (await findTeamCreator(msg.text))?.createdTeamName;
       if (teamName) {
         context.teamName = teamName;
-        context.teamToken = msg.content;
+        context.teamToken = msg.text;
 
-        const teammates = await findTeam(msg.content);
+        const teammates = await findTeam(msg.text);
         const teamList = teammates.map(t => `"${t.ddnetid}"`).join();
         if (teammates.length >= 4) {
           await msg.reply.text(
@@ -376,7 +376,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
       }
 
       await msg.reply.text(
-        `抱歉，豆豆找不到代号为"${msg.content}"的队伍。请确认下再发送一遍，或者回复“取消”再重新报名。`
+        `抱歉，豆豆找不到代号为"${msg.text}"的队伍。请确认下再发送一遍，或者回复“取消”再重新报名。`
       );
       return 8;
 

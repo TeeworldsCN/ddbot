@@ -1,4 +1,4 @@
-import { kaiheila } from '../bots/kaiheila';
+import { kaiheila } from '../bots';
 import { SubscriptionModel } from '../db/subscription';
 import { Card, SMD } from '../utils/cardBuilder';
 import { FLAGS, SERVERS } from '../utils/consts';
@@ -6,7 +6,7 @@ import { dateTime, unpackID } from '../utils/helpers';
 import { FeedEntry, FeedHandler } from '../utils/rssFeeder';
 
 const sendKaiheila = async (item: FeedEntry, channelKey: string) => {
-  if (!kaiheila.started) return;
+  if (!kaiheila) return;
 
   const card = new Card('lg');
   const data = (item.title as string).match(

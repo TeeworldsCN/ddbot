@@ -5,7 +5,7 @@ import { CommandParser } from '../utils/commandParser';
 import { UserModel } from '../db/user';
 
 export const bind: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const searchName = query.getRest(1);
 
   if (!searchName) {

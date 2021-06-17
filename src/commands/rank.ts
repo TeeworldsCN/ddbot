@@ -8,7 +8,7 @@ import { API } from '../utils/axios';
 import { dateTime, secTime } from '../utils/helpers';
 
 export const rank: TextHandler = async msg => {
-  const query = new CommandParser(msg.content);
+  const query = new CommandParser(msg.text);
   const mapQueryString = query.getString(1).replace(/['"]/g, '');
   if (!mapQueryString) {
     await msg.reply.addReaction(['❌']);

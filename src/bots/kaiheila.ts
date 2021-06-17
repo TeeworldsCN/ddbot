@@ -13,8 +13,8 @@ const MSG_TYPES = {
   card: 10,
 };
 
-const PLATFORM = 'kaiheila';
-class KaiheilaBotAdapter extends GenericBot<BotInstance> {
+const PLATFORM = 'this';
+export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
       text: async (content: string, quote?: string, onlyTo?: string) => {
@@ -101,9 +101,11 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       update: async (msgId: string, content: string, quote?: string) => {
         try {
           await this.instance.API.message.update(msgId, content.toString(), quote);
+          return msgId;
         } catch (e) {
           console.warn(`[开黑啦] 更新消息失败`);
           console.warn(e);
+          return null;
         }
       },
       delete: async (msgId: string) => {
@@ -200,9 +202,11 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       update: async (msgId: string, content: string, quote?: string) => {
         try {
           await this.instance.API.directMessage.update(msgId, content.toString(), quote);
+          return msgId;
         } catch (e) {
           console.warn(`[开黑啦] 更新消息失败`);
           console.warn(e);
+          return null;
         }
       },
       delete: async (msgId: string) => {
@@ -274,6 +278,84 @@ class KaiheilaBotAdapter extends GenericBot<BotInstance> {
   public get platform(): string {
     return PLATFORM;
   }
+
+  public connect() {
+    this.instance.on('textMessage', async (e: TextMessage) => {
+      // no bot message
+      if (e.author.bot) return;
+
+      if (!e.content.startsWith('.') && !e.content.startsWith('。')) {
+        const msg = new KaiheilaMessage(this, e, 'text');
+        await msg.fetchUser();
+        const converse = await msg.getConverse();
+        const context = converse.context;
+        if (converse.key && this.converses[converse.key]) {
+          const progress = await this.converses[converse.key].func<any>(
+            msg,
+            converse.progress,
+            context
+          );
+          if (progress && progress >= 0) {
+            await msg.setConverse(converse.key, progress, context);
+          } else {
+            await msg.finishConverse();
+          }
+        } else if (converse.key) {
+          await msg.finishConverse();
+        }
+        return;
+      }
+
+      const text = e.content.replace(/^\. /, '.');
+      const command = text.split(' ')[0].slice(1).toLowerCase();
+
+      e.content = text;
+
+      const msg = new KaiheilaMessage(this, e, 'text');
+      await msg.fetchUser();
+
+      if (this.commands[command]) {
+        if (msg.userLevel > this.commands[command].level) return;
+
+        this.commands[command].func(msg).catch(reason => {
+          console.error(`Error proccessing command '${text}'`);
+          console.error(reason);
+        });
+      } else if (this.converses[command]) {
+        if (msg.userLevel > this.converses[command].level) return;
+
+        const context = {};
+        const progress = await this.converses[command].func<any>(msg, 0, context);
+        if (progress && progress >= 0) {
+          await msg.setConverse(command, progress, context);
+        } else {
+          await msg.finishConverse();
+        }
+      }
+    });
+
+    this.instance.on('buttonClick', async (e: ButtonClickEvent) => {
+      if (e.value.startsWith('.')) {
+        const command = e.value.split(' ')[0].slice(1);
+        if (this.commands[command]) {
+          this.commands[command].func(new KaiheilaMessage(this, e, 'button')).catch(reason => {
+            console.error(`Error proccessing command button'${e.value}'`);
+            console.error(reason);
+          });
+        }
+      } else {
+        if (this.buttons[e.value]) {
+          this.buttons[e.value](new KaiheilaMessage(this, e, 'button')).catch(reason => {
+            console.error(`Error proccessing event button '${e.value}'`);
+            console.error(reason);
+          });
+        }
+      }
+    });
+
+    this.instance.connect();
+    this.started = true;
+  }
 }
 class KaiheilaMessage extends GenericMessage<BotInstance> {
   public constructor(
@@ -290,7 +372,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       const tag = `${e.author.username}#${e.author.identifyNum}`;
       this._userId = e.authorId;
       this._userKey = packID({ platform: this.bot.platform, id: e.authorId });
-      this._content = e.content;
+      this._content = [{ type: 'text', content: e.content }];
       this._msgId = e.msgId;
       this._eventMsgId = e.msgId;
       this._author = {
@@ -304,7 +386,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       const tag = `${e.user.username}#${e.user.identifyNum}`;
       this._userId = e.userId;
       this._userKey = packID({ platform: this.bot.platform, id: e.userId });
-      this._content = e.value;
+      this._content = [{ type: 'text', content: e.value }];
       this._msgId = e.targetMsgId;
       this._eventMsgId = e.msgId;
       this._author = {
@@ -335,106 +417,3 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     };
   }
 }
-
-export const kaiheila: KaiheilaBotAdapter = new KaiheilaBotAdapter(
-  process.env.KAIHEILA_BOT_TOKEN
-    ? new KaiheilaBot(
-        process.env.KAIHEILA_BOT_MODE == 'webhook'
-          ? {
-              mode: 'webhook',
-              token: process.env.KAIHEILA_BOT_TOKEN,
-              port: parseInt(process.env.KAIHEILA_BOT_PORT),
-              verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
-              key: process.env.KAIHEILA_BOT_KEY,
-              ignoreDecryptError: false,
-            }
-          : {
-              mode: 'websocket',
-              token: process.env.KAIHEILA_BOT_TOKEN,
-              ignoreDecryptError: false,
-            }
-      )
-    : null
-);
-
-export const kaiheilaStart = () => {
-  if (!process.env.KAIHEILA_BOT_TOKEN) return;
-
-  kaiheila.instance.on('textMessage', async (e: TextMessage) => {
-    // no bot message
-    if (e.author.bot) return;
-
-    if (!e.content.startsWith('.') && !e.content.startsWith('。')) {
-      const msg = new KaiheilaMessage(kaiheila, e, 'text');
-      await msg.fetchUser();
-      const converse = await msg.getConverse();
-      const context = converse.context;
-      if (converse.key && kaiheila.converses[converse.key]) {
-        const progress = await kaiheila.converses[converse.key].func<any>(
-          msg,
-          converse.progress,
-          context
-        );
-        if (progress && progress >= 0) {
-          await msg.setConverse(converse.key, progress, context);
-        } else {
-          await msg.finishConverse();
-        }
-      } else if (converse.key) {
-        await msg.finishConverse();
-      }
-      return;
-    }
-
-    const text = e.content.replace(/^\. /, '.');
-    const command = text.split(' ')[0].slice(1).toLowerCase();
-
-    e.content = text;
-
-    const msg = new KaiheilaMessage(kaiheila, e, 'text');
-    await msg.fetchUser();
-
-    if (kaiheila.commands[command]) {
-      if (msg.userLevel > kaiheila.commands[command].level) return;
-
-      kaiheila.commands[command].func(msg).catch(reason => {
-        console.error(`Error proccessing command '${text}'`);
-        console.error(reason);
-      });
-    } else if (kaiheila.converses[command]) {
-      if (msg.userLevel > kaiheila.converses[command].level) return;
-
-      const context = {};
-      const progress = await kaiheila.converses[command].func<any>(msg, 0, context);
-      if (progress && progress >= 0) {
-        await msg.setConverse(command, progress, context);
-      } else {
-        await msg.finishConverse();
-      }
-    }
-  });
-
-  kaiheila.instance.on('buttonClick', async (e: ButtonClickEvent) => {
-    if (e.value.startsWith('.')) {
-      const command = e.value.split(' ')[0].slice(1);
-      if (kaiheila.commands[command]) {
-        kaiheila.commands[command]
-          .func(new KaiheilaMessage(kaiheila, e, 'button'))
-          .catch(reason => {
-            console.error(`Error proccessing command button'${e.value}'`);
-            console.error(reason);
-          });
-      }
-    } else {
-      if (kaiheila.buttons[e.value]) {
-        kaiheila.buttons[e.value](new KaiheilaMessage(kaiheila, e, 'button')).catch(reason => {
-          console.error(`Error proccessing event button '${e.value}'`);
-          console.error(reason);
-        });
-      }
-    }
-  });
-
-  kaiheila.instance.connect();
-  kaiheila.started = true;
-};

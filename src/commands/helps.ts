@@ -1,5 +1,3 @@
-import { kaiheila } from '../bots/kaiheila';
-import { wechat } from '../bots/wechat';
 import { TextHandler } from '../bottype';
 import { LEVEL_MANAGER } from '../db/user';
 
@@ -11,7 +9,7 @@ export const generalHelp: TextHandler = async msg => {
 
   for (const key in msg.bot.commands) {
     if (msg.bot.commands[key].desc) {
-      lines.push(`${key} - ${kaiheila.commands[key].desc}`);
+      lines.push(`${key} - ${msg.bot.commands[key].desc}`);
     } else if (isManager) {
       hidden.push(key);
     }
@@ -35,18 +33,18 @@ export const wechatHelp: TextHandler = async msg => {
   const lines = ['指令手册：\n'];
   const engHelp = [];
 
-  for (const key in wechat.commands) {
-    if (wechat.commands[key].desc === true) {
+  for (const key in msg.bot.commands) {
+    if (msg.bot.commands[key].desc === true) {
       engHelp.push(key);
-    } else if (wechat.commands[key].desc) {
-      lines.push(`${key} - ${wechat.commands[key].desc}`);
+    } else if (msg.bot.commands[key].desc) {
+      lines.push(`${key} - ${msg.bot.commands[key].desc}`);
     }
   }
-  for (const key in wechat.converses) {
-    if (wechat.converses[key].desc === true) {
+  for (const key in msg.bot.converses) {
+    if (msg.bot.converses[key].desc === true) {
       engHelp.push(key);
-    } else if (wechat.converses[key].desc) {
-      lines.push(`${key} - ${wechat.converses[key].desc}`);
+    } else if (msg.bot.converses[key].desc) {
+      lines.push(`${key} - ${msg.bot.converses[key].desc}`);
     }
   }
 
