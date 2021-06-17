@@ -1,4 +1,5 @@
 import express from 'express';
+import { DateTime } from 'luxon';
 import { kaiheila } from './bots/kaiheila';
 import { SubscriptionModel } from './db/subscription';
 import { API } from './utils/axios';
@@ -20,7 +21,10 @@ webhook.post('/wh/:channel', express.json(), async (req, res) => {
     return res.status(400).send({ error: 'content missing' });
   }
 
-  const doc = await SubscriptionModel.findOne({ name: req.params.channel }).exec();
+  const doc = await SubscriptionModel.findOneAndUpdate(
+    { name: req.params.channel },
+    { $set: { last: DateTime.now().toMillis() } }
+  ).exec();
   if (!doc) {
     return res.sendStatus(404);
   }
