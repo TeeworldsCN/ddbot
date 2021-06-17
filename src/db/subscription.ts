@@ -9,6 +9,7 @@ interface Subscription extends Document {
 const schema = new Schema<Subscription>({
   name: { type: String, required: true },
   channels: { type: [String], default: [] },
+  last: { type: Number, default: 0 },
 });
 schema.index({ name: 1 });
 

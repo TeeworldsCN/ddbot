@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import cheerio from 'cheerio';
 import { SubscriptionModel } from '../db/subscription';
 
-interface FeedEntry {
+export interface FeedEntry {
   title: string;
   link: string;
   content: string;
@@ -10,9 +10,11 @@ interface FeedEntry {
   updated: number;
 }
 
+export type FeedHandler = (entry: FeedEntry) => Promise<boolean>;
+
 export class RssFeeder {
   private axios: AxiosInstance;
-  private events: { [key: string]: (entry: FeedEntry) => Promise<boolean> };
+  private events: { [key: string]: FeedHandler };
   private timeout: number;
 
   public constructor(timeout: number = 10000) {
@@ -38,7 +40,7 @@ export class RssFeeder {
         try {
           const response = await this.axios.get(url);
 
-          const doc = await SubscriptionModel.findOne({ name: eventName });
+          const doc = await SubscriptionModel.findOne({ name: eventName }).exec();
 
           if (!doc) {
             console.log(`${eventName} not subscribed`);
@@ -81,16 +83,16 @@ export class RssFeeder {
                 if (success) {
                   last_time = entry.updated;
                   dirty = true;
-                } else {
-                  break;
                 }
+                // one entry per update, will catch up eventually
+                break;
               }
             }
           }
 
           if (dirty) {
             doc.last = last_time;
-            doc.save();
+            await doc.save();
           }
         } catch (e) {
           console.error('Feed error:');

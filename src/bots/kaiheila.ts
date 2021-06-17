@@ -395,11 +395,15 @@ export const kaiheilaStart = () => {
     await msg.fetchUser();
 
     if (kaiheila.commands[command]) {
+      if (msg.userLevel > kaiheila.commands[command].level) return;
+
       kaiheila.commands[command].func(msg).catch(reason => {
         console.error(`Error proccessing command '${text}'`);
         console.error(reason);
       });
     } else if (kaiheila.converses[command]) {
+      if (msg.userLevel > kaiheila.converses[command].level) return;
+
       const context = {};
       const progress = await kaiheila.converses[command].func<any>(msg, 0, context);
       if (progress && progress >= 0) {

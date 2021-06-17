@@ -3,8 +3,16 @@ import { Document, Schema, model } from 'mongoose';
 // Level越高权限越低
 export const LEVEL_ADMIN = 1;
 export const LEVEL_OPERATOR = 2;
-export const LEVEL_TESTER = 3;
-export const LEVEL_USER = 4;
+export const LEVEL_MANAGER = 3;
+export const LEVEL_TESTER = 9;
+export const LEVEL_USER = 10;
+export const LEVEL_NAMES: { [key: number]: string } = {
+  1: '超级管理员',
+  2: '机器人管理',
+  3: '管理员',
+  9: '测试员',
+  10: '用户',
+};
 
 export interface User extends Document {
   userKey: string;
@@ -18,7 +26,7 @@ export interface User extends Document {
 
 const schema = new Schema<User>({
   userKey: { type: String, required: true },
-  level: { type: Number, default: 4 },
+  level: { type: Number, default: 10 },
   token: { type: String },
   ddnetid: { type: String },
   converseKey: { type: String },

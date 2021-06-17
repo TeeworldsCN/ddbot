@@ -70,29 +70,47 @@ export interface UserInfo {
 export abstract class GenericBot<BotType> {
   protected _instance: any;
   public commands: {
-    [key: string]: { func: TextHandler; desc: string | boolean | number };
+    [key: string]: {
+      func: TextHandler;
+      desc: string | boolean | number;
+      level: number;
+    };
   } = {};
   public buttons: {
     [key: string]: ButtonHandler;
   } = {};
   public converses: {
-    [key: string]: { func: ConverseHandler; desc: string | boolean | number };
+    [key: string]: {
+      func: ConverseHandler;
+      desc: string | boolean | number;
+      level: number;
+    };
   } = {};
 
   constructor(instance: any) {
     this._instance = instance;
   }
 
-  public addCommand(cmd: string, func: TextHandler, desc?: string | boolean | number) {
-    this.commands[cmd] = { func, desc };
+  public addCommand(
+    level: number,
+    cmd: string,
+    func: TextHandler,
+    desc?: string | boolean | number
+  ) {
+    this.commands[cmd] = { func, desc, level };
   }
 
   public addButton(cmd: string, func: ButtonHandler) {
     this.buttons[cmd] = func;
   }
 
-  public addConverse(cmd: string, func: ConverseHandler, desc?: string | boolean | number) {
-    this.converses[cmd] = { func, desc };
+  public addConverse(
+    level: number,
+    cmd: string,
+    func: ConverseHandler,
+    desc?: string | boolean | number
+  ) {
+    this.converses[cmd] = { func, desc, level };
   }
 
   // 频道相关

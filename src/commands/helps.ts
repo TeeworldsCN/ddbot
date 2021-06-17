@@ -1,14 +1,33 @@
 import { kaiheila } from '../bots/kaiheila';
 import { wechat } from '../bots/wechat';
 import { TextHandler } from '../bottype';
+import { LEVEL_MANAGER } from '../db/user';
 
-export const kaiheilaHelp: TextHandler = async msg => {
+export const generalHelp: TextHandler = async msg => {
   const lines = [];
-  for (const key in kaiheila.commands) {
-    if (kaiheila.commands[key].desc) {
+  const isManager = msg.userLevel <= LEVEL_MANAGER;
+
+  const hidden = [];
+
+  for (const key in msg.bot.commands) {
+    if (msg.bot.commands[key].desc) {
       lines.push(`${key} - ${kaiheila.commands[key].desc}`);
+    } else if (isManager) {
+      hidden.push(key);
     }
   }
+  for (const key in msg.bot.converses) {
+    if (msg.bot.converses[key].desc) {
+      lines.push(`${key} - ${msg.bot.converses[key].desc}`);
+    } else if (isManager) {
+      hidden.push(key);
+    }
+  }
+
+  if (isManager) {
+    lines.push(`\n你还可以使用这些指令：\n${hidden.join()}`);
+  }
+
   msg.reply.text(lines.join('\n'));
 };
 

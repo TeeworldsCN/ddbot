@@ -244,6 +244,8 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
     const converse = await reply.getConverse();
     const context = converse.context;
     if (converse.key && wechat.converses[converse.key]) {
+      if (reply.userLevel > wechat.converses[command].level) return;
+
       const progress = await wechat.converses[converse.key].func<any>(
         reply,
         converse.progress,
@@ -260,12 +262,14 @@ wechatHook.post('/', checkSign, express.text({ type: 'text/*' }), async (req, re
 
     if (wechat.commands[command]) {
       try {
+        if (reply.userLevel > wechat.commands[command].level) return;
         await wechat.commands[command].func(reply);
       } catch (e) {
         console.error(`Error proccessing command '${content}'`);
         console.error(e);
       }
     } else if (wechat.converses[command]) {
+      if (reply.userLevel > wechat.converses[command].level) return;
       const context = {};
       const progress = await wechat.converses[command].func<any>(reply, 0, context);
       if (progress && progress >= 0) {
