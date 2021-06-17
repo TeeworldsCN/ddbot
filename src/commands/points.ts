@@ -204,7 +204,7 @@ const fetchPlayer = async (player: string, allowFuzzy?: boolean, server?: string
 };
 
 export const points: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const name = query.getRest(1);
 
   const searchName = name || msg.user?.ddnetid;
@@ -375,7 +375,7 @@ export const points: TextHandler = async msg => {
 
 // 微信Only，查个人点数排名
 export const pointRank: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const name = query.getRest(1);
 
   const searchName = name || msg.user?.ddnetid;

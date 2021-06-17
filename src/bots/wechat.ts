@@ -125,50 +125,50 @@ export class WechatBotAdapter extends GenericBot<AxiosInstance> {
       if (type === 'text') {
         let content = req.body.Content.__cdata;
         const command = content.split(' ')[0].toLowerCase();
-        const reply = new WechatMessage(this, { req, res });
-        await reply.fetchUser();
+        const msg = new WechatMessage(this, { req, res });
+        await msg.fillMsgDetail();
 
-        const converse = await reply.getConverse();
+        const converse = await msg.getConverse();
         const context = converse.context;
         if (converse.key && this.converses[converse.key]) {
-          if (reply.userLevel > this.converses[command].level) return;
+          if (msg.userLevel > this.converses[command].level) return;
 
           const progress = await this.converses[converse.key].func<any>(
-            reply,
+            msg,
             converse.progress,
             context
           );
           if (progress && progress >= 0) {
-            await reply.setConverse(converse.key, progress, context);
+            await msg.setConverse(converse.key, progress, context);
           } else {
-            await reply.finishConverse();
+            await msg.finishConverse();
           }
         } else if (converse.key) {
-          await reply.finishConverse();
+          await msg.finishConverse();
         }
 
         if (this.commands[command]) {
           try {
-            if (reply.userLevel > this.commands[command].level) return;
-            await this.commands[command].func(reply);
+            if (msg.userLevel > this.commands[command].level) return;
+            await this.commands[command].func(msg);
           } catch (e) {
             console.error(`Error proccessing command '${content}'`);
             console.error(e);
           }
         } else if (this.converses[command]) {
-          if (reply.userLevel > this.converses[command].level) return;
+          if (msg.userLevel > this.converses[command].level) return;
           const context = {};
-          const progress = await this.converses[command].func<any>(reply, 0, context);
+          const progress = await this.converses[command].func<any>(msg, 0, context);
           if (progress && progress >= 0) {
-            await reply.setConverse(command, progress, context);
+            await msg.setConverse(command, progress, context);
           } else {
-            await reply.finishConverse();
+            await msg.finishConverse();
           }
         } else {
-          await wechatAutoReplyCommand(reply);
+          await wechatAutoReplyCommand(msg);
         }
 
-        if (!reply.sent) res.send();
+        if (!msg.sent) res.send();
         return;
       }
 
@@ -260,7 +260,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     return this._sent;
   }
 
-  public async fetchUserInfo() {
+  public async fetchExtraMsgInfo() {
     // 订阅号不能用
     // try {
     //   const { data } = await this.bot.instance.get('/user/info', {

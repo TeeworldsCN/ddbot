@@ -6,7 +6,7 @@ import { CommandParser } from '../utils/commandParser';
 export const registrationCheck: TextHandler = async msg => {
   if (msg.userLevel > LEVEL_OPERATOR) return;
 
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const token = query.getString(1);
   const state = query.getString(2);
 

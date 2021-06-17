@@ -14,7 +14,7 @@ import { SubscriptionModel } from '../db/subscription';
 export const subscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
 
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const name = query.getString(1);
   const channel = query.getString(2) || msg.channelKey;
   const result = await SubscriptionModel.updateOne(
@@ -36,7 +36,7 @@ export const subscribe: TextHandler = async msg => {
 export const listSub: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
 
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const name = query.getString(1);
 
   if (name) {
@@ -55,7 +55,7 @@ export const listSub: TextHandler = async msg => {
 export const unsubscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
 
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const name = query.getString(1);
   const destroy = msg.userLevel > LEVEL_OPERATOR ? '' : query.getString(2);
 
@@ -92,13 +92,17 @@ export const unsubscribe: TextHandler = async msg => {
 // 设定管理权限 .assign level userKey
 // userKey 使用 .me 获取
 export const assign: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const level = query.getNumber(1);
   const userKey = query.getRest(2);
 
+  if (level == null) {
+    await msg.reply.text(`level参数无效`);
+    return;
+  }
+
   if (userKey == msg.userKey) {
     await msg.reply.text(`不能修改自己的权限`);
-    await msg.reply.delete();
     return;
   }
 
@@ -107,34 +111,30 @@ export const assign: TextHandler = async msg => {
   }
 
   await msg.reply.text(`已将 ${userKey} 设为 ${LEVEL_NAMES[level]}`);
-  await msg.reply.delete();
 };
 
 // 撤回一个权限 .revoke level
 export const revoke: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const level = query.getNumber(1);
 
   if (level == LEVEL_ADMIN) {
     await msg.reply.text(`不能撤回超级管理权限`);
-    await msg.reply.delete();
     return;
   }
 
   if (level > LEVEL_ADMIN && level <= LEVEL_TESTER) {
     const result = await UserModel.updateMany({ level }, { $set: { level: LEVEL_USER } });
     await msg.reply.text(`已撤回 ${result.nModified} 名 ${LEVEL_NAMES[level]}`);
-    await msg.reply.delete();
     return;
   }
 
   await msg.reply.text(`${level} 不是个有效的等级`);
-  await msg.reply.delete();
 };
 
 // 删除一个用户
 export const nuke: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const userKey = query.getRest(1);
 
   if (userKey == msg.userKey) {
@@ -149,6 +149,4 @@ export const nuke: TextHandler = async msg => {
   } else {
     await msg.reply.text(`未找到相关用户`);
   }
-
-  await msg.reply.delete();
 };

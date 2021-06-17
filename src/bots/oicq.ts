@@ -1,7 +1,9 @@
 import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
 import { Client, MessageEventData, segment, TextElem } from 'oicq';
 import { packID } from '../utils/helpers';
+import { getUser, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
 
+let oicqLastMsgID: string = null;
 export class OICQBotAdapter extends GenericBot<Client> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
@@ -142,54 +144,52 @@ export class OICQBotAdapter extends GenericBot<Client> {
 
   public connect() {
     this.instance.on('message', async e => {
-      let content: TextElem = null;
-      for (const seg of e.message) {
-        if (seg.type == 'text') {
-          content = seg;
-          break;
-        }
-      }
+      if (oicqLastMsgID === e.message_id) return;
+      oicqLastMsgID = e.message_id;
+
+      const msg = new OICQMessage(this, e);
+      const text = msg.text;
 
       // 无文本消息或不是指令
-      if (!content || (!content.data.text.startsWith('.') && !content.data.text.startsWith('。'))) {
-        const msg = new OICQMessage(this, e);
-        await msg.fetchUser();
-        const converse = await msg.getConverse();
-        const context = converse.context;
-        if (converse.key && this.converses[converse.key]) {
-          const progress = await this.converses[converse.key].func<any>(
-            msg,
-            converse.progress,
-            context
-          );
-          if (progress && progress >= 0) {
-            await msg.setConverse(converse.key, progress, context);
-          } else {
+      if (!text.startsWith('.') && !text.startsWith('。')) {
+        if (msg.sessionType == 'DM') {
+          // 只有私聊会触发会话
+          await msg.fillMsgDetail();
+          const converse = await msg.getConverse();
+          const context = converse.context;
+          if (converse.key && this.converses[converse.key]) {
+            const progress = await this.converses[converse.key].func<any>(
+              msg,
+              converse.progress,
+              context
+            );
+            if (progress && progress >= 0) {
+              await msg.setConverse(converse.key, progress, context);
+            } else {
+              await msg.finishConverse();
+            }
+          } else if (converse.key) {
             await msg.finishConverse();
           }
-        } else if (converse.key) {
-          await msg.finishConverse();
         }
         return;
       }
 
       // 处理文本消息
-      const text = content.data.text.replace(/^\. /, '.');
-      const command = text.split(' ')[0].slice(1).toLowerCase();
-
-      content.data.text = text;
-
-      const msg = new OICQMessage(this, e);
-      await msg.fetchUser();
+      msg.command = msg.text.replace(/^[\.。] ?/, '');
+      const command = msg.command.split(' ')[0].toLowerCase();
 
       if (this.commands[command]) {
+        await msg.fillMsgDetail();
         if (msg.userLevel > this.commands[command].level) return;
 
         this.commands[command].func(msg).catch(reason => {
           console.error(`Error proccessing command '${text}'`);
           console.error(reason);
         });
-      } else if (this.converses[command]) {
+      } else if (msg.sessionType == 'DM' && this.converses[command]) {
+        // 只有私聊会触发会话
+        await msg.fillMsgDetail();
         if (msg.userLevel > this.converses[command].level) return;
 
         const context = {};
@@ -202,10 +202,30 @@ export class OICQBotAdapter extends GenericBot<Client> {
       }
     });
 
-    this.instance.on('system.login.slider', function () {
+    this.instance.on('system.login.slider', () => {
       process.stdin.once('data', input => {
-        this.sliderLogin(input.toString());
+        this.instance.sliderLogin(input.toString());
       });
+    });
+
+    this.instance.on('request.friend.add', async data => {
+      const userKey = packID({ platform: this.platform, id: data.user_id.toString() });
+      const user = await getUser(userKey);
+      if ((user.level ?? LEVEL_USER) > LEVEL_MANAGER) {
+        await this.instance.setFriendAddRequest(data.flag, false, '抱歉，我暂时不能加好友。');
+      } else {
+        await this.instance.setFriendAddRequest(data.flag, true);
+      }
+    });
+
+    this.instance.on('request.group.invite', async data => {
+      const userKey = packID({ platform: this.platform, id: data.user_id.toString() });
+      const user = await getUser(userKey);
+      if ((user.level ?? LEVEL_USER) > LEVEL_MANAGER) {
+        await this.instance.setGroupAddRequest(data.flag, false);
+      } else {
+        await this.instance.setGroupAddRequest(data.flag, true);
+      }
     });
 
     this.instance.login(process.env.OICQ_PASSWORD);
@@ -221,7 +241,43 @@ class OICQMessage extends GenericMessage<Client> {
     const tag = `${e.sender.nickname}#${e.sender.user_id}`;
     this._userId = `${e.sender.user_id}`;
     this._userKey = packID({ platform: this.bot.platform, id: this._userId });
+
     this._content = [];
+    for (const seg of e.message) {
+      if (seg.type == 'text') {
+        this._content.push({ type: 'text', content: seg.data.text });
+      } else if (seg.type == 'at') {
+        if (seg.data.qq == 'all') {
+          this._content.push({
+            type: 'notify',
+            content: seg.data.text,
+            targetType: 'all',
+          });
+        } else {
+          this._content.push({
+            type: 'mention',
+            content: seg.data.text,
+            userKey: packID({ platform: this.bot.platform, id: seg.data.qq.toString() }),
+          });
+        }
+      } else if (seg.type == 'bface') {
+        this._content.push({
+          type: 'emote',
+          content: seg.data.file,
+          name: seg.data.text,
+        });
+      } else if (seg.type == 'image') {
+        this._content.push({
+          type: 'image',
+          url: seg.data.url,
+        });
+      } else if (seg.type == 'reply') {
+        this._content.push({
+          type: 'quote',
+          msgId: seg.data.id,
+        });
+      }
+    }
 
     this._msgId = e.message_id;
     this._eventMsgId = e.message_id;
@@ -273,12 +329,29 @@ class OICQMessage extends GenericMessage<Client> {
 
   public makeReply(): Partial<MessageReply> {
     const context =
-      this.sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
+      this._sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
     return {
       text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
       image: (c, t) => context.image(c, t ? this.userId : undefined),
-      update: (c, q) => context.update(this.msgId, c, q),
-      delete: () => context.delete(this.msgId),
+      delete: () => this._sessionType == 'CHANNEL' && context.delete(this.msgId),
     };
+  }
+
+  public async fetchExtraMsgInfo() {
+    for (const part of this._content) {
+      if (part.type == 'quote') {
+        const result = await this.bot.instance.getMsg(part.msgId);
+        if (result.retcode) {
+          console.warn('[OICQ] 获取被回复消息失败');
+          console.warn(result);
+          return;
+        }
+        part.userKey = packID({
+          platform: this.bot.platform,
+          id: result.data.sender.user_id.toString(),
+        });
+        part.content = result.data.raw_message;
+      }
+    }
   }
 }

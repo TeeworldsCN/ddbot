@@ -33,7 +33,7 @@ const fetchMap = async (mapQueryString: string) => {
 };
 
 export const maps: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const mapQueryString = query.getRest(1).replace(/['"]/g, '');
   const card = new Card('lg');
 

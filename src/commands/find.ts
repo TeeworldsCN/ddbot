@@ -5,7 +5,7 @@ import { API } from '../utils/axios';
 import { addr2b } from '../utils/helpers';
 
 export const find: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const name = query.getRest(1);
   const searchName = name || msg.user?.ddnetid;
   const card = new Card('lg');

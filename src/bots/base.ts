@@ -8,7 +8,6 @@ export type MessageReply = {
   image: (image: string, temp?: boolean) => Promise<string>;
   file: (file: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
-  update: (content: string, quote?: string) => Promise<string>;
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
@@ -87,22 +86,36 @@ interface GenericMessageElementChannel {
   content: string;
 }
 
+interface GenericMessageElementNotify {
+  type: 'notify';
+  target?: string;
+  targetType: 'role' | 'all' | 'here';
+  content: string;
+}
+
 interface GenericMessageElementMention {
   type: 'mention';
   userKey: string;
   content: string;
 }
 
+interface GenericMessageElementEmote {
+  type: 'emote';
+  name: string;
+  content: string;
+}
+
 interface GenericMessageElementImage {
   type: 'image';
   url: string;
-  content: Buffer;
+  content?: Buffer;
 }
 
 interface GenericMessageElementQuote {
   type: 'quote';
   msgId: string;
-  content: string;
+  userKey?: string;
+  content?: string;
 }
 
 interface GenericMessageElementText {
@@ -115,12 +128,14 @@ interface GenericMessageElementUnknown {
   content: any;
 }
 
-type GenericMessageElement =
+export type GenericMessageElement =
   | GenericMessageElementText
   | GenericMessageElementQuote
   | GenericMessageElementImage
   | GenericMessageElementMention
   | GenericMessageElementChannel
+  | GenericMessageElementEmote
+  | GenericMessageElementNotify
   | GenericMessageElementUnknown;
 
 export abstract class GenericBot<BotType> {
@@ -238,6 +253,8 @@ export abstract class GenericMessage<BotType> {
   protected _dbuser: User;
   protected _text: string = null;
 
+  public command: string = null;
+
   public constructor(bot: GenericBot<BotType>, e: any) {
     this._raw = e;
     this._bot = bot;
@@ -266,7 +283,10 @@ export abstract class GenericMessage<BotType> {
 
   public get text() {
     if (this._text) return this._text;
-    this._text = this._content.map(e => (e.type == 'text' ? e.content : ' ')).join('');
+    this._text = this._content
+      .map(e => (e.type == 'text' ? e.content : ' '))
+      .join('')
+      .trim();
     return this._text;
   }
 
@@ -306,7 +326,8 @@ export abstract class GenericMessage<BotType> {
     return this._bot;
   }
 
-  public async fetchUser() {
+  public async fillMsgDetail() {
+    await this.fetchExtraMsgInfo();
     if (this._dbuser) return this._dbuser;
     try {
       this._dbuser = await getUser(this.userKey);
@@ -321,7 +342,7 @@ export abstract class GenericMessage<BotType> {
   }
 
   public get userLevel() {
-    return this.user?.level || LEVEL_USER;
+    return this.user?.level ?? LEVEL_USER;
   }
 
   public async setConverse(key: string, progress: number, context: any) {
@@ -364,7 +385,7 @@ export abstract class GenericMessage<BotType> {
     };
   }
 
-  public async fetchUserInfo(): Promise<void> {}
+  public async fetchExtraMsgInfo(): Promise<void> {}
   public async fetchMsgAssets(): Promise<void> {}
   public abstract makeReply(): Partial<MessageReply>;
 }

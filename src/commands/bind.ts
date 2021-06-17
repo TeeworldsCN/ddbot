@@ -5,7 +5,7 @@ import { CommandParser } from '../utils/commandParser';
 import { UserModel } from '../db/user';
 
 export const bind: TextHandler = async msg => {
-  const query = new CommandParser(msg.text);
+  const query = new CommandParser(msg.command);
   const searchName = query.getRest(1);
 
   if (!searchName) {
@@ -19,8 +19,8 @@ export const bind: TextHandler = async msg => {
 
       await msg.reply.card(card, undefined, true);
       await msg.reply.delete();
-    } else if (msg.bot.platform == 'wechat') {
-      await msg.reply.text(`请提供您的DDNet昵称，例如：\n绑定 TsFreddie`);
+    } else {
+      await msg.reply.text(`请提供您的DDNet昵称，例如：\n绑定 nameless tee`);
     }
     return;
   }
@@ -42,8 +42,8 @@ export const bind: TextHandler = async msg => {
 
       await msg.reply.card(card, undefined, true);
       await msg.reply.delete();
-    } else if (msg.bot.platform == 'wechat') {
-      await msg.reply.text(`成功绑定DDNet ID: ${searchName}`);
+    } else {
+      await msg.reply.text(`"${msg.author.nickname}"成功绑定DDNet ID: ${searchName}`);
     }
   } else {
     if (msg.bot.platform == 'kaiheila') {
@@ -56,7 +56,7 @@ export const bind: TextHandler = async msg => {
 
       await msg.reply.card(card, undefined, true);
       await msg.reply.delete();
-    } else if (msg.bot.platform == 'wechat') {
+    } else {
       await msg.reply.text(`未知错误，绑定失败`);
     }
   }

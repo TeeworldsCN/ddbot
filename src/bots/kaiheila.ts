@@ -1,5 +1,11 @@
-import { ButtonClickEvent, KaiheilaBot, TextMessage } from 'kaiheila-bot-root';
-import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
+import { ButtonClickEvent, ImageMessage, TextMessage } from 'kaiheila-bot-root';
+import {
+  GenericBot,
+  GenericMessage,
+  GenericMessageElement,
+  MessageAction,
+  MessageReply,
+} from './base';
 import { Card } from '../utils/cardBuilder';
 import { packID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
@@ -13,7 +19,105 @@ const MSG_TYPES = {
   card: 10,
 };
 
-const PLATFORM = 'this';
+const PLATFORM = 'kaiheila';
+
+const packMessage = (
+  bot: GenericBot<any>,
+  msg: string,
+  quote?: TextMessage
+): GenericMessageElement[] => {
+  const parts = msg.match(
+    /(\[:[^:\s]+:[^\/\s]+\/[^\s]+\])|(@[^#\s]+#[0-9]+)|(@role:[0-9]+;)|(@在线成员)|(@全体成员)|(#channel:[0-9]+;)|([^[@#]+)|([\[@#])/gs
+  );
+
+  const result: GenericMessageElement[] = [];
+
+  if (quote) {
+    result.push({
+      type: 'quote',
+      content: quote.content,
+      msgId: quote.msgId,
+      userKey: packID({ platform: bot.platform, id: quote.authorId }),
+    });
+  }
+
+  const textParts: string[] = [];
+
+  const pushText = () => {
+    if (textParts.length > 0) {
+      result.push({
+        type: 'text',
+        content: textParts.join(''),
+      });
+    }
+  };
+
+  for (const part of parts) {
+    const mention = part.match(/@([^#\s]+)#([0-9]+)/);
+    if (mention) {
+      pushText();
+      result.push({
+        type: 'mention',
+        content: part,
+        userKey: packID({ platform: bot.platform, id: mention[2] }),
+      });
+      continue;
+    }
+    const channel = part.match(/#channel:([0-9]+);/);
+    if (channel) {
+      pushText();
+      result.push({
+        type: 'channel',
+        content: part,
+        channelKey: packID({ platform: bot.platform, id: channel[1] }),
+      });
+      continue;
+    }
+    const emote = part.match(/\[:([^:\s]+):([^\/\s]+\/[^\s]+\])/);
+    if (emote) {
+      pushText();
+      result.push({
+        type: 'emote',
+        name: emote[1],
+        content: emote[2],
+      });
+      continue;
+    }
+    const mentionRole = part.match(/@role:([0-9]+);/);
+    if (mentionRole) {
+      pushText();
+      result.push({
+        type: 'notify',
+        content: part,
+        target: mentionRole[1],
+        targetType: 'role',
+      });
+      continue;
+    }
+    if (part === '@全体成员') {
+      pushText();
+      result.push({
+        type: 'notify',
+        content: part,
+        targetType: 'all',
+      });
+      continue;
+    }
+    if (part === '@在线成员') {
+      pushText();
+      result.push({
+        type: 'notify',
+        content: part,
+        targetType: 'here',
+      });
+      continue;
+    }
+    textParts.push(part);
+  }
+  pushText();
+  return result;
+};
+
 export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
@@ -283,45 +387,47 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     this.instance.on('textMessage', async (e: TextMessage) => {
       // no bot message
       if (e.author.bot) return;
+      const msg = new KaiheilaMessage(this, e, 'text');
+      const text = msg.text;
 
-      if (!e.content.startsWith('.') && !e.content.startsWith('。')) {
-        const msg = new KaiheilaMessage(this, e, 'text');
-        await msg.fetchUser();
-        const converse = await msg.getConverse();
-        const context = converse.context;
-        if (converse.key && this.converses[converse.key]) {
-          const progress = await this.converses[converse.key].func<any>(
-            msg,
-            converse.progress,
-            context
-          );
-          if (progress && progress >= 0) {
-            await msg.setConverse(converse.key, progress, context);
-          } else {
+      if (!text.startsWith('.') && !text.startsWith('。')) {
+        if (msg.sessionType == 'DM') {
+          // 是私聊的情况下检查会话
+          await msg.fillMsgDetail();
+          const converse = await msg.getConverse();
+          const context = converse.context;
+          if (converse.key && this.converses[converse.key]) {
+            const progress = await this.converses[converse.key].func<any>(
+              msg,
+              converse.progress,
+              context
+            );
+            if (progress && progress >= 0) {
+              await msg.setConverse(converse.key, progress, context);
+            } else {
+              await msg.finishConverse();
+            }
+          } else if (converse.key) {
             await msg.finishConverse();
           }
-        } else if (converse.key) {
-          await msg.finishConverse();
         }
         return;
       }
 
-      const text = e.content.replace(/^\. /, '.');
-      const command = text.split(' ')[0].slice(1).toLowerCase();
-
-      e.content = text;
-
-      const msg = new KaiheilaMessage(this, e, 'text');
-      await msg.fetchUser();
+      msg.command = msg.text.replace(/^[\.。] ?/, '');
+      const command = msg.command.split(' ')[0].toLowerCase();
 
       if (this.commands[command]) {
+        await msg.fillMsgDetail();
         if (msg.userLevel > this.commands[command].level) return;
 
         this.commands[command].func(msg).catch(reason => {
           console.error(`Error proccessing command '${text}'`);
           console.error(reason);
         });
-      } else if (this.converses[command]) {
+      } else if (msg.sessionType == 'DM' && this.converses[command]) {
+        // 只有私聊会触发会话
+        await msg.fillMsgDetail();
         if (msg.userLevel > this.converses[command].level) return;
 
         const context = {};
@@ -334,6 +440,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       }
     });
 
+    // buttons are always LEVEL_USER
     this.instance.on('buttonClick', async (e: ButtonClickEvent) => {
       if (e.value.startsWith('.')) {
         const command = e.value.split(' ')[0].slice(1);
@@ -360,19 +467,30 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
 class KaiheilaMessage extends GenericMessage<BotInstance> {
   public constructor(
     bot: KaiheilaBotAdapter,
-    e: TextMessage | ButtonClickEvent,
-    type: 'text' | 'button'
+    e: TextMessage | ButtonClickEvent | ImageMessage,
+    type: 'text' | 'button' | 'image'
   ) {
     super(bot, e);
 
-    this._type = type;
+    this._type = type == 'button' ? 'button' : 'text';
 
-    if (type == 'text') {
-      e = e as TextMessage;
+    if (this._type == 'text') {
+      e = e as TextMessage | ImageMessage;
       const tag = `${e.author.username}#${e.author.identifyNum}`;
       this._userId = e.authorId;
       this._userKey = packID({ platform: this.bot.platform, id: e.authorId });
-      this._content = [{ type: 'text', content: e.content }];
+      if (type == 'text') {
+        const t = e as TextMessage;
+        this._content = packMessage(this.bot, t.content, t.quote);
+      } else {
+        const i = e as ImageMessage;
+        this._content = [
+          {
+            type: 'image',
+            url: i.attachment.url,
+          },
+        ];
+      }
       this._msgId = e.msgId;
       this._eventMsgId = e.msgId;
       this._author = {
@@ -410,8 +528,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       image: (c, t) => context.image(c, t ? this.userId : undefined),
       file: (c, t) => context.file(c, t ? this.userId : undefined),
       card: (c, q, t) => context.card(c, q, t ? this.userId : undefined),
-      update: (c, q) => context.update(this.msgId, c, q),
-      delete: () => context.delete(this.msgId),
+      delete: () => this.sessionType == 'CHANNEL' && context.delete(this.msgId),
       addReaction: e => context.addReaction(this.msgId, e),
       deleteReaction: (e, u) => context.deleteReaction(this.msgId, e, u),
     };
