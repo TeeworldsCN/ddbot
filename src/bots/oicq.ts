@@ -211,7 +211,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
     this.instance.on('request.friend.add', async data => {
       const userKey = packID({ platform: this.platform, id: data.user_id.toString() });
       const user = await getUser(userKey);
-      if ((user.level ?? LEVEL_USER) > LEVEL_MANAGER) {
+      if ((user?.level ?? LEVEL_USER) > LEVEL_MANAGER) {
         await this.instance.setFriendAddRequest(data.flag, false, '抱歉，我暂时不能加好友。');
       } else {
         await this.instance.setFriendAddRequest(data.flag, true);
@@ -221,7 +221,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
     this.instance.on('request.group.invite', async data => {
       const userKey = packID({ platform: this.platform, id: data.user_id.toString() });
       const user = await getUser(userKey);
-      if ((user.level ?? LEVEL_USER) > LEVEL_MANAGER) {
+      if ((user?.level ?? LEVEL_USER) > LEVEL_MANAGER) {
         await this.instance.setGroupAddRequest(data.flag, false);
       } else {
         await this.instance.setGroupAddRequest(data.flag, true);
@@ -263,6 +263,7 @@ class OICQMessage extends GenericMessage<Client> {
       } else if (seg.type == 'bface') {
         this._content.push({
           type: 'emote',
+          platform: this.bot.platform,
           content: seg.data.file,
           name: seg.data.text,
         });
@@ -274,6 +275,7 @@ class OICQMessage extends GenericMessage<Client> {
       } else if (seg.type == 'reply') {
         this._content.push({
           type: 'quote',
+          platform: this.bot.platform,
           msgId: seg.data.id,
         });
       }
@@ -305,7 +307,7 @@ class OICQMessage extends GenericMessage<Client> {
         name: e.sender.title,
         roleId,
       };
-      this._author.level = e.sender.level;
+      this._author.chatLevel = e.sender.level;
       if (e.sender.card) {
         this._author.nickname = e.sender.card;
       }

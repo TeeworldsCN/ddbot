@@ -223,7 +223,7 @@ export const points: TextHandler = async msg => {
       await msg.reply.card(card, undefined, temporary);
     } else {
       await msg.reply.text(
-        '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“TsFreddie”，输入：\n绑定 TsFreddie'
+        '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
       );
     }
     return;
@@ -382,7 +382,7 @@ export const pointRank: TextHandler = async msg => {
 
   if (!searchName) {
     await msg.reply.text(
-      '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“TsFreddie”，输入：\n绑定 TsFreddie'
+      '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
     );
     return;
   }

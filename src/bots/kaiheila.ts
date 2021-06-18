@@ -7,7 +7,7 @@ import {
   MessageReply,
 } from './base';
 import { Card } from '../utils/cardBuilder';
-import { packID } from '../utils/helpers';
+import { packID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
 
 const MSG_TYPES = {
@@ -35,6 +35,7 @@ const packMessage = (
   if (quote) {
     result.push({
       type: 'quote',
+      platform: bot.platform,
       content: quote.content,
       msgId: quote.msgId,
       userKey: packID({ platform: bot.platform, id: quote.authorId }),
@@ -78,6 +79,7 @@ const packMessage = (
       pushText();
       result.push({
         type: 'emote',
+        platform: bot.platform,
         name: emote[1],
         content: emote[2],
       });
@@ -118,6 +120,32 @@ const packMessage = (
   return result;
 };
 
+const unpackMessage = (
+  bot: GenericBot<any>,
+  content: GenericMessageElement[]
+): { msg: string; quote?: string } => {
+  let quote = undefined;
+  const message = [];
+  for (const elem of content) {
+    if (elem.type == 'quote' && elem.platform == bot.platform && quote != null) {
+      quote = elem.msgId;
+    } else if (elem.type == 'text') {
+      message.push(elem.content);
+    } else if (elem.type == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
+      message.push(elem.content);
+    } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
+      message.push(elem.content);
+    } else if (elem.type == 'notify' && elem.targetType == 'role') {
+      message.push(elem.content); // role 目前只有开黑啦有
+    } else if (elem.type == 'notify' && elem.targetType == 'all') {
+      message.push('@全体成员');
+    } else if (elem.type == 'notify' && elem.targetType == 'here') {
+      message.push('@在线成员');
+    }
+  }
+  return { msg: message.join(' '), quote };
+};
+
 export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
@@ -128,6 +156,23 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
             channelId,
             content,
             quote,
+            onlyTo
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送消息失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      segments: async (content: GenericMessageElement[], onlyTo?: string) => {
+        const data = unpackMessage(this, content);
+        try {
+          const result = await this.instance.API.message.create(
+            MSG_TYPES.text,
+            channelId,
+            data.msg,
+            data.quote,
             onlyTo
           );
           return result.msgId;
@@ -268,6 +313,23 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return result.msgId;
         } catch (e) {
           console.warn(`[开黑啦] 发送图片失败`);
+          console.warn(e);
+          return null;
+        }
+      },
+      segments: async (content: GenericMessageElement[], onlyTo?: string) => {
+        const data = unpackMessage(this, content);
+        try {
+          const result = await this.instance.API.directMessage.create(
+            MSG_TYPES.text,
+            userId,
+            undefined,
+            data.msg,
+            data.quote
+          );
+          return result.msgId;
+        } catch (e) {
+          console.warn(`[开黑啦] 发送消息失败`);
           console.warn(e);
           return null;
         }
@@ -525,6 +587,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       this.sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
     return {
       text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
+      segments: (c, t) => context.segments(c, t ? this.userId : undefined),
       image: (c, t) => context.image(c, t ? this.userId : undefined),
       file: (c, t) => context.file(c, t ? this.userId : undefined),
       card: (c, q, t) => context.card(c, q, t ? this.userId : undefined),

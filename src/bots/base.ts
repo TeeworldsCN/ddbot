@@ -8,6 +8,7 @@ export type MessageReply = {
   image: (image: string, temp?: boolean) => Promise<string>;
   file: (file: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
+  segments: (content: GenericMessageElement[], temp?: boolean) => Promise<string>;
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
@@ -18,6 +19,7 @@ export type MessageAction = {
   image: (image: string, onlyTo?: string) => Promise<string>;
   file: (file: string, onlyTo?: string) => Promise<string>;
   card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
+  segments: (content: GenericMessageElement[], onlyTo?: string) => Promise<string>;
   update: (msgid: string, content: string, quote?: string) => Promise<string>;
   delete: (msgid: string) => Promise<void>;
   addReaction: (msgid: string, emoji: string[]) => Promise<void>;
@@ -30,6 +32,7 @@ const EMPTY_ACTIONS: MessageReply & MessageAction = {
   image: async () => null as string,
   file: async () => null as string,
   card: async () => null as string,
+  segments: async () => null as string,
   addReaction: async () => {},
   deleteReaction: async () => {},
   update: async () => null as string,
@@ -41,9 +44,9 @@ export interface UserInfo {
   username: string;
   // 昵称|群名片
   nickname: string;
-  // 头像
+  // 开黑啦：头像
   avatar?: string;
-  // 是否在线
+  // 开黑啦：是否在线
   online?: boolean;
   // 开黑啦：四位ID
   identifyNum?: string;
@@ -77,7 +80,7 @@ export interface UserInfo {
     roleId: number;
   };
   // OICQ：群等级
-  level?: number;
+  chatLevel?: number;
 }
 
 interface GenericMessageElementChannel {
@@ -101,6 +104,7 @@ interface GenericMessageElementMention {
 
 interface GenericMessageElementEmote {
   type: 'emote';
+  platform: string;
   name: string;
   content: string;
 }
@@ -113,6 +117,7 @@ interface GenericMessageElementImage {
 
 interface GenericMessageElementQuote {
   type: 'quote';
+  platform: string;
   msgId: string;
   userKey?: string;
   content?: string;
@@ -125,6 +130,7 @@ interface GenericMessageElementText {
 
 interface GenericMessageElementUnknown {
   type: 'unknown';
+  platform: string;
   content: any;
 }
 
