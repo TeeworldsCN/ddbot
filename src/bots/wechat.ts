@@ -123,10 +123,12 @@ export class WechatBotAdapter extends GenericBot<AxiosInstance> {
       const type = req.body.MsgType.__cdata;
 
       if (type === 'text') {
-        let content = req.body.Content.__cdata;
-        const command = content.split(' ')[0].toLowerCase();
         const msg = new WechatMessage(this, { req, res });
         await msg.fillMsgDetail();
+
+        const text = msg.text;
+        const command = text.split(' ')[0].toLowerCase();
+        msg.command = text;
 
         const converse = await msg.getConverse();
         const context = converse.context;
