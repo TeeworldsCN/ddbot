@@ -154,7 +154,7 @@ export class WechatBotAdapter extends GenericBot<AxiosInstance> {
             if (msg.userLevel > this.commands[command].level) return;
             await this.commands[command].func(msg);
           } catch (e) {
-            console.error(`Error proccessing command '${content}'`);
+            console.error(`Error proccessing command '${text}'`);
             console.error(e);
           }
         } else if (this.converses[command]) {
