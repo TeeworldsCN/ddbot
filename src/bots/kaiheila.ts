@@ -459,6 +459,8 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           const converse = await msg.getConverse();
           const context = converse.context;
           if (converse.key && this.converses[converse.key]) {
+            if (msg.userLevel > this.converses[converse.key].level) return;
+
             const progress = await this.converses[converse.key].func<any>(
               msg,
               converse.progress,
