@@ -526,6 +526,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
 
     this.instance.connect();
     this.started = true;
+    console.log('Kaiheila Bot Connected');
   }
 }
 class KaiheilaMessage extends GenericMessage<BotInstance> {

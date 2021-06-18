@@ -191,6 +191,7 @@ export class WechatBotAdapter extends GenericBot<AxiosInstance> {
 
     webhook.use('/wechat', wechatHook);
     this.started = true;
+    console.log('Wechat Bot Connected');
   }
 }
 

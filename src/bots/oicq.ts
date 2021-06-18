@@ -229,7 +229,9 @@ export class OICQBotAdapter extends GenericBot<Client> {
       }
     });
 
+    console.log('OICQ Bot Connected');
     this.instance.login(process.env.OICQ_PASSWORD);
+    this.started = true;
   }
 }
 
