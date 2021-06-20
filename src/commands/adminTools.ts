@@ -10,6 +10,7 @@ import {
 } from '../db/user';
 import _ from 'lodash';
 import { SubscriptionModel } from '../db/subscription';
+import { clearRelayCache, getRelay, RelayModel } from '../db/relay';
 
 export const subscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
@@ -85,6 +86,85 @@ export const unsubscribe: TextHandler = async msg => {
       await msg.reply.text(`成功取消订阅了这里的"${name}"消息`);
     } else {
       await msg.reply.text(`未知错误，取消订阅"${name}"失败`);
+    }
+  }
+};
+
+// 订阅 Matterbridge Gateway
+export const relay: TextHandler = async msg => {
+  if (msg.sessionType == 'DM') return;
+
+  const query = new CommandParser(msg.command);
+  const gateway = query.getString(1);
+  const channel = query.getString(2) || msg.channelKey;
+  const result = await RelayModel.updateOne(
+    { gateway },
+    { $addToSet: { channels: channel } },
+    { upsert: msg.userLevel <= LEVEL_OPERATOR }
+  ).exec();
+  if (result.ok) {
+    if (channel == msg.channelKey) {
+      await msg.reply.text(`成功将本频道桥接"${gateway}"的消息`);
+    } else {
+      await msg.reply.text(`成功将频道"${channel}"桥接"${gateway}"的消息`);
+    }
+  } else {
+    await msg.reply.text(`未知错误，桥接"${gateway}"失败`);
+  }
+
+  clearRelayCache(gateway);
+};
+
+export const listRelay: TextHandler = async msg => {
+  if (msg.sessionType == 'DM') return;
+
+  const query = new CommandParser(msg.command);
+  const gateway = query.getString(1);
+
+  if (gateway) {
+    clearRelayCache(gateway);
+    const doc = await getRelay(gateway);
+    if (doc) {
+      await msg.reply.text(`这些频道桥接了"${gateway}"：\n${doc.channels.join()}`);
+    } else {
+      await msg.reply.text(`"${gateway}"桥接出口不存在`);
+    }
+  } else {
+    const docs = (await RelayModel.find({}, 'name').exec()) || [];
+    await msg.reply.text(`可订阅的消息类型：\n${docs.map(s => s.gateway).join()}`);
+  }
+};
+
+export const unrelay: TextHandler = async msg => {
+  if (msg.sessionType == 'DM') return;
+
+  const query = new CommandParser(msg.command);
+  const gateway = query.getString(1);
+  const destroy = msg.userLevel > LEVEL_OPERATOR ? '' : query.getString(2);
+
+  if (destroy == 'all') {
+    const result = await RelayModel.deleteOne({ gateway }).exec();
+    if (result.ok) {
+      await msg.reply.text(`成功取消了"${gateway}"消息的所有桥接`);
+    } else {
+      await msg.reply.text(`操作失败`);
+    }
+  } else if (destroy) {
+    const result = await RelayModel.updateOne({ gateway }, { $pull: { channels: destroy } }).exec();
+    if (result.ok) {
+      await msg.reply.text(`成功取消桥接了"${destroy}"的"${gateway}"消息`);
+    } else {
+      await msg.reply.text(`未知错误，取消桥接"${gateway}"失败`);
+    }
+  } else {
+    const result = await RelayModel.updateOne(
+      { name },
+      { $pull: { channels: msg.channelKey } }
+    ).exec();
+    if (result.ok) {
+      await msg.reply.text(`成功取消桥接了这里的"${gateway}"消息`);
+    } else {
+      await msg.reply.text(`未知错误，取消桥接"${gateway}"失败`);
     }
   }
 };

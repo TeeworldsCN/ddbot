@@ -10,7 +10,17 @@ import {
   LEVEL_TESTER,
   LEVEL_USER,
 } from './db/user';
-import { assign, nuke, subscribe, unsubscribe, listSub, revoke } from './commands/adminTools';
+import {
+  assign,
+  nuke,
+  subscribe,
+  unsubscribe,
+  listSub,
+  revoke,
+  relay,
+  listRelay,
+  unrelay,
+} from './commands/adminTools';
 import {
   wechatListKeywords,
   wechatSetKeyword,
@@ -65,6 +75,9 @@ if (kaiheila) {
   kaiheila.addCommand(LEVEL_MANAGER, 'sub', subscribe);
   kaiheila.addCommand(LEVEL_MANAGER, 'unsub', unsubscribe);
   kaiheila.addCommand(LEVEL_MANAGER, 'listsub', listSub);
+  kaiheila.addCommand(LEVEL_MANAGER, 'relay', relay);
+  kaiheila.addCommand(LEVEL_MANAGER, 'listrelay', listRelay);
+  kaiheila.addCommand(LEVEL_MANAGER, 'unrelay', unrelay);
 
   // 开黑啦指令
   kaiheila.addCommand(LEVEL_USER, 'me', me);
