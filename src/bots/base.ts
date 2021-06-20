@@ -238,6 +238,7 @@ export abstract class GenericBot<BotType> {
   public abstract makeChannelContext(channelId: string): Partial<MessageAction>;
   public abstract makeUserContext(userId: string): Partial<MessageAction>;
   public abstract get platform(): string;
+  public abstract get platformShort(): string;
   public abstract connect(): void;
 }
 

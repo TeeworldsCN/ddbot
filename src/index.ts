@@ -43,6 +43,7 @@ import { exportRegistration, registrationCheck } from './commands/signupManage';
 import { feederStart } from './rss';
 import { kaiheila, oicq, wechat } from './bots';
 import { hookMsg } from './hookMsg';
+import { relayStart, relayStop } from './relay';
 
 /*
   连接数据库
@@ -75,9 +76,9 @@ if (kaiheila) {
   kaiheila.addCommand(LEVEL_MANAGER, 'sub', subscribe);
   kaiheila.addCommand(LEVEL_MANAGER, 'unsub', unsubscribe);
   kaiheila.addCommand(LEVEL_MANAGER, 'listsub', listSub);
-  kaiheila.addCommand(LEVEL_MANAGER, 'relay', relay);
-  kaiheila.addCommand(LEVEL_MANAGER, 'listrelay', listRelay);
-  kaiheila.addCommand(LEVEL_MANAGER, 'unrelay', unrelay);
+  kaiheila.addCommand(LEVEL_ADMIN, 'relay', relay);
+  kaiheila.addCommand(LEVEL_ADMIN, 'listrelay', listRelay);
+  kaiheila.addCommand(LEVEL_ADMIN, 'unrelay', unrelay);
 
   // 开黑啦指令
   kaiheila.addCommand(LEVEL_USER, 'me', me);
@@ -149,4 +150,19 @@ webhookStart();
 */
 feederStart();
 
+/*
+  启动桥接
+*/
+relayStart();
+
 console.log('Bot Started');
+
+const shutdown = () => {
+  // shutdown relay properly
+  relayStop();
+  process.exit(0);
+};
+
+process.on('beforeExit', shutdown);
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

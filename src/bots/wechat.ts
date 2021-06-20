@@ -77,6 +77,10 @@ export class WechatBotAdapter extends GenericBot<AxiosInstance> {
     return PLATFORM;
   }
 
+  public get platformShort(): string {
+    return 'W';
+  }
+
   public async uploadImage(name: string, imageData: Buffer) {
     try {
       const formData = new FormData();

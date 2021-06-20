@@ -10,7 +10,7 @@ import {
 } from '../db/user';
 import _ from 'lodash';
 import { SubscriptionModel } from '../db/subscription';
-import { clearRelayCache, getRelay, RelayModel } from '../db/relay';
+import { clearRelayCache, getGateway, RelayModel } from '../db/relay';
 
 export const subscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
@@ -112,7 +112,7 @@ export const relay: TextHandler = async msg => {
     await msg.reply.text(`未知错误，桥接"${gateway}"失败`);
   }
 
-  clearRelayCache(gateway);
+  clearRelayCache();
 };
 
 export const listRelay: TextHandler = async msg => {
@@ -122,8 +122,8 @@ export const listRelay: TextHandler = async msg => {
   const gateway = query.getString(1);
 
   if (gateway) {
-    clearRelayCache(gateway);
-    const doc = await getRelay(gateway);
+    clearRelayCache();
+    const doc = await getGateway(gateway);
     if (doc) {
       await msg.reply.text(`这些频道桥接了"${gateway}"：\n${doc.channels.join()}`);
     } else {
@@ -167,6 +167,8 @@ export const unrelay: TextHandler = async msg => {
       await msg.reply.text(`未知错误，取消桥接"${gateway}"失败`);
     }
   }
+
+  clearRelayCache();
 };
 
 // 设定管理权限 .assign level userKey

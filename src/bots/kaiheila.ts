@@ -9,6 +9,7 @@ import {
 import { Card } from '../utils/cardBuilder';
 import { packID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
+import { outboundMessage } from '../relay';
 
 const MSG_TYPES = {
   text: 1,
@@ -445,11 +446,18 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     return PLATFORM;
   }
 
+  public get platformShort(): string {
+    return 'KH';
+  }
+
   public connect() {
     this.instance.on('textMessage', async (e: TextMessage) => {
       // no bot message
       if (e.author.bot) return;
       const msg = new KaiheilaMessage(this, e, 'text');
+      // try relay
+      if (await outboundMessage(msg)) return;
+
       const text = msg.text;
 
       if (!text.startsWith('.') && !text.startsWith('。')) {

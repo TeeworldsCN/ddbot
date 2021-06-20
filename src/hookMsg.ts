@@ -1,6 +1,6 @@
 import express from 'express';
 import { DateTime } from 'luxon';
-import { kaiheila } from './bots';
+import { kaiheila, oicq } from './bots';
 import { SubscriptionModel } from './db/subscription';
 import { API } from './utils/axios';
 import { unpackID } from './utils/helpers';
@@ -70,6 +70,10 @@ hookMsg.post('/:channel', express.json(), async (req, res) => {
           status: e?.response?.status || -1,
           data: e?.response?.data || null,
         });
+      }
+    } else if (unpacked.platform == 'oicq') {
+      if (oicq) {
+        await oicq.channel(channel).text(body.content);
       }
     }
   }

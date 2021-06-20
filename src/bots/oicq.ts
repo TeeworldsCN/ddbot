@@ -2,6 +2,7 @@ import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base'
 import { Client, MessageEventData, segment, TextElem } from 'oicq';
 import { packID } from '../utils/helpers';
 import { getUser, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
+import { outboundMessage } from '../relay';
 
 let oicqLastMsgID: string = null;
 export class OICQBotAdapter extends GenericBot<Client> {
@@ -142,12 +143,19 @@ export class OICQBotAdapter extends GenericBot<Client> {
     return 'oicq';
   }
 
+  public get platformShort(): string {
+    return 'Q';
+  }
+
   public connect() {
     this.instance.on('message', async e => {
       if (oicqLastMsgID === e.message_id) return;
       oicqLastMsgID = e.message_id;
 
       const msg = new OICQMessage(this, e);
+      // try relay
+      if (await outboundMessage(msg)) return;
+
       const text = msg.text;
 
       // 无文本消息或不是指令
