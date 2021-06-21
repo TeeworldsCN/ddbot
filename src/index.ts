@@ -21,6 +21,7 @@ import {
   listRelay,
   unrelay,
   begone,
+  checkface,
 } from './commands/adminTools';
 import {
   wechatListKeywords,
@@ -134,8 +135,9 @@ if (oicq) {
   oicq.addCommand(LEVEL_USER, 'bind', bind, '绑定DDNetID (.bind tee)');
   oicq.addCommand(LEVEL_USER, 'points', ssp, '查询DDN点数 (.points [tee])');
   oicq.addCommand(LEVEL_USER, 'help', generalHelp, '显示该帮助消息');
-  oicq.addCommand(LEVEL_MANAGER, 'gun', begone);
-  oicq.addCommand(LEVEL_MANAGER, '滚', begone);
+  oicq.addCommand(LEVEL_OPERATOR, 'gun', begone);
+  oicq.addCommand(LEVEL_OPERATOR, '滚', begone);
+  oicq.addCommand(LEVEL_OPERATOR, 'checkface', checkface);
 }
 
 /*

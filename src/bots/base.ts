@@ -110,6 +110,8 @@ interface GenericMessageElementEmote {
   name: string;
   id: string;
   content: string;
+  english?: string;
+  replacement?: string;
 }
 
 interface GenericMessageElementImage {
@@ -271,7 +273,7 @@ export abstract class GenericMessage<BotType> {
   }
 
   public get raw(): any {
-    return this.raw;
+    return this._raw;
   }
 
   public get msgId() {

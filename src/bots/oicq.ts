@@ -5,10 +5,11 @@ import {
   MessageAction,
   MessageReply,
 } from './base';
-import { Client, MessageElem, MessageEventData, segment, TextElem } from 'oicq';
+import { Client, MessageEventData, segment } from 'oicq';
 import { packID, unpackID } from '../utils/helpers';
 import { getUser, LEVEL_IGNORE, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
 import { outboundMessage } from '../relay';
+import { QMOTE } from '../utils/consts';
 
 let oicqLastMsgID: string = null;
 
@@ -339,6 +340,7 @@ class OICQMessage extends GenericMessage<Client> {
     this._userKey = packID({ platform: this.bot.platform, id: this._userId });
 
     this._content = [];
+
     for (const seg of e.message) {
       if (seg.type == 'text') {
         this._content.push({ type: 'text', content: seg.data.text });
@@ -375,14 +377,28 @@ class OICQMessage extends GenericMessage<Client> {
           });
         }
       } else if (seg.type == 'face') {
-        if (seg.data.text) {
-          this._content.push({
-            type: 'emote',
-            platform: this.bot.platform,
-            content: null,
-            id: null,
-            name: seg.data.text,
-          });
+        if (seg.data.id != null) {
+          const qmote = QMOTE[seg.data.id];
+          if (qmote) {
+            this._content.push({
+              type: 'emote',
+              platform: this.bot.platform,
+              content: null,
+              id: null,
+              name: qmote.name,
+              english: qmote.eng,
+              replacement: qmote.emoji,
+            });
+          } else {
+            this._content.push({
+              type: 'emote',
+              platform: this.bot.platform,
+              content: null,
+              id: null,
+              name: seg.data.id.toString(),
+            });
+            // }
+          }
         }
       } else if (seg.type == 'image') {
         this._content.push({

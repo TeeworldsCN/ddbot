@@ -17,7 +17,7 @@ export class CommandParser {
   }
 
   public getNumber(index: number) {
-    return parseInt(this.getString(index)) || undefined;
+    return parseInt(this.getString(index)) ?? undefined;
   }
 
   public getRest(index: number) {

@@ -101,16 +101,71 @@ export const relayStop = () => {
 export const sendMessageToGateway = async (gateway: string, msg: GenericMessage<any>) => {
   if (!bridgeAxios) return;
 
-  try {
-    await bridgeAxios.post('/message', {
-      username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
-      text: msg.text,
-      gateway,
-      avatar: msg.author?.avatar,
-    });
-  } catch (err) {
-    msg.reply.text('频道桥接已断连');
+  const text: string[] = [];
+  const sendImage = async (url: string) => {
+    try {
+      await bridgeAxios.post('/message', {
+        username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
+        text: url,
+        gateway,
+        avatar: msg.author?.avatar,
+      });
+    } catch (err) {
+      await msg.reply.text('桥接图片发送失败');
+    }
+  };
+
+  const sendText = async () => {
+    if (text.length == 0) return;
+    try {
+      await bridgeAxios.post('/message', {
+        username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
+        text: text.splice(0, text.length).join(''),
+        gateway,
+        avatar: msg.author?.avatar,
+      });
+    } catch (err) {
+      await msg.reply.text('桥接图片发送失败');
+    }
+  };
+
+  let imageSent = false;
+
+  for (const c of msg.content) {
+    switch (c.type) {
+      case 'text':
+        text.push(c.content);
+        break;
+      case 'emote':
+        text.push(`[${c.english ? c.english : c.name}]`);
+        break;
+      case 'mention':
+        text.push(`[@${c.content}]`);
+        break;
+      case 'notify':
+        text.push(`[@#${c.targetType}${c.target ? `:${c.target}` : ''}]`);
+        break;
+      case 'quote':
+        if (c.content) text.push(`> ${c.content.slice(0, 24)}\n`);
+        break;
+      case 'channel':
+        text.push(`[#${c.content}]`);
+        break;
+      case 'image':
+        if (!imageSent) {
+          await sendText();
+          await sendImage(c.content);
+          imageSent = true;
+        } else {
+          text.push(`[image]`);
+        }
+        break;
+      default:
+        text.push(`[unsupported]`);
+    }
   }
+
+  await sendText();
 };
 
 export const outboundMessage = async (msg: GenericMessage<any>) => {
