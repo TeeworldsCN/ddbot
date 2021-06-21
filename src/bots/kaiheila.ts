@@ -28,7 +28,7 @@ const packMessage = (
   quote?: TextMessage
 ): GenericMessageElement[] => {
   const parts = msg.match(
-    /(\[:[^:\s]+:[^\/\s]+\/[^\s]+\])|(@[^#\s]+#[0-9]+)|(@role:[0-9]+;)|(@在线成员)|(@全体成员)|(#channel:[0-9]+;)|([^[@#]+)|([\[@#])/gs
+    /(\[:[^:\s]+:[^\/\s]+\/[^\s]+\])|(\[#[0-9]+;\])|(@[^#\s]+#[0-9]+)|(@role:[0-9]+;)|(@在线成员)|(@全体成员)|(#channel:[0-9]+;)|([^[@#]+)|([\[@#])/gs
   );
 
   const result: GenericMessageElement[] = [];
@@ -95,6 +95,11 @@ const packMessage = (
         target: mentionRole[1],
         targetType: 'role',
       });
+      continue;
+    }
+    const unicode = part.match(/\[#([0-9])+;\]/);
+    if (unicode) {
+      textParts.push(String.fromCodePoint(parseInt(unicode[1])));
       continue;
     }
     if (part === '@全体成员') {

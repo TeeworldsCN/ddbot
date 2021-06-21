@@ -171,6 +171,7 @@ const fetchPlayer = async (player: string, allowFuzzy?: boolean, server?: string
     const favServer = _.maxBy(_.toPairs(_.groupBy(data.last_finishes, 'country')), '1.length')?.[0];
     const flag = FLAGS[favServer.toLowerCase()] || '❓';
 
+    data.favServer = favServer;
     data.flag = flag;
 
     result.type = 'points';
@@ -377,7 +378,7 @@ export const points: TextHandler = async msg => {
 };
 
 // 微信Only，查个人点数排名
-export const pointRank: TextHandler = async msg => {
+export const simplePoints: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
   const name = query.getRest(1);
 
@@ -429,7 +430,7 @@ export const pointRank: TextHandler = async msg => {
     for (let category of row) {
       const rankData = player[category[0]];
       if (rankData && rankData.points) {
-        lines.push(`${category[1]}: 第${rankData.rank}名 (${rankData.points}pts)`);
+        lines.push(`${category[1]}: ${rankData.points}pts (第${rankData.rank}名)`);
       } else {
         lines.push(`${category[1]}: (${category[2]})`);
       }
@@ -437,4 +438,55 @@ export const pointRank: TextHandler = async msg => {
   }
 
   await msg.reply.text(lines.join('\n'));
+};
+
+export const simplerPoints: TextHandler = async msg => {
+  const query = new CommandParser(msg.command);
+  const name = query.getRest(1);
+
+  const searchName = name || msg.user?.ddnetid;
+  const isWechat = msg.bot.platform == 'wechat';
+
+  if (!searchName) {
+    if (isWechat) {
+      await msg.reply.text(
+        '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
+      );
+    } else {
+      await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
+    }
+    return;
+  }
+
+  const result = await fetchPlayer(searchName, false);
+
+  if (!result) {
+    await msg.reply.text(`未找到玩家 ${searchName}`);
+    return;
+  }
+
+  const player = result.data;
+  const info = [];
+
+  info.push(`${searchName}: `);
+
+  const regional = [];
+  if (player.fetchedRegionalData) {
+    regional.push([['region_points', `${player.favServer}`, '未进前五百']]);
+  }
+
+  const categories = [[['points', '总', '无排名']], ...regional];
+
+  for (let row of categories) {
+    for (let category of row) {
+      const rankData = player[category[0]];
+      if (rankData && rankData.points) {
+        info.push(`${category[1]}: ${rankData.points}pts (第${rankData.rank}名)`);
+      } else {
+        info.push(`${category[1]}: (${category[2]})`);
+      }
+    }
+  }
+
+  await msg.reply.text(info.join(' '));
 };

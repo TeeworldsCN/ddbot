@@ -34,7 +34,7 @@ import { ddnetStatus } from './commands/ddnetStatus';
 import { find } from './commands/find';
 import { maps } from './commands/maps';
 import { me } from './commands/me';
-import { pointRank, points } from './commands/points';
+import { simplePoints as sp, points, simplerPoints as ssp } from './commands/points';
 import { rank } from './commands/rank';
 import { top } from './commands/top';
 import { generalHelp, wechatHelp } from './commands/helps';
@@ -98,7 +98,8 @@ if (kaiheila) {
   kaiheila.addCommand(LEVEL_USER, 'help', generalHelp, '显示该帮助消息');
 
   // 通过开黑啦测试简单的微信指令
-  kaiheila.addCommand(LEVEL_TESTER, 'pointrank', pointRank);
+  kaiheila.addCommand(LEVEL_TESTER, 'sp', sp);
+  kaiheila.addCommand(LEVEL_TESTER, 'ssp', ssp);
   kaiheila.addCommand(LEVEL_TESTER, 'helpwechat', wechatHelp);
   kaiheila.addConverse(LEVEL_TESTER, 'testmatch', matchSignup);
 
@@ -111,17 +112,17 @@ if (wechat) {
   // 微信指令
   wechat.addCommand(LEVEL_USER, '.me', me);
   wechat.addCommand(LEVEL_USER, 'bind', bind, true);
-  wechat.addCommand(LEVEL_USER, 'points', points, true);
-  wechat.addCommand(LEVEL_USER, 'rank', pointRank, true);
+  wechat.addCommand(LEVEL_USER, 'points', sp, true);
+  wechat.addCommand(LEVEL_USER, 'heatmap', points, true);
   wechat.addCommand(LEVEL_USER, 'help', wechatHelp, true);
   wechat.addCommand(LEVEL_USER, '?', wechatHelp);
   wechat.addCommand(LEVEL_USER, '？', wechatHelp);
   wechat.addCommand(LEVEL_USER, '指令', wechatHelp);
   wechat.addCommand(LEVEL_USER, 'h', wechatHelp);
-  wechat.addCommand(LEVEL_USER, '绑定', bind, '绑定DDNetID\n     * 例：绑定 tee');
-  wechat.addCommand(LEVEL_USER, '点数', points, '查询我的点数\n     * 或加ID查询他人：点数 tee');
-  wechat.addCommand(LEVEL_USER, '分数', points);
-  wechat.addCommand(LEVEL_USER, '排名', pointRank, '查询我的点数排名');
+  wechat.addCommand(LEVEL_USER, '绑定', bind, '绑定DDNetID\n    * 例：绑定 tee');
+  wechat.addCommand(LEVEL_USER, '点数', sp, '查询我的点数\n    * 或加ID查询他人：点数 tee');
+  wechat.addCommand(LEVEL_USER, '分数', sp);
+  wechat.addCommand(LEVEL_USER, '活跃度', points, '查询我的近期活跃度');
   wechat.addCommand(LEVEL_USER, '帮助', wechatHelp, '显示该帮助消息');
   wechat.addConverse(LEVEL_USER, '报名', matchSignup, '2021暑期赛FNG报名');
 }
@@ -130,8 +131,7 @@ if (oicq) {
   // OICQ指令
   oicq.addCommand(LEVEL_USER, 'me', me);
   oicq.addCommand(LEVEL_USER, 'bind', bind, '绑定DDNetID (.bind tee)');
-  oicq.addCommand(LEVEL_USER, 'points', points, '查询DDN点数 (.points [tee])');
-  oicq.addCommand(LEVEL_USER, 'rank', pointRank, '查询DDN点数排名 (.rank [tee])');
+  oicq.addCommand(LEVEL_USER, 'points', ssp, '查询DDN点数 (.points [tee])');
   oicq.addCommand(LEVEL_USER, 'help', generalHelp, '显示该帮助消息');
 }
 
