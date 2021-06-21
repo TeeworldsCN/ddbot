@@ -101,7 +101,7 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
 
   // broadcast
   for (const channel of relay.channels) {
-    if (channel == msg.channelKey) return;
+    if (channel == msg.channelKey) continue;
 
     const unpacked = unpackID(channel);
     if (unpacked.platform == 'kaiheila') {

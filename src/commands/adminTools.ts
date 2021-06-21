@@ -130,7 +130,7 @@ export const listRelay: TextHandler = async msg => {
       await msg.reply.text(`"${gateway}"桥接出口不存在`);
     }
   } else {
-    const docs = (await RelayModel.find({}, 'name').exec()) || [];
+    const docs = (await RelayModel.find({}, 'gateway').exec()) || [];
     await msg.reply.text(`可订阅的消息类型：\n${docs.map(s => s.gateway).join()}`);
   }
 };
