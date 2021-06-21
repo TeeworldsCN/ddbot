@@ -96,10 +96,42 @@ export const relayStop = () => {
 };
 
 export const outboundMessage = async (msg: GenericMessage<any>) => {
-  if (!bridgeAxios) return false;
-
   const relay = await getRelay(msg.channelKey);
   if (!relay) return false;
+
+  // broadcast
+  for (const channel of relay.channels) {
+    if (channel == msg.channelKey) return;
+
+    const unpacked = unpackID(channel);
+    if (unpacked.platform == 'kaiheila') {
+      if (kaiheila) {
+        const card = new Card('lg');
+        if (msg.author?.avatar) {
+          card.addTextWithImage(
+            `**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nickname)}**\n${SMD(msg.text)}`,
+            { src: `${msg.author?.avatar}` },
+            'sm',
+            false,
+            true,
+            true
+          );
+        } else {
+          card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nickname)}**`);
+          card.addText(msg.text);
+        }
+        kaiheila.channel(channel).card(card);
+      }
+    } else {
+      if (oicq) {
+        oicq
+          .channel(channel)
+          .text(`[${msg.bot.platformShort}] ${msg.author.nickname}:\n${msg.text}`);
+      }
+    }
+  }
+
+  if (!bridgeAxios) return true;
 
   try {
     await bridgeAxios.post('/message', {

@@ -299,6 +299,7 @@ class OICQMessage extends GenericMessage<Client> {
       tag,
       nickname: e.sender.nickname,
       username: e.sender.nickname,
+      avatar: `https://q2.qlogo.cn/headimg_dl?dst_uin=${this._userId}&spec=100`,
     };
 
     if (e.message_type == 'private') {
