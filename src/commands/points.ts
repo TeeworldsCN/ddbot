@@ -213,6 +213,7 @@ export const points: TextHandler = async msg => {
   const card = new Card('lg');
 
   const isKaiheila = msg.bot.platform == 'kaiheila';
+  const isWechat = msg.bot.platform == 'wechat';
 
   if (temporary) card.addContext(['该消息只有您可见']);
 
@@ -221,10 +222,12 @@ export const points: TextHandler = async msg => {
       card.addMarkdown('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
       card.addContext([`(met)${msg.userId}(met)`]);
       await msg.reply.card(card, undefined, temporary);
-    } else {
+    } else if (isWechat) {
       await msg.reply.text(
         '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
       );
+    } else {
+      await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
     }
     return;
   }
@@ -379,11 +382,16 @@ export const pointRank: TextHandler = async msg => {
   const name = query.getRest(1);
 
   const searchName = name || msg.user?.ddnetid;
+  const isWechat = msg.bot.platform == 'wechat';
 
   if (!searchName) {
-    await msg.reply.text(
-      '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
-    );
+    if (isWechat) {
+      await msg.reply.text(
+        '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
+      );
+    } else {
+      await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
+    }
     return;
   }
 
