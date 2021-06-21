@@ -249,7 +249,7 @@ class OICQMessage extends GenericMessage<Client> {
 
     this._type = 'text';
 
-    const tag = `${e.sender.nickname}<${e.sender.user_id}>`;
+    const tag = `${e.sender.nickname}#${e.sender.user_id}`;
     this._userId = `${e.sender.user_id}`;
     this._userKey = packID({ platform: this.bot.platform, id: this._userId });
 
