@@ -11,6 +11,8 @@ import {
 import _ from 'lodash';
 import { SubscriptionModel } from '../db/subscription';
 import { clearRelayCache, getGateway, RelayModel } from '../db/relay';
+import { unpackID } from '../utils/helpers';
+import { OICQBotAdapter } from '../bots/oicq';
 
 export const subscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
@@ -154,7 +156,7 @@ export const unrelay: TextHandler = async msg => {
     }
   } else {
     const result = await RelayModel.updateOne(
-      { name },
+      { gateway },
       { $pull: { channels: msg.channelKey } }
     ).exec();
     if (result.ok) {
@@ -227,4 +229,14 @@ export const nuke: TextHandler = async msg => {
   } else {
     await msg.reply.text(`未找到相关用户`);
   }
+};
+
+// QQ：退群
+export const begone: TextHandler = async msg => {
+  if (msg.content?.[0].type != 'mention') return;
+  if (msg.bot.platform != 'oicq') return;
+  if (unpackID(msg.content[0].userKey).id != process.env.OICQ_ACCOUNT) return;
+
+  const bot: OICQBotAdapter = msg.bot;
+  await bot.instance.setGroupLeave(parseInt(msg.channelId), false);
 };

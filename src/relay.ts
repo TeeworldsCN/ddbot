@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { IncomingMessage } from 'http';
+import { segment } from 'oicq';
 import { kaiheila, oicq } from './bots';
 import { GenericMessage } from './bots/base';
-import { getGateway, getRelay } from './db/relay';
+import { segmentToCard } from './bots/kaiheila';
+import { segmentToOICQSegs } from './bots/oicq';
+import { getRelay } from './db/relay';
 import { Card, SMD } from './utils/cardBuilder';
 import { unpackID } from './utils/helpers';
 
@@ -30,7 +33,7 @@ const broadcastMessage = async (msg: any) => {
     const unpacked = unpackID(channel);
     if (unpacked.platform == 'kaiheila') {
       if (kaiheila) {
-        const card = new Card('lg');
+        const card = new Card('sm');
         if (msg.avatar) {
           card.addTextWithImage(
             `**[${SMD(msg.protocol)}] ${SMD(msg.username)}**\n${SMD(msg.text)}`,
@@ -48,7 +51,7 @@ const broadcastMessage = async (msg: any) => {
       }
     } else {
       if (oicq) {
-        oicq.channel(channel).text(`[${msg.protocol}] ${msg.username}:\n${msg.text}`);
+        oicq.channel(channel).text(`[${msg.protocol}] ${msg.username}: ${msg.text}`);
       }
     }
   }
@@ -123,10 +126,10 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
     const unpacked = unpackID(channel);
     if (unpacked.platform == 'kaiheila') {
       if (kaiheila) {
-        const card = new Card('lg');
+        const card = new Card('sm');
         if (msg.author?.avatar) {
           card.addTextWithImage(
-            `**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**\n${SMD(msg.text)}`,
+            `**${SMD(msg.author.nicktag)}\n[${SMD(msg.bot.platformShort)}]**`,
             { src: `${msg.author?.avatar}` },
             'sm',
             false,
@@ -135,13 +138,19 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
           );
         } else {
           card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
-          card.addText(msg.text);
         }
+        segmentToCard(msg.bot, msg.content, card);
+        if (card.length == 1) continue;
         kaiheila.channel(channel).card(card);
       }
     } else if (unpacked.platform == 'oicq') {
       if (oicq) {
-        oicq.channel(channel).text(`[${msg.bot.platformShort}] ${msg.author.nicktag}: ${msg.text}`);
+        const segs = segmentToOICQSegs(msg.bot, msg.content);
+        if (segs.length == 0) continue;
+        oicq.instance.sendGroupMsg(parseInt(unpacked.id), [
+          segment.text(`[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}: `),
+          ...segs,
+        ]);
       }
     } else if (unpacked.platform == 'gateway') {
       sendMessageToGateway(relay.gateway, msg);

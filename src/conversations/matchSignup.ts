@@ -193,15 +193,15 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
       }
 
       if (context.name) {
-        context.name = msg.text;
+        context.name = msg.onlyText;
         await msg.reply.text(
           `是想换成"${context.name}"这个ID报名吗？不想报名了的话，回复“取消”即可`
         );
         return 3;
       }
 
-      await msg.reply.text(`好，以防你打错，再确认下是用"${msg.text}"这个ID报名吗？`);
-      context.name = msg.text;
+      await msg.reply.text(`好，以防你打错，再确认下是用"${msg.onlyText}"这个ID报名吗？`);
+      context.name = msg.onlyText;
       return 3;
 
     // 确定要用你输入的ID报名吗
@@ -299,7 +299,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
         return 6;
       }
 
-      context.teamName = msg.text;
+      context.teamName = msg.onlyText;
       const realTeamName = truncate(msg.text, 12);
       if (context.teamName != realTeamName) {
         await msg.reply.text(
@@ -348,7 +348,7 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
       const teamName = context.teamName || (await findTeamCreator(msg.text))?.createdTeamName;
       if (teamName) {
         context.teamName = teamName;
-        context.teamToken = msg.text;
+        context.teamToken = msg.onlyText;
 
         const teammates = await findTeam(msg.text);
         const teamList = teammates.map(t => `"${t.ddnetid}"`).join();

@@ -1,10 +1,57 @@
-import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
+import {
+  GenericBot,
+  GenericMessage,
+  GenericMessageElement,
+  MessageAction,
+  MessageReply,
+} from './base';
 import { Client, MessageEventData, segment, TextElem } from 'oicq';
-import { packID } from '../utils/helpers';
-import { getUser, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
+import { packID, unpackID } from '../utils/helpers';
+import { getUser, LEVEL_IGNORE, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
 import { outboundMessage } from '../relay';
 
 let oicqLastMsgID: string = null;
+
+export const segmentToOICQSegs = (
+  bot: GenericBot<any>,
+  content: GenericMessageElement[],
+  allowMention: boolean = false
+) => {
+  const result = [];
+  for (const elem of content) {
+    if (elem.type == 'quote' && elem.platform == bot.platform) {
+      result.push(segment.reply(elem.msgId));
+      break;
+    }
+  }
+
+  for (const elem of content) {
+    if (elem.type == 'text') {
+      result.push(segment.text(elem.content));
+    } else if (
+      allowMention &&
+      elem.type == 'mention' &&
+      unpackID(elem.userKey).platform == bot.platform
+    ) {
+      result.push(segment.at(parseInt(unpackID(elem.userKey).id)));
+    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'all') {
+      result.push(segment.at('all' as any));
+    } else if (elem.type == 'emote') {
+      if (elem.content) {
+        result.push(segment.image(elem.content, true, 10000));
+      } else if (elem.name) {
+        result.push(segment.text(`[${elem.name}]`));
+      }
+    } else if (elem.type == 'image') {
+      if (elem.content) {
+        result.push(segment.image(elem.content, true, 10000));
+      }
+    }
+  }
+
+  return result;
+};
+
 export class OICQBotAdapter extends GenericBot<Client> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
@@ -93,6 +140,17 @@ export class OICQBotAdapter extends GenericBot<Client> {
         }
         return result.data?.message_id || null;
       },
+      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+        const msg = segmentToOICQSegs(this, content, true);
+        if (msg.length == 0) return null;
+        const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
+        if (result.retcode) {
+          console.warn(`[OICQ] 发送分段消息失败`);
+          console.warn(result);
+          return null;
+        }
+        return result.data?.message_id || null;
+      },
       update: async (msgId: string, content: string, quote?: string) => {
         const deleteRes = await this.instance.deleteMsg(msgId);
         if (deleteRes.retcode) {
@@ -153,13 +211,14 @@ export class OICQBotAdapter extends GenericBot<Client> {
       oicqLastMsgID = e.message_id;
 
       const msg = new OICQMessage(this, e);
-      const text = msg.text;
+      const text = msg.onlyText;
 
       // 无文本消息或不是指令
       if (!text.startsWith('.') && !text.startsWith('。')) {
         if (msg.sessionType == 'DM') {
           // 只有私聊会触发会话
           await msg.fillMsgDetail();
+          if (msg.userLevel == LEVEL_IGNORE) return;
           const converse = await msg.getConverse();
           const context = converse.context;
           if (converse.key && this.converses[converse.key]) {
@@ -185,11 +244,12 @@ export class OICQBotAdapter extends GenericBot<Client> {
       }
 
       // 处理文本消息
-      msg.command = msg.text.replace(/^[\.。] ?/, '');
+      msg.command = text.replace(/^[\.。] ?/, '');
       const command = msg.command.split(' ')[0].toLowerCase();
 
       if (this.commands[command]) {
         await msg.fillMsgDetail();
+        if (msg.userLevel == LEVEL_IGNORE) return;
         if (msg.userLevel > this.commands[command].level) return;
 
         this.commands[command].func(msg).catch(reason => {
@@ -199,6 +259,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
       } else if (msg.sessionType == 'DM' && this.converses[command]) {
         // 只有私聊会触发会话
         await msg.fillMsgDetail();
+        if (msg.userLevel == LEVEL_IGNORE) return;
         if (msg.userLevel > this.converses[command].level) return;
 
         const context = {};
@@ -261,13 +322,13 @@ class OICQMessage extends GenericMessage<Client> {
         if (seg.data.qq == 'all') {
           this._content.push({
             type: 'notify',
-            content: seg.data.text,
+            content: (seg.data.text || '').slice(1),
             targetType: 'all',
           });
         } else {
           this._content.push({
             type: 'mention',
-            content: seg.data.text,
+            content: (seg.data.text || '').slice(1),
             userKey: packID({ platform: this.bot.platform, id: seg.data.qq.toString() }),
           });
         }
@@ -276,6 +337,7 @@ class OICQMessage extends GenericMessage<Client> {
           type: 'emote',
           platform: this.bot.platform,
           content: seg.data.file,
+          id: null,
           name: seg.data.text,
         });
       } else if (seg.type == 'sface') {
@@ -284,6 +346,7 @@ class OICQMessage extends GenericMessage<Client> {
             type: 'emote',
             platform: this.bot.platform,
             content: null,
+            id: null,
             name: seg.data.text,
           });
         }
@@ -293,13 +356,14 @@ class OICQMessage extends GenericMessage<Client> {
             type: 'emote',
             platform: this.bot.platform,
             content: null,
+            id: null,
             name: seg.data.text,
           });
         }
       } else if (seg.type == 'image') {
         this._content.push({
           type: 'image',
-          url: seg.data.url,
+          content: seg.data.url,
         });
       } else if (seg.type == 'reply') {
         this._content.push({

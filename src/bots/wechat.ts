@@ -130,7 +130,7 @@ export class WechatBotAdapter extends GenericBot<AxiosInstance> {
         const msg = new WechatMessage(this, { req, res });
         await msg.fillMsgDetail();
 
-        const text = msg.text;
+        const text = msg.onlyText;
         const command = text.split(' ')[0].toLowerCase();
         msg.command = text;
 
@@ -291,7 +291,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
 
 // 不是个command，做成command好调试
 export const wechatAutoReplyCommand: TextHandler = async msg => {
-  const content = msg.text.replace('.wxtestkw ', '');
+  const content = msg.onlyText.replace('.wxtestkw ', '');
   const autoReply = await WechatReplyModel.findOne({
     keyword: content,
   });

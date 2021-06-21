@@ -10,6 +10,7 @@ import { Card } from '../utils/cardBuilder';
 import { packID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
 import { outboundMessage } from '../relay';
+import { LEVEL_IGNORE } from '../db/user';
 
 const MSG_TYPES = {
   text: 1,
@@ -22,7 +23,7 @@ const MSG_TYPES = {
 
 const PLATFORM = 'kaiheila';
 
-const packMessage = (
+const messageToSegment = (
   bot: GenericBot<any>,
   msg: string,
   quote?: TextMessage
@@ -51,6 +52,7 @@ const packMessage = (
         type: 'text',
         content: textParts.join(''),
       });
+      textParts.splice(0, textParts.length);
     }
   };
 
@@ -82,7 +84,8 @@ const packMessage = (
         type: 'emote',
         platform: bot.platform,
         name: emote[1],
-        content: emote[2],
+        id: part,
+        content: null,
       });
       continue;
     }
@@ -126,9 +129,10 @@ const packMessage = (
   return result;
 };
 
-const unpackMessage = (
+export const segmentToMessage = (
   bot: GenericBot<any>,
-  content: GenericMessageElement[]
+  content: GenericMessageElement[],
+  allowMention: boolean = false
 ): { msg: string; quote?: string } => {
   let quote = undefined;
   const message = [];
@@ -137,19 +141,78 @@ const unpackMessage = (
       quote = elem.msgId;
     } else if (elem.type == 'text') {
       message.push(elem.content);
-    } else if (elem.type == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
-      message.push(elem.content);
+    } else if (
+      allowMention &&
+      elem.type == 'mention' &&
+      unpackID(elem.userKey).platform == bot.platform
+    ) {
+      message.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
     } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
-      message.push(elem.content);
-    } else if (elem.type == 'notify' && elem.targetType == 'role') {
+      message.push(`#channel:${unpackID(elem.channelKey).id};`);
+    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'role') {
       message.push(elem.content); // role 目前只有开黑啦有
-    } else if (elem.type == 'notify' && elem.targetType == 'all') {
+    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'all') {
       message.push('@全体成员');
-    } else if (elem.type == 'notify' && elem.targetType == 'here') {
+    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'here') {
       message.push('@在线成员');
     }
   }
   return { msg: message.join(' '), quote };
+};
+
+export const segmentToCard = (
+  bot: GenericBot<any>,
+  content: GenericMessageElement[],
+  card: Card,
+  allowMention: boolean = false
+): string => {
+  let quote = undefined;
+  const text: string[] = [];
+
+  const addText = () => {
+    if (text.length > 0) {
+      card.addText(text.join(' '));
+      text.splice(0, text.length);
+    }
+  };
+
+  for (const elem of content) {
+    if (elem.type == 'quote' && elem.platform == bot.platform && quote != null) {
+      quote = elem.msgId;
+    } else if (elem.type == 'text') {
+      text.push(elem.content);
+    } else if (
+      allowMention &&
+      elem.type == 'mention' &&
+      unpackID(elem.userKey).platform == bot.platform
+    ) {
+      text.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
+    } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
+      text.push(`#channel:${unpackID(elem.channelKey).id};`);
+    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'role') {
+      text.push(elem.content);
+    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'all') {
+      text.push('@全体成员');
+    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'here') {
+      text.push('@在线成员');
+    } else if (elem.type == 'emote') {
+      if (elem.content) {
+        addText();
+        card.addImages([{ src: elem.content, alt: elem.name || 'emote' }]);
+      } else if (elem.id) {
+        text.push(`${elem.id}`);
+      } else if (elem.name) {
+        text.push(`[${elem.name}]`);
+      }
+    } else if (elem.type == 'image') {
+      if (elem.content) {
+        addText();
+        card.addImages([{ src: elem.content }]);
+      }
+    }
+  }
+  addText();
+  return quote;
 };
 
 export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
@@ -171,21 +234,42 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return null;
         }
       },
-      segments: async (content: GenericMessageElement[], onlyTo?: string) => {
-        const data = unpackMessage(this, content);
-        try {
-          const result = await this.instance.API.message.create(
-            MSG_TYPES.text,
-            channelId,
-            data.msg,
-            data.quote,
-            onlyTo
-          );
-          return result.msgId;
-        } catch (e) {
-          console.warn(`[开黑啦] 发送消息失败`);
-          console.warn(e);
-          return null;
+      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+        if (!rich) {
+          const data = segmentToMessage(this, content, true);
+          if (!data.msg.trim()) return null;
+          try {
+            const result = await this.instance.API.message.create(
+              MSG_TYPES.text,
+              channelId,
+              data.msg,
+              data.quote,
+              onlyTo
+            );
+            return result.msgId;
+          } catch (e) {
+            console.warn(`[开黑啦] 发送分段文本消息失败`);
+            console.warn(e);
+            return null;
+          }
+        } else {
+          const card = new Card('lg');
+          if (card.isEmpty) return null;
+          const quote = segmentToCard(this, content, card, true);
+          try {
+            const result = await this.instance.API.message.create(
+              MSG_TYPES.text,
+              channelId,
+              card.toString(),
+              quote || undefined,
+              onlyTo
+            );
+            return result.msgId;
+          } catch (e) {
+            console.warn(`[开黑啦] 发送分段卡片消息失败`);
+            console.warn(e);
+            return null;
+          }
         }
       },
       image: async (url: string, onlyTo?: string) => {
@@ -323,21 +407,42 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return null;
         }
       },
-      segments: async (content: GenericMessageElement[], onlyTo?: string) => {
-        const data = unpackMessage(this, content);
-        try {
-          const result = await this.instance.API.directMessage.create(
-            MSG_TYPES.text,
-            userId,
-            undefined,
-            data.msg,
-            data.quote
-          );
-          return result.msgId;
-        } catch (e) {
-          console.warn(`[开黑啦] 发送消息失败`);
-          console.warn(e);
-          return null;
+      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+        if (!rich) {
+          const data = segmentToMessage(this, content, true);
+          if (!data.msg.trim()) return null;
+          try {
+            const result = await this.instance.API.directMessage.create(
+              MSG_TYPES.text,
+              userId,
+              undefined,
+              data.msg,
+              data.quote
+            );
+            return result.msgId;
+          } catch (e) {
+            console.warn(`[开黑啦] 发送分段文本消息失败`);
+            console.warn(e);
+            return null;
+          }
+        } else {
+          const card = new Card('lg');
+          if (card.isEmpty) return null;
+          const quote = segmentToCard(this, content, card, true);
+          try {
+            const result = await this.instance.API.directMessage.create(
+              MSG_TYPES.text,
+              userId,
+              undefined,
+              card.toString(),
+              quote || undefined
+            );
+            return result.msgId;
+          } catch (e) {
+            console.warn(`[开黑啦] 发送分段卡片消息失败`);
+            console.warn(e);
+            return null;
+          }
         }
       },
       file: async (url: string, onlyTo?: string) => {
@@ -460,12 +565,13 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       // no bot message
       if (e.author.bot) return;
       const msg = new KaiheilaMessage(this, e, 'text');
-      const text = msg.text;
+      const text = msg.onlyText;
 
       if (!text.startsWith('.') && !text.startsWith('。')) {
         if (msg.sessionType == 'DM') {
           // 是私聊的情况下检查会话
           await msg.fillMsgDetail();
+          if (msg.userLevel == LEVEL_IGNORE) return;
           const converse = await msg.getConverse();
           const context = converse.context;
           if (converse.key && this.converses[converse.key]) {
@@ -491,11 +597,12 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         return;
       }
 
-      msg.command = msg.text.replace(/^[\.。] ?/, '');
+      msg.command = text.replace(/^[\.。] ?/, '');
       const command = msg.command.split(' ')[0].toLowerCase();
 
       if (this.commands[command]) {
         await msg.fillMsgDetail();
+        if (msg.userLevel == LEVEL_IGNORE) return;
         if (msg.userLevel > this.commands[command].level) return;
 
         this.commands[command].func(msg).catch(reason => {
@@ -505,6 +612,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       } else if (msg.sessionType == 'DM' && this.converses[command]) {
         // 只有私聊会触发会话
         await msg.fillMsgDetail();
+        if (msg.userLevel == LEVEL_IGNORE) return;
         if (msg.userLevel > this.converses[command].level) return;
 
         const context = {};
@@ -514,6 +622,38 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           await msg.finishConverse();
         }
+      }
+    });
+
+    this.instance.on('imageMessage', async (e: ImageMessage) => {
+      // no bot message
+      if (e.author.bot) return;
+      const msg = new KaiheilaMessage(this, e, 'image');
+      if (msg.sessionType == 'DM') {
+        // 是私聊的情况下检查会话
+        await msg.fillMsgDetail();
+        if (msg.userLevel == LEVEL_IGNORE) return;
+        const converse = await msg.getConverse();
+        const context = converse.context;
+        if (converse.key && this.converses[converse.key]) {
+          if (msg.userLevel > this.converses[converse.key].level) return;
+
+          const progress = await this.converses[converse.key].func<any>(
+            msg,
+            converse.progress,
+            context
+          );
+          if (progress && progress >= 0) {
+            await msg.setConverse(converse.key, progress, context);
+          } else {
+            await msg.finishConverse();
+          }
+        } else if (converse.key) {
+          await msg.finishConverse();
+        }
+      } else if (msg.sessionType == 'CHANNEL') {
+        // try relay
+        await outboundMessage(msg);
       }
     });
 
@@ -560,13 +700,13 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       this._userKey = packID({ platform: this.bot.platform, id: e.authorId });
       if (type == 'text') {
         const t = e as TextMessage;
-        this._content = packMessage(this.bot, t.content, t.quote);
+        this._content = messageToSegment(this.bot, t.content, t.quote);
       } else {
         const i = e as ImageMessage;
         this._content = [
           {
             type: 'image',
-            url: i.attachment.url,
+            content: i.attachment.url,
           },
         ];
       }
@@ -606,7 +746,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       this.sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
     return {
       text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
-      segments: (c, t) => context.segments(c, t ? this.userId : undefined),
+      segments: (c, r, t) => context.segments(c, r, t ? this.userId : undefined),
       image: (c, t) => context.image(c, t ? this.userId : undefined),
       file: (c, t) => context.file(c, t ? this.userId : undefined),
       card: (c, q, t) => context.card(c, q, t ? this.userId : undefined),

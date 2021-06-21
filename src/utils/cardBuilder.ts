@@ -263,4 +263,12 @@ export class Card {
   public toString(): string {
     return JSON.stringify([this.card]);
   }
+
+  public get isEmpty() {
+    return this.card.modules.length == 0;
+  }
+
+  public get length() {
+    return this.card.modules.length;
+  }
 }

@@ -8,7 +8,7 @@ export type MessageReply = {
   image: (image: string, temp?: boolean) => Promise<string>;
   file: (file: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
-  segments: (content: GenericMessageElement[], temp?: boolean) => Promise<string>;
+  segments: (content: GenericMessageElement[], rich?: boolean, temp?: boolean) => Promise<string>;
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
@@ -19,7 +19,7 @@ export type MessageAction = {
   image: (image: string, onlyTo?: string) => Promise<string>;
   file: (file: string, onlyTo?: string) => Promise<string>;
   card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
-  segments: (content: GenericMessageElement[], onlyTo?: string) => Promise<string>;
+  segments: (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => Promise<string>;
   update: (msgid: string, content: string, quote?: string) => Promise<string>;
   delete: (msgid: string) => Promise<void>;
   addReaction: (msgid: string, emoji: string[]) => Promise<void>;
@@ -108,13 +108,13 @@ interface GenericMessageElementEmote {
   type: 'emote';
   platform: string;
   name: string;
+  id: string;
   content: string;
 }
 
 interface GenericMessageElementImage {
   type: 'image';
-  url: string;
-  content?: Buffer;
+  content: string;
 }
 
 interface GenericMessageElementQuote {
@@ -290,6 +290,14 @@ export abstract class GenericMessage<BotType> {
     return this._content;
   }
 
+  public get onlyText() {
+    return this._content
+      .filter(e => e.type == 'text')
+      .map(e => e.content)
+      .join('')
+      .trim();
+  }
+
   public get text() {
     if (this._text) return this._text;
     const content = [];
@@ -308,7 +316,7 @@ export abstract class GenericMessage<BotType> {
           content.push(` @#${c.targetType}${c.target ? `:${c.target}` : ''} `);
           break;
         case 'quote':
-          content.push(`> ${c.content.slice(0, 16)}\n`);
+          if (c.content) content.push(`> ${c.content.slice(0, 16)}\n`);
           break;
         case 'channel':
           content.push(` #${c.content} `);
