@@ -290,10 +290,36 @@ export abstract class GenericMessage<BotType> {
 
   public get text() {
     if (this._text) return this._text;
-    this._text = this._content
-      .map(e => (e.type == 'text' ? e.content : ' '))
-      .join('')
-      .trim();
+    const content = [];
+    for (const c of this._content) {
+      switch (c.type) {
+        case 'text':
+          content.push(c.content);
+          break;
+        case 'emote':
+          content.push(`[${c.name}]`);
+          break;
+        case 'mention':
+          content.push(`[@${c.content}]`);
+          break;
+        case 'notify':
+          content.push(` @#${c.targetType}${c.target ? `:${c.target}` : ''} `);
+          break;
+        case 'quote':
+          content.push(`> ${c.content.slice(0, 16)}\n`);
+          break;
+        case 'channel':
+          content.push(` #${c.content} `);
+          break;
+        case 'image':
+          content.push(`[图片]`);
+          break;
+        default:
+          content.push(`[其他消息]`);
+      }
+    }
+
+    this._text = content.join('').trim();
     return this._text;
   }
 

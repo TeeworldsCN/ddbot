@@ -114,6 +114,8 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
   const relay = await getRelay(msg.channelKey);
   if (!relay) return false;
 
+  await msg.fetchExtraMsgInfo();
+
   // broadcast
   for (const channel of relay.channels) {
     if (channel == msg.channelKey) continue;

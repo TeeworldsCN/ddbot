@@ -278,6 +278,24 @@ class OICQMessage extends GenericMessage<Client> {
           content: seg.data.file,
           name: seg.data.text,
         });
+      } else if (seg.type == 'sface') {
+        if (seg.data.text) {
+          this._content.push({
+            type: 'emote',
+            platform: this.bot.platform,
+            content: null,
+            name: seg.data.text,
+          });
+        }
+      } else if (seg.type == 'face') {
+        if (seg.data.text) {
+          this._content.push({
+            type: 'emote',
+            platform: this.bot.platform,
+            content: null,
+            name: seg.data.text,
+          });
+        }
       } else if (seg.type == 'image') {
         this._content.push({
           type: 'image',
@@ -367,5 +385,6 @@ class OICQMessage extends GenericMessage<Client> {
         part.content = result.data.raw_message;
       }
     }
+    this._text = null;
   }
 }

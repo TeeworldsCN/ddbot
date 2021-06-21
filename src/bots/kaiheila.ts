@@ -60,7 +60,7 @@ const packMessage = (
       pushText();
       result.push({
         type: 'mention',
-        content: part,
+        content: mention[1],
         userKey: packID({ platform: bot.platform, id: mention[2] }),
       });
       continue;
@@ -70,7 +70,7 @@ const packMessage = (
       pushText();
       result.push({
         type: 'channel',
-        content: part,
+        content: 'CHANNEL',
         channelKey: packID({ platform: bot.platform, id: channel[1] }),
       });
       continue;
