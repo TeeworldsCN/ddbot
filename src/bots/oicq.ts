@@ -5,7 +5,7 @@ import {
   MessageAction,
   MessageReply,
 } from './base';
-import { Client, MessageEventData, segment, TextElem } from 'oicq';
+import { Client, MessageElem, MessageEventData, segment, TextElem } from 'oicq';
 import { packID, unpackID } from '../utils/helpers';
 import { getUser, LEVEL_IGNORE, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
 import { outboundMessage } from '../relay';
@@ -28,6 +28,12 @@ export const segmentToOICQSegs = (
   for (const elem of content) {
     if (elem.type == 'text') {
       result.push(segment.text(elem.content));
+    } else if (elem.type == 'quote' && elem.platform != bot.platform) {
+      if (elem.content) {
+        result.push(segment.text(`> ${elem.content.slice(0, 24)}\n`));
+      } else {
+        result.push(segment.text(`> 回复了一条消息\n`));
+      }
     } else if (
       allowMention &&
       elem.type == 'mention' &&
@@ -303,7 +309,6 @@ export class OICQBotAdapter extends GenericBot<Client> {
     this.started = true;
   }
 }
-
 class OICQMessage extends GenericMessage<Client> {
   public constructor(bot: OICQBotAdapter, e: MessageEventData) {
     super(bot, e);
@@ -447,7 +452,9 @@ class OICQMessage extends GenericMessage<Client> {
           platform: this.bot.platform,
           id: result.data.sender.user_id.toString(),
         });
-        part.content = result.data.raw_message;
+
+        const quoteMsg = new OICQMessage(this.bot, result.data);
+        part.content = quoteMsg.text;
       }
     }
     this._text = null;

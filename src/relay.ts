@@ -139,13 +139,13 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
         } else {
           card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
         }
-        segmentToCard(msg.bot, msg.content, card);
+        segmentToCard(kaiheila, msg.content, card);
         if (card.length == 1) continue;
         kaiheila.channel(channel).card(card);
       }
     } else if (unpacked.platform == 'oicq') {
       if (oicq) {
-        const segs = segmentToOICQSegs(msg.bot, msg.content);
+        const segs = segmentToOICQSegs(oicq, msg.content);
         if (segs.length == 0) continue;
         oicq.instance.sendGroupMsg(parseInt(unpacked.id), [
           segment.text(`[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}: `),

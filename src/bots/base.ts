@@ -316,7 +316,7 @@ export abstract class GenericMessage<BotType> {
           content.push(` @#${c.targetType}${c.target ? `:${c.target}` : ''} `);
           break;
         case 'quote':
-          if (c.content) content.push(`> ${c.content.slice(0, 16)}\n`);
+          if (c.content) content.push(`> ${c.content.slice(0, 24)}\n`);
           break;
         case 'channel':
           content.push(` #${c.content} `);

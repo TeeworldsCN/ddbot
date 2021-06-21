@@ -179,6 +179,13 @@ export const segmentToCard = (
   for (const elem of content) {
     if (elem.type == 'quote' && elem.platform == bot.platform && quote != null) {
       quote = elem.msgId;
+    } else if (elem.type == 'quote' && elem.platform != bot.platform) {
+      if (elem.content) {
+        addText();
+        card.addMarkdown(`> ${elem.content.slice(0, 24)}`);
+      } else {
+        card.addMarkdown(`> 回复了一条消息\n`);
+      }
     } else if (elem.type == 'text') {
       text.push(elem.content);
     } else if (
