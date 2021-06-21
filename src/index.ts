@@ -63,23 +63,29 @@ import { relayStart, relayStop } from './relay';
 /*
     机器人指令绑定
 */
-if (kaiheila) {
-  // 管理指令
-  kaiheila.addCommand(LEVEL_ADMIN, 'nuke', nuke);
-  kaiheila.addCommand(LEVEL_ADMIN, 'assign', assign);
-  kaiheila.addCommand(LEVEL_ADMIN, 'revoke', revoke);
-  kaiheila.addCommand(LEVEL_OPERATOR, 'wxtoken', wechatGetToken);
-  kaiheila.addCommand(LEVEL_OPERATOR, 'wxsetkw', wechatSetKeyword);
-  kaiheila.addCommand(LEVEL_OPERATOR, 'wxlskw', wechatListKeywords);
-  kaiheila.addCommand(LEVEL_OPERATOR, 'wxrmkw', wechatRemoveKeyword);
-  kaiheila.addCommand(LEVEL_OPERATOR, 'wxtestkw', wechatAutoReplyCommand);
-  kaiheila.addCommand(LEVEL_MANAGER, 'sub', subscribe);
-  kaiheila.addCommand(LEVEL_MANAGER, 'unsub', unsubscribe);
-  kaiheila.addCommand(LEVEL_MANAGER, 'listsub', listSub);
-  kaiheila.addCommand(LEVEL_ADMIN, 'relay', relay);
-  kaiheila.addCommand(LEVEL_ADMIN, 'listrelay', listRelay);
-  kaiheila.addCommand(LEVEL_ADMIN, 'unrelay', unrelay);
 
+const MANAGER_BOTS = [kaiheila, oicq];
+for (const bot of MANAGER_BOTS) {
+  if (bot) {
+    // 管理指令
+    bot.addCommand(LEVEL_ADMIN, 'nuke', nuke);
+    bot.addCommand(LEVEL_ADMIN, 'assign', assign);
+    bot.addCommand(LEVEL_ADMIN, 'revoke', revoke);
+    bot.addCommand(LEVEL_OPERATOR, 'wxtoken', wechatGetToken);
+    bot.addCommand(LEVEL_OPERATOR, 'wxsetkw', wechatSetKeyword);
+    bot.addCommand(LEVEL_OPERATOR, 'wxlskw', wechatListKeywords);
+    bot.addCommand(LEVEL_OPERATOR, 'wxrmkw', wechatRemoveKeyword);
+    bot.addCommand(LEVEL_OPERATOR, 'wxtestkw', wechatAutoReplyCommand);
+    bot.addCommand(LEVEL_MANAGER, 'sub', subscribe);
+    bot.addCommand(LEVEL_MANAGER, 'unsub', unsubscribe);
+    bot.addCommand(LEVEL_MANAGER, 'listsub', listSub);
+    bot.addCommand(LEVEL_ADMIN, 'relay', relay);
+    bot.addCommand(LEVEL_ADMIN, 'listrelay', listRelay);
+    bot.addCommand(LEVEL_ADMIN, 'unrelay', unrelay);
+  }
+}
+
+if (kaiheila) {
   // 开黑啦指令
   kaiheila.addCommand(LEVEL_USER, 'me', me);
   kaiheila.addCommand(LEVEL_USER, 'bind', bind, '绑定DDNetID (.bind tee)');
