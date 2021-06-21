@@ -126,7 +126,7 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
         const card = new Card('lg');
         if (msg.author?.avatar) {
           card.addTextWithImage(
-            `**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.tag)}**\n${SMD(msg.text)}`,
+            `**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**\n${SMD(msg.text)}`,
             { src: `${msg.author?.avatar}` },
             'sm',
             false,
@@ -134,14 +134,16 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
             true
           );
         } else {
-          card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.tag)}**`);
+          card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
           card.addText(msg.text);
         }
         kaiheila.channel(channel).card(card);
       }
     } else if (unpacked.platform == 'oicq') {
       if (oicq) {
-        oicq.channel(channel).text(`[${msg.bot.platformShort}] ${msg.author.tag}:\n${msg.text}`);
+        oicq
+          .channel(channel)
+          .text(`[${msg.bot.platformShort}] ${msg.author.nicktag}:\n${msg.text}`);
       }
     } else if (unpacked.platform == 'gateway') {
       sendMessageToGateway(relay.gateway, msg);

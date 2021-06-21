@@ -555,6 +555,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     if (this._type == 'text') {
       e = e as TextMessage | ImageMessage;
       const tag = `${e.author.username}#${e.author.identifyNum}`;
+      const nicktag = `${e.author.nickname}#${e.author.identifyNum}`;
       this._userId = e.authorId;
       this._userKey = packID({ platform: this.bot.platform, id: e.authorId });
       if (type == 'text') {
@@ -573,6 +574,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       this._eventMsgId = e.msgId;
       this._author = {
         tag,
+        nicktag,
         id: e.authorId,
         ...(e as TextMessage).author,
       };
@@ -587,6 +589,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       this._eventMsgId = e.msgId;
       this._author = {
         tag,
+        nicktag: tag,
         ...e.user,
         nickname: e.user.username,
       };

@@ -356,6 +356,7 @@ class OICQMessage extends GenericMessage<Client> {
       }
     }
 
+    this._author.nicktag = `${this._author.nickname}#${e.sender.user_id}`;
     this._msgTimestamp = e.time;
   }
 

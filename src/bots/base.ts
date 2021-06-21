@@ -52,6 +52,8 @@ export interface UserInfo {
   identifyNum?: string;
   // 开黑啦：用户名#四位ID
   tag?: string;
+  // 昵称+ID
+  nicktag?: string;
   // 开黑啦：角色ID
   roles?: number[];
   // 开黑啦：目前游戏信息
