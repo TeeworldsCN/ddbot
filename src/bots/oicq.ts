@@ -15,7 +15,7 @@ let oicqLastMsgID: string = null;
 export const segmentToOICQSegs = (
   bot: GenericBot<any>,
   content: GenericMessageElement[],
-  allowMention: boolean = false
+  mention: 'ignore' | 'mention' | 'text' = 'ignore'
 ) => {
   const result = [];
   for (const elem of content) {
@@ -34,14 +34,22 @@ export const segmentToOICQSegs = (
       } else {
         result.push(segment.text(`> 回复了一条消息\n`));
       }
-    } else if (
-      allowMention &&
-      elem.type == 'mention' &&
-      unpackID(elem.userKey).platform == bot.platform
-    ) {
-      result.push(segment.at(parseInt(unpackID(elem.userKey).id)));
-    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'all') {
-      result.push(segment.at('all' as any));
+    } else if (elem.type == 'mention') {
+      if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
+        result.push(segment.at(parseInt(unpackID(elem.userKey).id)));
+      } else if (mention == 'text') {
+        result.push(segment.text(`[@${elem.content}]`));
+      }
+    } else if (elem.type == 'notify' && elem.targetType == 'all') {
+      if (mention == 'mention') {
+        result.push(segment.at('all' as any));
+      } else if (mention == 'text') {
+        result.push(segment.text(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`));
+      }
+    } else if (elem.type == 'notify' && mention == 'text') {
+      result.push(segment.text(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`));
+    } else if (elem.type == 'channel') {
+      result.push(segment.text(`[#${elem.content}]`));
     } else if (elem.type == 'emote') {
       if (elem.content) {
         result.push(segment.image(elem.content, true, 10000));
@@ -82,6 +90,17 @@ export class OICQBotAdapter extends GenericBot<Client> {
         );
         if (result.retcode) {
           console.warn(`[OICQ] 发送图片失败`);
+          console.warn(result);
+          return null;
+        }
+        return result.data?.message_id || null;
+      },
+      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+        const msg = segmentToOICQSegs(this, content, 'mention');
+        if (msg.length == 0) return null;
+        const result = await this.instance.sendGroupMsg(parseInt(channelId), msg);
+        if (result.retcode) {
+          console.warn(`[OICQ] 发送分段消息失败`);
           console.warn(result);
           return null;
         }
@@ -147,7 +166,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
         return result.data?.message_id || null;
       },
       segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
-        const msg = segmentToOICQSegs(this, content, true);
+        const msg = segmentToOICQSegs(this, content, 'mention');
         if (msg.length == 0) return null;
         const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
         if (result.retcode) {

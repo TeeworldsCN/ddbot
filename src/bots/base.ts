@@ -313,13 +313,13 @@ export abstract class GenericMessage<BotType> {
           content.push(`[@${c.content}]`);
           break;
         case 'notify':
-          content.push(` @#${c.targetType}${c.target ? `:${c.target}` : ''} `);
+          content.push(`[@#${c.targetType}${c.target ? `:${c.target}` : ''}]`);
           break;
         case 'quote':
           if (c.content) content.push(`> ${c.content.slice(0, 24)}\n`);
           break;
         case 'channel':
-          content.push(` #${c.content} `);
+          content.push(`[#${c.content}]`);
           break;
         case 'image':
           content.push(`[图片]`);

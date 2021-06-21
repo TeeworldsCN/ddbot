@@ -164,7 +164,7 @@ export const segmentToCard = (
   bot: GenericBot<any>,
   content: GenericMessageElement[],
   card: Card,
-  allowMention: boolean = false
+  mention: 'ignore' | 'mention' | 'text' = 'ignore'
 ): string => {
   let quote = undefined;
   const text: string[] = [];
@@ -204,25 +204,41 @@ export const segmentToCard = (
     } else if (elem.type == 'text') {
       addImages();
       text.push(elem.content);
-    } else if (
-      allowMention &&
-      elem.type == 'mention' &&
-      unpackID(elem.userKey).platform == bot.platform
-    ) {
-      addImages();
-      text.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
+    } else if (elem.type == 'mention') {
+      if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
+        addImages();
+        text.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
+      } else if (mention == 'text') {
+        addImages();
+        text.push(`[@${elem.content}]`);
+      }
     } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
       addImages();
       text.push(`#channel:${unpackID(elem.channelKey).id};`);
-    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'role') {
-      addImages();
-      text.push(elem.content);
-    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'all') {
-      addImages();
-      text.push('@全体成员');
-    } else if (allowMention && elem.type == 'notify' && elem.targetType == 'here') {
-      addImages();
-      text.push('@在线成员');
+    } else if (elem.type == 'notify' && elem.targetType == 'role') {
+      if (mention == 'mention') {
+        addImages();
+        text.push(elem.content);
+      } else if (mention == 'text') {
+        addImages();
+        text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
+      }
+    } else if (elem.type == 'notify' && elem.targetType == 'all') {
+      if (mention == 'mention') {
+        addImages();
+        text.push('@全体成员');
+      } else if (mention == 'text') {
+        addImages();
+        text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
+      }
+    } else if (elem.type == 'notify' && elem.targetType == 'here') {
+      if (mention == 'mention') {
+        addImages();
+        text.push('@在线成员');
+      } else if (mention == 'text') {
+        addImages();
+        text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
+      }
     } else if (elem.type == 'emote') {
       if (elem.content) {
         addText();
@@ -284,7 +300,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           const card = new Card('lg');
           if (card.isEmpty) return null;
-          const quote = segmentToCard(this, content, card, true);
+          const quote = segmentToCard(this, content, card, 'mention');
           try {
             const result = await this.instance.API.message.create(
               MSG_TYPES.text,
@@ -457,7 +473,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           const card = new Card('lg');
           if (card.isEmpty) return null;
-          const quote = segmentToCard(this, content, card, true);
+          const quote = segmentToCard(this, content, card, 'mention');
           try {
             const result = await this.instance.API.directMessage.create(
               MSG_TYPES.text,
