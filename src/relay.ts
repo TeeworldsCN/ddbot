@@ -22,7 +22,7 @@ const bridgeAxios = process.env.MATTERBRIDGE_API
 const broadcastMessage = async (msg: any) => {
   if (!msg?.gateway) return;
 
-  const doc = await getGateway(msg.gateway);
+  const doc = await getRelay(`gateway|${msg.gateway}`);
   if (!doc) return;
 
   // broadcast
@@ -95,6 +95,21 @@ export const relayStop = () => {
   }
 };
 
+export const sendMessageToGateway = async (gateway: string, msg: GenericMessage<any>) => {
+  if (!bridgeAxios) return;
+
+  try {
+    await bridgeAxios.post('/message', {
+      username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
+      text: msg.text,
+      gateway,
+      avatar: msg.author?.avatar,
+    });
+  } catch (err) {
+    msg.reply.text('频道桥接已断连');
+  }
+};
+
 export const outboundMessage = async (msg: GenericMessage<any>) => {
   const relay = await getRelay(msg.channelKey);
   if (!relay) return false;
@@ -122,26 +137,15 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
         }
         kaiheila.channel(channel).card(card);
       }
-    } else {
+    } else if (unpacked.platform == 'oicq') {
       if (oicq) {
         oicq
           .channel(channel)
           .text(`[${msg.bot.platformShort}] ${msg.author.nickname}:\n${msg.text}`);
       }
+    } else if (unpacked.platform == 'gateway') {
+      sendMessageToGateway(relay.gateway, msg);
     }
-  }
-
-  if (!bridgeAxios) return true;
-
-  try {
-    await bridgeAxios.post('/message', {
-      username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
-      text: msg.text,
-      gateway: relay.gateway,
-      avatar: msg.author?.avatar,
-    });
-  } catch (err) {
-    msg.reply.text('频道桥接已断连');
   }
 
   return true;

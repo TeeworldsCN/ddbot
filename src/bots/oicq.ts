@@ -177,6 +177,9 @@ export class OICQBotAdapter extends GenericBot<Client> {
           } else if (converse.key) {
             await msg.finishConverse();
           }
+        } else if (msg.sessionType == 'CHANNEL') {
+          // try relay
+          await outboundMessage(msg);
         }
         return;
       }
@@ -205,9 +208,6 @@ export class OICQBotAdapter extends GenericBot<Client> {
         } else {
           await msg.finishConverse();
         }
-      } else if (msg.sessionType == 'CHANNEL') {
-        // try relay
-        if (await outboundMessage(msg)) return;
       }
     });
 

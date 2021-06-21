@@ -479,6 +479,9 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           } else if (converse.key) {
             await msg.finishConverse();
           }
+        } else if (msg.sessionType == 'CHANNEL') {
+          // try relay
+          await outboundMessage(msg);
         }
         return;
       }
@@ -506,9 +509,6 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           await msg.finishConverse();
         }
-      } else if (msg.sessionType == 'CHANNEL') {
-        // try relay
-        if (await outboundMessage(msg)) return;
       }
     });
 
