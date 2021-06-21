@@ -168,11 +168,25 @@ export const segmentToCard = (
 ): string => {
   let quote = undefined;
   const text: string[] = [];
+  const images: string[] = [];
 
   const addText = () => {
     if (text.length > 0) {
       card.addText(text.join(' '));
       text.splice(0, text.length);
+    }
+  };
+
+  const addImages = () => {
+    while (images.length > 0) {
+      const data = images.splice(0, 9);
+      if (data.length > 0) {
+        card.addImages(
+          data.map(src => {
+            return { src };
+          })
+        );
+      }
     }
   };
 
@@ -182,30 +196,37 @@ export const segmentToCard = (
     } else if (elem.type == 'quote' && elem.platform != bot.platform) {
       if (elem.content) {
         addText();
+        addImages();
         card.addMarkdown(`> ${elem.content.slice(0, 24)}`);
       } else {
         card.addMarkdown(`> 回复了一条消息\n`);
       }
     } else if (elem.type == 'text') {
+      addImages();
       text.push(elem.content);
     } else if (
       allowMention &&
       elem.type == 'mention' &&
       unpackID(elem.userKey).platform == bot.platform
     ) {
+      addImages();
       text.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
     } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
+      addImages();
       text.push(`#channel:${unpackID(elem.channelKey).id};`);
     } else if (allowMention && elem.type == 'notify' && elem.targetType == 'role') {
+      addImages();
       text.push(elem.content);
     } else if (allowMention && elem.type == 'notify' && elem.targetType == 'all') {
+      addImages();
       text.push('@全体成员');
     } else if (allowMention && elem.type == 'notify' && elem.targetType == 'here') {
+      addImages();
       text.push('@在线成员');
     } else if (elem.type == 'emote') {
       if (elem.content) {
         addText();
-        card.addImages([{ src: elem.content, alt: elem.name || 'emote' }]);
+        images.push(elem.content);
       } else if (elem.id) {
         text.push(`${elem.id}`);
       } else if (elem.name) {
@@ -214,11 +235,12 @@ export const segmentToCard = (
     } else if (elem.type == 'image') {
       if (elem.content) {
         addText();
-        card.addImages([{ src: elem.content }]);
+        images.push(elem.content);
       }
     }
   }
   addText();
+  addImages();
   return quote;
 };
 
