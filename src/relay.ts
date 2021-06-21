@@ -141,9 +141,7 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
       }
     } else if (unpacked.platform == 'oicq') {
       if (oicq) {
-        oicq
-          .channel(channel)
-          .text(`[${msg.bot.platformShort}] ${msg.author.nicktag}:\n${msg.text}`);
+        oicq.channel(channel).text(`[${msg.bot.platformShort}] ${msg.author.nicktag}: ${msg.text}`);
       }
     } else if (unpacked.platform == 'gateway') {
       sendMessageToGateway(relay.gateway, msg);
