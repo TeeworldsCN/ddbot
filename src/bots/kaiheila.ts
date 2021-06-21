@@ -77,7 +77,7 @@ const messageToSegment = (
       });
       continue;
     }
-    const emote = part.match(/\[:([^:\s]+):([^\/\s]+\/[^\s]+\])/);
+    const emote = part.match(/\[:([^:\s]+):([^\/\s]+\/[^\s]+)\]/);
     if (emote) {
       pushText();
       result.push({
@@ -85,7 +85,7 @@ const messageToSegment = (
         platform: bot.platform,
         name: emote[1],
         id: part,
-        content: null,
+        content: `https://img.kaiheila.cn/emojis/${emote[2]}.png`,
       });
       continue;
     }
