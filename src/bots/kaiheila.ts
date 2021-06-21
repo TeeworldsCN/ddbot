@@ -455,9 +455,6 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       // no bot message
       if (e.author.bot) return;
       const msg = new KaiheilaMessage(this, e, 'text');
-      // try relay
-      if (await outboundMessage(msg)) return;
-
       const text = msg.text;
 
       if (!text.startsWith('.') && !text.startsWith('。')) {
@@ -509,6 +506,9 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           await msg.finishConverse();
         }
+      } else if (msg.sessionType == 'CHANNEL') {
+        // try relay
+        if (await outboundMessage(msg)) return;
       }
     });
 

@@ -153,9 +153,6 @@ export class OICQBotAdapter extends GenericBot<Client> {
       oicqLastMsgID = e.message_id;
 
       const msg = new OICQMessage(this, e);
-      // try relay
-      if (await outboundMessage(msg)) return;
-
       const text = msg.text;
 
       // 无文本消息或不是指令
@@ -208,6 +205,9 @@ export class OICQBotAdapter extends GenericBot<Client> {
         } else {
           await msg.finishConverse();
         }
+      } else if (msg.sessionType == 'CHANNEL') {
+        // try relay
+        if (await outboundMessage(msg)) return;
       }
     });
 
