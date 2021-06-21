@@ -97,7 +97,7 @@ const packMessage = (
       });
       continue;
     }
-    const unicode = part.match(/\[#([0-9])+;\]/);
+    const unicode = part.match(/\[#([0-9]+);\]/);
     if (unicode) {
       textParts.push(String.fromCodePoint(parseInt(unicode[1])));
       continue;
