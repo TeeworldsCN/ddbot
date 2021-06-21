@@ -35,8 +35,6 @@ export const subscribe: TextHandler = async msg => {
 };
 
 export const listSub: TextHandler = async msg => {
-  if (msg.sessionType == 'DM') return;
-
   const query = new CommandParser(msg.command);
   const name = query.getString(1);
 
@@ -116,8 +114,6 @@ export const relay: TextHandler = async msg => {
 };
 
 export const listRelay: TextHandler = async msg => {
-  if (msg.sessionType == 'DM') return;
-
   const query = new CommandParser(msg.command);
   const gateway = query.getString(1);
 
