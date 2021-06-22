@@ -295,6 +295,9 @@ export class OICQBotAdapter extends GenericBot<Client> {
         } else {
           await msg.finishConverse();
         }
+      } else if (msg.sessionType == 'CHANNEL') {
+        // try relay if no commands are triggered
+        await outboundMessage(msg);
       }
     });
 
