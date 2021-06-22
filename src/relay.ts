@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { IncomingMessage } from 'http';
 import { segment } from 'oicq';
 import { kaiheila, oicq } from './bots';
@@ -6,26 +6,41 @@ import { GenericMessage } from './bots/base';
 import { segmentToCard } from './bots/kaiheila';
 import { segmentToOICQSegs } from './bots/oicq';
 import { getRelay } from './db/relay';
+import { LEVEL_NORELAY } from './db/user';
 import { Card, SMD } from './utils/cardBuilder';
 import { unpackID } from './utils/helpers';
+import ndjson from 'ndjson';
 
-const headers = process.env.MATTERBRIDGE_TOKEN
-  ? {
-      Authorization: `Bearer ${process.env.MATTERBRIDGE_TOKEN}`,
-    }
-  : {};
+const BRIDGES = (() => {
+  const info = process.env.MATTERBRIDGE_API
+    ? process.env.MATTERBRIDGE_API.split('|').map(b => {
+        const data = b.split('#');
+        return {
+          name: data[0],
+          url: data.slice(1).join(''),
+        };
+      })
+    : [];
+  const tokens = process.env.MATTERBRIDGE_TOKEN ? process.env.MATTERBRIDGE_TOKEN.split('|') : [];
+  const result: {
+    [name: string]: AxiosInstance;
+  } = {};
+  for (let i = 0; i < info.length; ++i) {
+    const b = info[i];
+    const t = tokens[i];
+    result[b.name] = axios.create({
+      baseURL: b.url,
+      headers: t ? { Authorization: `Bearer ${t}` } : undefined,
+    });
+  }
 
-const bridgeAxios = process.env.MATTERBRIDGE_API
-  ? axios.create({
-      baseURL: process.env.MATTERBRIDGE_API,
-      headers,
-    })
-  : null;
+  return result;
+})();
 
-const broadcastMessage = async (msg: any) => {
+const broadcastMessage = async (bridge: string, msg: any) => {
   if (!msg?.gateway) return;
 
-  const doc = await getRelay(`gateway|${msg.gateway}`);
+  const doc = await getRelay(`gateway|${bridge}:${msg.gateway}`);
   if (!doc) return;
 
   // broadcast
@@ -59,36 +74,34 @@ const broadcastMessage = async (msg: any) => {
 
 let stream: IncomingMessage = null;
 
-export const relayStart = () => {
-  if (!process.env.MATTERBRIDGE_API) return;
-
-  bridgeAxios
+const connectBridge = (name: string) => {
+  BRIDGES[name]
     .get<IncomingMessage>('/stream', {
       responseType: 'stream',
     })
     .then(res => {
-      res.data.on('data', chunk => {
-        try {
-          const data = JSON.parse(chunk.toString());
-          broadcastMessage(data).then(() => {});
-        } catch (err) {
-          console.log('relay invalid message');
-          console.log(err.message);
-        }
+      res.data.pipe(ndjson.parse()).on('data', obj => {
+        broadcastMessage(name, obj);
       });
       res.data.on('close', () => {
-        console.log('relay disconnected, retry in 10 seconds');
-        setTimeout(relayStart, 10000);
+        console.log(`bridge ${name} disconnected, retry in 10 seconds`);
+        setTimeout(connectBridge, 10000, name);
       });
       stream = res.data;
       console.log('relay connected');
     })
     .catch(err => {
-      console.log('relay failed to connect');
+      console.log(`bridge ${name} failed to connect`);
       console.log(err.message);
-      console.log('retrying relay in 10 seconds');
-      setTimeout(relayStart, 10000);
+      console.log('retrying bridge in 10 seconds');
+      setTimeout(connectBridge, 10000, name);
     });
+};
+
+export const relayStart = () => {
+  for (const name in BRIDGES) {
+    connectBridge(name);
+  }
 };
 
 export const relayStop = () => {
@@ -98,34 +111,38 @@ export const relayStop = () => {
   }
 };
 
-export const sendMessageToGateway = async (gateway: string, msg: GenericMessage<any>) => {
-  if (!bridgeAxios) return;
+export const sendMessageToGateway = async (
+  bridge: string,
+  gateway: string,
+  msg: GenericMessage<any>
+) => {
+  if (!BRIDGES[bridge]) return;
 
   const text: string[] = [];
   const sendImage = async (url: string) => {
     try {
-      await bridgeAxios.post('/message', {
+      await BRIDGES[bridge].post('/message', {
         username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
         text: url,
         gateway,
         avatar: msg.author?.avatar,
       });
     } catch (err) {
-      await msg.reply.text('桥接图片发送失败');
+      await msg.reply.text(`桥接图片至${bridge}发送失败`);
     }
   };
 
   const sendText = async () => {
     if (text.length == 0) return;
     try {
-      await bridgeAxios.post('/message', {
+      await BRIDGES[bridge].post('/message', {
         username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
         text: text.splice(0, text.length).join(''),
         gateway,
         avatar: msg.author?.avatar,
       });
     } catch (err) {
-      await msg.reply.text('桥接图片发送失败');
+      await msg.reply.text(`桥接消息至${bridge}发送失败`);
     }
   };
 
@@ -152,7 +169,7 @@ export const sendMessageToGateway = async (gateway: string, msg: GenericMessage<
         text.push(`[#${c.content}]`);
         break;
       case 'image':
-        if (!imageSent) {
+        if (!imageSent && typeof c.content == 'string') {
           await sendText();
           await sendImage(c.content);
           imageSent = true;
@@ -172,7 +189,8 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
   const relay = await getRelay(msg.channelKey);
   if (!relay) return false;
 
-  await msg.fetchExtraMsgInfo();
+  await msg.fillMsgDetail();
+  if (msg.userLevel >= LEVEL_NORELAY) return;
 
   // broadcast
   for (const channel of relay.channels) {
@@ -208,7 +226,8 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
         ]);
       }
     } else if (unpacked.platform == 'gateway') {
-      sendMessageToGateway(relay.gateway, msg);
+      const [name, gateway] = unpacked.id.split(':');
+      sendMessageToGateway(name, gateway, msg);
     }
   }
 

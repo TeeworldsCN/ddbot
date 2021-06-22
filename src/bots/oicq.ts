@@ -7,7 +7,7 @@ import {
 } from './base';
 import { Client, MessageEventData, segment } from 'oicq';
 import { packID, unpackID } from '../utils/helpers';
-import { getUser, LEVEL_IGNORE, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
+import { getUser, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
 import { outboundMessage } from '../relay';
 import { QMOTE } from '../utils/consts';
 
@@ -244,7 +244,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
         if (msg.sessionType == 'DM') {
           // 只有私聊会触发会话
           await msg.fillMsgDetail();
-          if (msg.userLevel == LEVEL_IGNORE) return;
+          if (msg.userLevel > LEVEL_USER) return;
           const converse = await msg.getConverse();
           const context = converse.context;
           if (converse.key && this.converses[converse.key]) {
@@ -275,7 +275,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
 
       if (this.commands[command]) {
         await msg.fillMsgDetail();
-        if (msg.userLevel == LEVEL_IGNORE) return;
+        if (msg.userLevel > LEVEL_USER) return;
         if (msg.userLevel > this.commands[command].level) return;
 
         this.commands[command].func(msg).catch(reason => {
@@ -285,7 +285,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
       } else if (msg.sessionType == 'DM' && this.converses[command]) {
         // 只有私聊会触发会话
         await msg.fillMsgDetail();
-        if (msg.userLevel == LEVEL_IGNORE) return;
+        if (msg.userLevel > LEVEL_USER) return;
         if (msg.userLevel > this.converses[command].level) return;
 
         const context = {};
@@ -411,6 +411,8 @@ class OICQMessage extends GenericMessage<Client> {
           platform: this.bot.platform,
           msgId: seg.data.id,
         });
+      } else if (seg.type == 'xml') {
+        console.log(seg.data);
       }
     }
 

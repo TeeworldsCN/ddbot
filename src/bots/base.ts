@@ -116,7 +116,7 @@ interface GenericMessageElementEmote {
 
 interface GenericMessageElementImage {
   type: 'image';
-  content: string;
+  content: string | Buffer;
 }
 
 interface GenericMessageElementQuote {

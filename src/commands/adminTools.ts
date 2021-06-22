@@ -188,11 +188,13 @@ export const assign: TextHandler = async msg => {
     return;
   }
 
-  if (level >= LEVEL_ADMIN && level <= LEVEL_USER) {
+  if (level >= LEVEL_ADMIN) {
     await UserModel.updateOne({ userKey }, { $set: { level } }, { upsert: true });
   }
 
-  await msg.reply.text(`已将 ${userKey} 设为 ${LEVEL_NAMES[level]}`);
+  await msg.reply.text(
+    `已将 ${userKey} 设为 ${LEVEL_NAMES[level] ? LEVEL_NAMES[level] : `${level}级用户`}`
+  );
 };
 
 // 撤回一个权限 .revoke level
@@ -205,9 +207,11 @@ export const revoke: TextHandler = async msg => {
     return;
   }
 
-  if (level > LEVEL_ADMIN && level <= LEVEL_TESTER) {
+  if (level > LEVEL_ADMIN) {
     const result = await UserModel.updateMany({ level }, { $set: { level: LEVEL_USER } });
-    await msg.reply.text(`已撤回 ${result.nModified} 名 ${LEVEL_NAMES[level]}`);
+    await msg.reply.text(
+      `已撤回 ${result.nModified} 名${LEVEL_NAMES[level] ? LEVEL_NAMES[level] : `${level}级用户`}`
+    );
     return;
   }
 

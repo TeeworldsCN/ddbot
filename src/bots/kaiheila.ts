@@ -10,7 +10,7 @@ import { Card } from '../utils/cardBuilder';
 import { packID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
 import { outboundMessage } from '../relay';
-import { LEVEL_IGNORE } from '../db/user';
+import { LEVEL_USER } from '../db/user';
 
 const MSG_TYPES = {
   text: 1,
@@ -249,7 +249,7 @@ export const segmentToCard = (
         text.push(`[${elem.name}]`);
       }
     } else if (elem.type == 'image') {
-      if (elem.content) {
+      if (typeof elem.content == 'string') {
         addText();
         images.push(elem.content);
       }
@@ -616,7 +616,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         if (msg.sessionType == 'DM') {
           // 是私聊的情况下检查会话
           await msg.fillMsgDetail();
-          if (msg.userLevel == LEVEL_IGNORE) return;
+          if (msg.userLevel > LEVEL_USER) return;
           const converse = await msg.getConverse();
           const context = converse.context;
           if (converse.key && this.converses[converse.key]) {
@@ -647,7 +647,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
 
       if (this.commands[command]) {
         await msg.fillMsgDetail();
-        if (msg.userLevel == LEVEL_IGNORE) return;
+        if (msg.userLevel > LEVEL_USER) return;
         if (msg.userLevel > this.commands[command].level) return;
 
         this.commands[command].func(msg).catch(reason => {
@@ -657,7 +657,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       } else if (msg.sessionType == 'DM' && this.converses[command]) {
         // 只有私聊会触发会话
         await msg.fillMsgDetail();
-        if (msg.userLevel == LEVEL_IGNORE) return;
+        if (msg.userLevel > LEVEL_USER) return;
         if (msg.userLevel > this.converses[command].level) return;
 
         const context = {};
@@ -677,7 +677,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
       if (msg.sessionType == 'DM') {
         // 是私聊的情况下检查会话
         await msg.fillMsgDetail();
-        if (msg.userLevel == LEVEL_IGNORE) return;
+        if (msg.userLevel > LEVEL_USER) return;
         const converse = await msg.getConverse();
         const context = converse.context;
         if (converse.key && this.converses[converse.key]) {
