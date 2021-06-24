@@ -37,7 +37,7 @@ export const getRelay = async (channelKey: string) => {
   if (cacheC2G[channelKey]) {
     return cacheC2G[channelKey];
   }
-  const relay = await RelayModel.findOne({ channels: { $elemMatch: { $eq: channelKey } } }).exec();
+  const relay = await RelayModel.findOne({ channels: channelKey }).exec();
   if (relay == null) cacheC2G[channelKey] = null;
   else {
     for (const channel of relay.channels) {

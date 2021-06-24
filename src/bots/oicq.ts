@@ -19,9 +19,11 @@ export const segmentToOICQSegs = (
   mention: 'ignore' | 'mention' | 'text' = 'ignore'
 ) => {
   const result = [];
+
   for (const elem of content) {
     if (elem.type == 'quote' && elem.platform == bot.platform) {
       result.push(segment.reply(elem.msgId));
+      result.push(segment.at(parseInt(unpackID(elem.userKey).id)));
       break;
     }
   }
@@ -96,7 +98,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
         }
         return result.data?.message_id || null;
       },
-      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+      elements: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
         const msg = segmentToOICQSegs(this, content, 'mention');
         if (msg.length == 0) return null;
         const result = await this.instance.sendGroupMsg(parseInt(channelId), msg);
@@ -166,7 +168,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
         }
         return result.data?.message_id || null;
       },
-      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+      elements: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
         const msg = segmentToOICQSegs(this, content, 'mention');
         if (msg.length == 0) return null;
         const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
@@ -344,10 +346,13 @@ class OICQMessage extends GenericMessage<Client> {
 
     this._content = [];
 
+    let lastQuote = false;
+
     for (const seg of e.message) {
       if (seg.type == 'text') {
         this._content.push({ type: 'text', content: seg.data.text });
-      } else if (seg.type == 'at') {
+      } else if (seg.type == 'at' && !lastQuote) {
+        // reply 可能自带一个 at，无视掉
         if (seg.data.qq == 'all') {
           this._content.push({
             type: 'notify',
@@ -400,7 +405,6 @@ class OICQMessage extends GenericMessage<Client> {
               id: null,
               name: seg.data.id.toString(),
             });
-            // }
           }
         }
       } else if (seg.type == 'image') {
@@ -416,6 +420,12 @@ class OICQMessage extends GenericMessage<Client> {
         });
       } else if (seg.type == 'xml') {
         console.log(seg.data);
+      }
+
+      if (seg.type == 'reply') {
+        lastQuote = true;
+      } else {
+        lastQuote = false;
       }
     }
 
@@ -469,12 +479,11 @@ class OICQMessage extends GenericMessage<Client> {
     this._msgTimestamp = e.time;
   }
 
-  public makeReply(): Partial<MessageReply> {
-    const context =
-      this._sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
+  public makeReply(context: MessageAction): Partial<MessageReply> {
     return {
       text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
       image: (c, t) => context.image(c, t ? this.userId : undefined),
+      elements: (c, r, t) => context.elements(c, r, t ? this.userId : undefined),
       delete: () => this._sessionType == 'CHANNEL' && context.delete(this.msgId),
     };
   }

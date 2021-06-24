@@ -279,7 +279,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return null;
         }
       },
-      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+      elements: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
         if (!rich) {
           const data = segmentToMessage(this, content, true);
           if (!data.msg.trim()) return null;
@@ -452,7 +452,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           return null;
         }
       },
-      segments: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
+      elements: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
         if (!rich) {
           const data = segmentToMessage(this, content, true);
           if (!data.msg.trim()) return null;
@@ -789,12 +789,10 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
     this._msgTimestamp = e.msgTimestamp;
   }
 
-  public makeReply(): Partial<MessageReply> {
-    const context =
-      this.sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
+  public makeReply(context: MessageAction): Partial<MessageReply> {
     return {
       text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
-      segments: (c, r, t) => context.segments(c, r, t ? this.userId : undefined),
+      elements: (c, r, t) => context.elements(c, r, t ? this.userId : undefined),
       image: (c, t) => context.image(c, t ? this.userId : undefined),
       file: (c, t) => context.file(c, t ? this.userId : undefined),
       card: (c, q, t) => context.card(c, q, t ? this.userId : undefined),

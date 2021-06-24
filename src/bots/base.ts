@@ -8,7 +8,7 @@ export type MessageReply = {
   image: (image: string, temp?: boolean) => Promise<string>;
   file: (file: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
-  segments: (content: GenericMessageElement[], rich?: boolean, temp?: boolean) => Promise<string>;
+  elements: (content: GenericMessageElement[], rich?: boolean, temp?: boolean) => Promise<string>;
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
@@ -19,7 +19,7 @@ export type MessageAction = {
   image: (image: string, onlyTo?: string) => Promise<string>;
   file: (file: string, onlyTo?: string) => Promise<string>;
   card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
-  segments: (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => Promise<string>;
+  elements: (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => Promise<string>;
   update: (msgid: string, content: string, quote?: string) => Promise<string>;
   delete: (msgid: string) => Promise<void>;
   addReaction: (msgid: string, emoji: string[]) => Promise<void>;
@@ -32,7 +32,7 @@ const EMPTY_ACTIONS: MessageReply & MessageAction = {
   image: async () => null as string,
   file: async () => null as string,
   card: async () => null as string,
-  segments: async () => null as string,
+  elements: async () => null as string,
   addReaction: async () => {},
   deleteReaction: async () => {},
   update: async () => null as string,
@@ -424,13 +424,23 @@ export abstract class GenericMessage<BotType> {
   }
 
   public get reply(): MessageReply {
+    const context =
+      this.sessionType == 'DM' ? this.bot.dm(this.userKey) : this.bot.channel(this.channelKey);
     return {
       ...EMPTY_ACTIONS,
-      ...this.makeReply(),
+      ...this.makeReply(context),
+    };
+  }
+
+  public get replyDM(): MessageReply {
+    const context = this.bot.dm(this.userKey);
+    return {
+      ...EMPTY_ACTIONS,
+      ...this.makeReply(context),
     };
   }
 
   public async fetchExtraMsgInfo(): Promise<void> {}
   public async fetchMsgAssets(): Promise<void> {}
-  public abstract makeReply(): Partial<MessageReply>;
+  public abstract makeReply(context: MessageAction): Partial<MessageReply>;
 }

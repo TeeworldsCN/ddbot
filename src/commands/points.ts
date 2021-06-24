@@ -10,6 +10,7 @@ import { CommandParser } from '../utils/commandParser';
 import { API } from '../utils/axios';
 import { FLAGS, SERVERS_SHORT } from '../utils/consts';
 import _ from 'lodash';
+import { eImage, eMention, eText } from '../utils/messageElements';
 
 const uploadGraph = async (
   bot: GenericBot<any>,
@@ -437,7 +438,37 @@ export const simplePoints: TextHandler = async msg => {
     }
   }
 
-  await msg.reply.text(lines.join('\n'));
+  const extra = [];
+  if (msg.bot.platform == 'oicq') {
+    const allMaps = _.map(
+      _.flatten(
+        _.map(_.toPairs(player.types), p => _.filter((p?.[1] as any)?.maps, m => m.finishes != 0))
+      ),
+      m => {
+        return { ...m, first_finish: (m.first_finish || 0) * 1000 };
+      }
+    );
+    allMaps.sort((a, b) => (b.first_finish || 0) - (a.first_finish || 0));
+    let imageID = null;
+
+    try {
+      imageID = await uploadGraph(msg.bot, allMaps, player.player, player.points.points, 'lg');
+    } catch (e) {
+      console.warn('Image generation failed');
+      console.warn(e);
+    }
+
+    extra.push(eImage(imageID));
+  }
+
+  const msgId = await msg.replyDM.elements([eText(lines.join('\n')), ...extra]);
+  await msg.reply.delete();
+  if (!msgId) {
+    await msg.reply.elements([
+      eMention(msg.userKey, msg.author.nickname),
+      eText('豆豆私聊联系不到你。请确认账号是否允许接受临时消息。'),
+    ]);
+  }
 };
 
 export const simplerPoints: TextHandler = async msg => {

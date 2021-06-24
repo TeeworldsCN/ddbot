@@ -185,12 +185,36 @@ export const sendMessageToGateway = async (
   await sendText();
 };
 
-export const outboundMessage = async (msg: GenericMessage<any>) => {
+// FIXME：开黑啦缺少事件，撤回做不了
+// export const recallMessage = async (msgId: string) => {
+//   const msg = await getMsg(msgId);
+//   if (!msg) return;
+
+//   for (const message of msg.messages) {
+//     if (msgId == message.msgId) continue;
+
+//     const unpacked = unpackID(message.channel);
+//     if (unpacked.platform == 'kaiheila') {
+//       if (kaiheila) {
+//         kaiheila.channel(message.channel).delete(message.msgId);
+//       }
+//     } else if (unpacked.platform == 'oicq') {
+//       if (oicq) {
+//         oicq.channel(message.channel).delete(message.msgId);
+//       }
+//     }
+//   }
+// };
+
+export const outboundMessage = async (msg: GenericMessage<any>, update: boolean = false) => {
   const relay = await getRelay(msg.channelKey);
   if (!relay) return false;
 
   await msg.fillMsgDetail();
   if (msg.userLevel >= LEVEL_NORELAY) return;
+
+  // FIXME：开黑啦缺少事件，撤回做不了
+  // if (!update) await createMsg(msg.channelKey, msg.msgId);
 
   // broadcast
   for (const channel of relay.channels) {
@@ -215,6 +239,9 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
         segmentToCard(kaiheila, msg.content, card, 'text');
         if (card.length == 1) continue;
         kaiheila.channel(channel).card(card);
+        // .then(id => {
+        //   id && markMsg(msg.msgId, channel, id);
+        // });
       }
     } else if (unpacked.platform == 'oicq') {
       if (oicq) {
@@ -224,6 +251,9 @@ export const outboundMessage = async (msg: GenericMessage<any>) => {
           segment.text(`[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}: `),
           ...segs,
         ]);
+        // .then(data => {
+        //   data.retcode || markMsg(msg.msgId, channel, data.data.message_id);
+        // });
       }
     } else if (unpacked.platform == 'gateway') {
       const [name, gateway] = unpacked.id.split(':');

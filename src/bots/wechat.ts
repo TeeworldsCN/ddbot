@@ -225,7 +225,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     this._msgTimestamp = req.body.CreateTime;
   }
 
-  public makeReply(): Partial<MessageReply> {
+  public makeReply(context: MessageAction): Partial<MessageReply> {
     const res: express.Response = this._raw.res;
     return {
       text: async (content: string, quote?: string, temp?: boolean) => {

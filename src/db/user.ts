@@ -3,7 +3,8 @@ import { Document, Schema, model } from 'mongoose';
 // Level越高权限越低
 export const LEVEL_ADMIN = 1;
 export const LEVEL_OPERATOR = 2;
-export const LEVEL_MANAGER = 3;
+export const LEVEL_MODS = 3;
+export const LEVEL_MANAGER = 5;
 export const LEVEL_TESTER = 9;
 export const LEVEL_USER = 10;
 export const LEVEL_IGNORE = 11;
@@ -11,7 +12,8 @@ export const LEVEL_NORELAY = 12;
 export const LEVEL_NAMES: { [key: number]: string } = {
   1: '超级管理员',
   2: '机器人管理',
-  3: '管理员',
+  3: '服务器管理',
+  5: '群管理员',
   9: '测试员',
   10: '用户',
   11: '禁用指令用户',
