@@ -438,30 +438,7 @@ export const simplePoints: TextHandler = async msg => {
     }
   }
 
-  const extra = [];
-  if (msg.bot.platform == 'oicq') {
-    const allMaps = _.map(
-      _.flatten(
-        _.map(_.toPairs(player.types), p => _.filter((p?.[1] as any)?.maps, m => m.finishes != 0))
-      ),
-      m => {
-        return { ...m, first_finish: (m.first_finish || 0) * 1000 };
-      }
-    );
-    allMaps.sort((a, b) => (b.first_finish || 0) - (a.first_finish || 0));
-    let imageID = null;
-
-    try {
-      imageID = await uploadGraph(msg.bot, allMaps, player.player, player.points.points, 'lg');
-    } catch (e) {
-      console.warn('Image generation failed');
-      console.warn(e);
-    }
-
-    extra.push(eImage(imageID));
-  }
-
-  const msgId = await msg.replyDM.elements([eText(lines.join('\n')), ...extra]);
+  const msgId = await msg.replyDM.text(lines.join('\n'));
   await msg.reply.delete();
   if (!msgId) {
     await msg.reply.elements([
