@@ -4,6 +4,7 @@ import { LEVEL_MANAGER } from '../db/user';
 export const generalHelp: TextHandler = async msg => {
   const lines = [];
   const isManager = msg.userLevel <= LEVEL_MANAGER;
+  if (!isManager && msg.bot.platform == 'oicq' && msg.sessionType == 'CHANNEL') return;
 
   const hidden = [];
 

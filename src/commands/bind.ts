@@ -5,6 +5,8 @@ import { CommandParser } from '../utils/commandParser';
 import { UserModel } from '../db/user';
 
 export const bind: TextHandler = async msg => {
+  if (msg.bot.platform == 'oicq' && msg.sessionType == 'CHANNEL') return;
+
   const query = new CommandParser(msg.command);
   const searchName = query.getRest(1);
 

@@ -380,6 +380,8 @@ export const points: TextHandler = async msg => {
 
 // 微信Only，查个人点数排名
 export const simplePoints: TextHandler = async msg => {
+  if (msg.sessionType == 'CHANNEL') return;
+
   const query = new CommandParser(msg.command);
   const name = query.getRest(1);
 
@@ -438,17 +440,12 @@ export const simplePoints: TextHandler = async msg => {
     }
   }
 
-  const msgId = await msg.replyDM.text(lines.join('\n'));
-  await msg.reply.delete();
-  if (!msgId) {
-    await msg.reply.elements([
-      eMention(msg.userKey, msg.author.nickname),
-      eText('豆豆私聊联系不到你。请确认账号是否允许接受临时消息。'),
-    ]);
-  }
+  await msg.reply.text(lines.join('\n'));
 };
 
 export const simplerPoints: TextHandler = async msg => {
+  if (msg.sessionType == 'CHANNEL') return;
+
   const query = new CommandParser(msg.command);
   const name = query.getRest(1);
 
