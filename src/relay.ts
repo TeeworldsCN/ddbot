@@ -236,7 +236,7 @@ export const outboundMessage = async (msg: GenericMessage<any>, update: boolean 
         } else {
           card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
         }
-        segmentToCard(kaiheila, msg.content, card, 'text');
+        await segmentToCard(kaiheila, msg.content, card, 'text');
         if (card.length == 1) continue;
         kaiheila.channel(channel).card(card);
         // .then(id => {

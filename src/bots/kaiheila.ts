@@ -11,6 +11,39 @@ import { packID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
 import { outboundMessage } from '../relay';
 import { LEVEL_USER } from '../db/user';
+import ImageSize from 'image-size';
+import axios from 'axios';
+import { IncomingMessage } from 'http';
+
+const getImageWidth = (url: string) => {
+  let buffer: Buffer = null;
+  let length = 0;
+  return new Promise<number>(res => {
+    axios
+      .get<IncomingMessage>(url, { responseType: 'stream' })
+      .then(value => {
+        value.data.on('data', (chunk: Buffer) => {
+          length += chunk.length;
+          if (!buffer) buffer = chunk;
+          else buffer = Buffer.concat([buffer, chunk]);
+
+          try {
+            const size = ImageSize(buffer);
+            value.data.destroy();
+            res(size.width);
+          } catch {
+            if (length > 65536) {
+              value.data.destroy();
+              res(0);
+            }
+          }
+        });
+      })
+      .catch(() => {
+        res(0);
+      });
+  });
+};
 
 const MSG_TYPES = {
   text: 1,
@@ -160,12 +193,12 @@ export const segmentToMessage = (
   return { msg: message.join(' '), quote };
 };
 
-export const segmentToCard = (
+export const segmentToCard = async (
   bot: GenericBot<any>,
   content: GenericMessageElement[],
   card: Card,
   mention: 'ignore' | 'mention' | 'text' = 'ignore'
-): string => {
+): Promise<string> => {
   let quote = undefined;
   const text: string[] = [];
   const images: string[] = [];
@@ -177,15 +210,24 @@ export const segmentToCard = (
     }
   };
 
-  const addImages = () => {
+  const addImages = async () => {
     while (images.length > 0) {
-      const data = images.splice(0, 9);
+      const data = images.splice(0, 9).map(src => {
+        return { src };
+      });
+      if (data.length == 1) {
+        const width = await getImageWidth(data[0].src);
+        if (width <= 256) {
+          data.push(
+            { src: 'https://teeworlds.cn/null.png' },
+            { src: 'https://teeworlds.cn/null.png' }
+          );
+        } else if (width <= 512) {
+          data.push({ src: 'https://teeworlds.cn/null.png' });
+        }
+      }
       if (data.length > 0) {
-        card.addImages(
-          data.map(src => {
-            return { src };
-          })
-        );
+        card.addImages(data);
       }
     }
   };
@@ -196,47 +238,47 @@ export const segmentToCard = (
     } else if (elem.type == 'quote' && elem.platform != bot.platform) {
       if (elem.content) {
         addText();
-        addImages();
+        await addImages();
         card.addMarkdown(`> ${elem.content.slice(0, 24)}`);
       } else {
         card.addMarkdown(`> 回复了一条消息\n`);
       }
     } else if (elem.type == 'text') {
-      addImages();
+      await addImages();
       text.push(elem.content);
     } else if (elem.type == 'mention') {
       if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
-        addImages();
+        await addImages();
         text.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
       } else if (mention == 'text') {
-        addImages();
+        await addImages();
         text.push(`[@${elem.content}]`);
       }
     } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
-      addImages();
+      await addImages();
       text.push(`#channel:${unpackID(elem.channelKey).id};`);
     } else if (elem.type == 'notify' && elem.targetType == 'role') {
       if (mention == 'mention') {
-        addImages();
+        await addImages();
         text.push(elem.content);
       } else if (mention == 'text') {
-        addImages();
+        await addImages();
         text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
       }
     } else if (elem.type == 'notify' && elem.targetType == 'all') {
       if (mention == 'mention') {
-        addImages();
+        await addImages();
         text.push('@全体成员');
       } else if (mention == 'text') {
-        addImages();
+        await addImages();
         text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
       }
     } else if (elem.type == 'notify' && elem.targetType == 'here') {
       if (mention == 'mention') {
-        addImages();
+        await addImages();
         text.push('@在线成员');
       } else if (mention == 'text') {
-        addImages();
+        await addImages();
         text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
       }
     } else if (elem.type == 'emote') {
@@ -256,7 +298,7 @@ export const segmentToCard = (
     }
   }
   addText();
-  addImages();
+  await addImages();
   return quote;
 };
 
@@ -300,7 +342,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           const card = new Card('lg');
           if (card.isEmpty) return null;
-          const quote = segmentToCard(this, content, card, 'mention');
+          const quote = await segmentToCard(this, content, card, 'mention');
           try {
             const result = await this.instance.API.message.create(
               MSG_TYPES.text,
@@ -473,7 +515,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           const card = new Card('lg');
           if (card.isEmpty) return null;
-          const quote = segmentToCard(this, content, card, 'mention');
+          const quote = await segmentToCard(this, content, card, 'mention');
           try {
             const result = await this.instance.API.directMessage.create(
               MSG_TYPES.text,
