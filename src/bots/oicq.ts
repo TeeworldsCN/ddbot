@@ -432,11 +432,15 @@ class OICQMessage extends GenericMessage<Client> {
     this._msgId = e.message_id;
     this._eventMsgId = e.message_id;
 
+    const time = Date.now();
+
     this._author = {
       tag,
       nickname: e.sender.nickname,
       username: e.sender.nickname,
-      avatar: `https://q2.qlogo.cn/headimg_dl?dst_uin=${this._userId}&spec=100`,
+      avatar: `https://q2.qlogo.cn/headimg_dl?dst_uin=${this._userId}&spec=100&t=${
+        time - (time % 43200000)
+      }`,
     };
 
     if (e.message_type == 'private') {
