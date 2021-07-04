@@ -9,7 +9,22 @@ import { getRelay } from './db/relay';
 import { LEVEL_NORELAY } from './db/user';
 import { Card, SMD } from './utils/cardBuilder';
 import { unpackID } from './utils/helpers';
-import ndjson from 'ndjson';
+interface MatterMessage {
+  avatar: string;
+  event: string;
+  gateway: string;
+  text: string;
+  username: string;
+  account: string;
+  channel: string;
+  id: string;
+  parent_id: string;
+  protocol: string;
+  timestamp: string;
+  userid: string;
+  label?: string;
+  extra: any;
+}
 
 const BRIDGES = (() => {
   const info = process.env.MATTERBRIDGE_API
@@ -37,7 +52,7 @@ const BRIDGES = (() => {
   return result;
 })();
 
-const broadcastMessage = async (bridge: string, msg: any) => {
+const broadcastMessage = async (bridge: string, msg: MatterMessage) => {
   if (!msg?.gateway) return;
 
   const doc = await getRelay(`gateway|${bridge}:${msg.gateway}`);
@@ -72,42 +87,26 @@ const broadcastMessage = async (bridge: string, msg: any) => {
   }
 };
 
-let stream: IncomingMessage = null;
-
-const connectBridge = (name: string) => {
+const queryBridge = (name: string) => {
   BRIDGES[name]
-    .get<IncomingMessage>('/stream', {
-      responseType: 'stream',
-    })
+    .get<MatterMessage[]>('/messages')
     .then(res => {
-      res.data.pipe(ndjson.parse()).on('data', obj => {
-        broadcastMessage(name, obj);
-      });
-      res.data.on('close', () => {
-        console.log(`bridge ${name} disconnected, retry in 10 seconds`);
-        setTimeout(connectBridge, 10000, name);
-      });
-      stream = res.data;
-      console.log('relay connected');
+      for (const msg of res.data) {
+        broadcastMessage(name, msg);
+      }
+      setTimeout(queryBridge, 1000, name);
     })
     .catch(err => {
       console.log(`bridge ${name} failed to connect`);
       console.log(err.message);
       console.log('retrying bridge in 10 seconds');
-      setTimeout(connectBridge, 10000, name);
+      setTimeout(queryBridge, 10000, name);
     });
 };
 
 export const relayStart = () => {
   for (const name in BRIDGES) {
-    connectBridge(name);
-  }
-};
-
-export const relayStop = () => {
-  if (stream) {
-    stream.destroy();
-    console.log('relay stopped');
+    queryBridge(name);
   }
 };
 

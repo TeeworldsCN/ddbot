@@ -45,7 +45,7 @@ import { exportRegistration, registrationCheck } from './commands/signupManage';
 import { feederStart } from './rss';
 import { kaiheila, oicq, wechat } from './bots';
 import { hookMsg } from './hookMsg';
-import { relayStart, relayStop } from './relay';
+import { relayStart } from './relay';
 
 /*
   连接数据库
@@ -167,13 +167,3 @@ feederStart();
 relayStart();
 
 console.log('Bot Started');
-
-const shutdown = () => {
-  // shutdown relay properly
-  relayStop();
-  process.exit(0);
-};
-
-process.on('beforeExit', shutdown);
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
