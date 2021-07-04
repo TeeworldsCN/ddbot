@@ -26,6 +26,15 @@ interface MatterMessage {
   extra: any;
 }
 
+const PROTOCOL_SHORT: { [key: string]: string } = {
+  telegram: 'TG',
+  discord: 'DC',
+};
+
+const proto = (protocol: string) => {
+  return PROTOCOL_SHORT[protocol] || protocol;
+};
+
 const BRIDGES = (() => {
   const info = process.env.MATTERBRIDGE_API
     ? process.env.MATTERBRIDGE_API.split('|').map(b => {
@@ -66,7 +75,7 @@ const broadcastMessage = async (bridge: string, msg: MatterMessage) => {
         const card = new Card('sm');
         if (msg.avatar) {
           card.addTextWithImage(
-            `**[${SMD(msg.protocol)}] ${SMD(msg.username)}**\n${SMD(msg.text)}`,
+            `**[${SMD(proto(msg.protocol))}] ${SMD(msg.username)}**\n${SMD(msg.text)}`,
             { src: `https://ip.webmasterapi.com/api/imageproxy/32/${msg.avatar}` },
             'sm',
             false,
@@ -74,14 +83,14 @@ const broadcastMessage = async (bridge: string, msg: MatterMessage) => {
             true
           );
         } else {
-          card.addMarkdown(`**[${SMD(msg.protocol)}] ${SMD(msg.username)}**`);
+          card.addMarkdown(`**[${SMD(proto(msg.protocol))}] ${SMD(msg.username)}**`);
           card.addText(msg.text);
         }
         kaiheila.channel(channel).card(card);
       }
     } else {
       if (oicq) {
-        oicq.channel(channel).text(`[${msg.protocol}] ${msg.username}: ${msg.text}`);
+        oicq.channel(channel).text(`[${proto(msg.protocol)}] ${msg.username}: ${msg.text}`);
       }
     }
   }
