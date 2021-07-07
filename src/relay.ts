@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { segment } from 'oicq';
 import { kaiheila, oicq } from './bots';
-import { GenericBot, GenericMessage, MessageAction } from './bots/base';
+import { GenericBot, GenericMessage, MessageAction, quotify } from './bots/base';
 import { segmentToCard } from './bots/kaiheila';
 import { segmentToOICQSegs } from './bots/oicq';
 import { getRelay } from './db/relay';
@@ -91,7 +91,7 @@ class RelayMessage extends GenericMessage<null> {
     };
 
     if (msg.text) {
-      const quote = msg.text.match(/(.*)\(re (.*)\)/);
+      const quote = msg.text.match(/(.*)\(re (.*)\)/s);
       if (quote) {
         this._content.push(eQuote('relayMsg', quote[2], msg.protocol));
         this._content.push(eText(quote[1]));
@@ -104,8 +104,10 @@ class RelayMessage extends GenericMessage<null> {
         if (file.Name.match('.*.(png|jpeg|jpg|gif)')) {
           if (file.Data) {
             this._content.push(eImage(Buffer.from(file.Data, 'base64')));
+            if (file.Comment) this._content.push(eText(file.Comment));
           } else if (file.URL) {
             this._content.push(eImage(file.URL));
+            if (file.Comment) this._content.push(eText(file.Comment));
           }
         }
       }
@@ -218,7 +220,7 @@ export const sendMessageToGateway = async (
         text.push(`[@#${c.targetType}${c.target ? `:${c.target}` : ''}]`);
         break;
       case 'quote':
-        if (c.content) text.push(`> ${c.content.slice(0, 24)}\n`);
+        if (c.content) text.push(quotify(c.content));
         break;
       case 'channel':
         text.push(`[#${c.content}]`);

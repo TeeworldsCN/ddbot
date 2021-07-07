@@ -248,6 +248,16 @@ export abstract class GenericBot<BotType> {
   public abstract connect(): void;
 }
 
+export const quotify = (text: string) => {
+  return (
+    text
+      .slice(0, 64)
+      .split('\n')
+      .map(s => `> ${s}`)
+      .join('\n') + '\n'
+  );
+};
+
 export abstract class GenericMessage<BotType> {
   protected _userKey: string;
   protected _userId: string;
@@ -320,7 +330,7 @@ export abstract class GenericMessage<BotType> {
           content.push(`[@#${c.targetType}${c.target ? `:${c.target}` : ''}]`);
           break;
         case 'quote':
-          if (c.content) content.push(`> ${c.content.slice(0, 24)}\n`);
+          if (c.content) content.push(quotify(c.content));
           break;
         case 'channel':
           content.push(`[#${c.content}]`);

@@ -4,6 +4,7 @@ import {
   GenericMessageElement,
   MessageAction,
   MessageReply,
+  quotify,
 } from './base';
 import { Client, MessageEventData, segment } from 'oicq';
 import { packID, unpackID } from '../utils/helpers';
@@ -33,7 +34,7 @@ export const segmentToOICQSegs = (
       result.push(segment.text(elem.content));
     } else if (elem.type == 'quote' && elem.platform != bot.platform) {
       if (elem.content) {
-        result.push(segment.text(`> ${elem.content.slice(0, 24)}\n`));
+        result.push(segment.text(quotify(elem.content)));
       } else {
         result.push(segment.text(`> 回复了一条消息\n`));
       }

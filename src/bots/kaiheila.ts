@@ -12,6 +12,7 @@ import {
   GenericMessageElement,
   MessageAction,
   MessageReply,
+  quotify,
 } from './base';
 import { Card } from '../utils/cardBuilder';
 import { packID, unpackID } from '../utils/helpers';
@@ -249,7 +250,7 @@ export const segmentToCard = async (
       if (elem.content) {
         addText();
         await addImages();
-        card.addMarkdown(`> ${elem.content.slice(0, 24)}`);
+        card.addMarkdown(quotify(elem.content));
       } else {
         card.addMarkdown(`> 回复了一条消息\n`);
       }
