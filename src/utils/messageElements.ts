@@ -28,10 +28,10 @@ export const eMention = (userKey: string, username: string): GenericMessageEleme
   };
 };
 
-export const eImage = (url: string): GenericMessageElement => {
+export const eImage = (content: string | Buffer): GenericMessageElement => {
   return {
     type: 'image',
-    content: url,
+    content: content,
   };
 };
 

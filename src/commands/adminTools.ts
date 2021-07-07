@@ -257,6 +257,8 @@ export const checkface: TextHandler = async msg => {
     for (const e of content.message) {
       if (e.type == 'face') {
         face = e.data.id;
+      } else if (e.type == 'sface') {
+        face = e.data.id;
       }
     }
   }

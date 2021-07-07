@@ -205,7 +205,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   public constructor(bot: WechatBotAdapter, e: { req: express.Request; res: express.Response }) {
     super(bot, e);
     const { req } = e;
-    this._type = 'text';
+    this._type = 'message';
 
     this._userId = req.body.FromUserName.__cdata;
     this._userKey = packID({ platform: this.bot.platform, id: this._userId });
@@ -214,6 +214,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     this._eventMsgId = req.body.MsgId;
     this._author = {
       tag: 'Anonymous',
+      nicktag: 'Anonymous',
       nickname: '公众号用户',
       username: 'WechatUser',
     };

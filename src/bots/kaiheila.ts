@@ -1,4 +1,11 @@
-import { ButtonClickEvent, ImageMessage, TextMessage } from 'kaiheila-bot-root';
+import {
+  ButtonClickEvent,
+  FileMessage,
+  ImageMessage,
+  MessageType,
+  TextMessage,
+  VideoMessage,
+} from 'kaiheila-bot-root';
 import {
   GenericBot,
   GenericMessage,
@@ -9,11 +16,12 @@ import {
 import { Card } from '../utils/cardBuilder';
 import { packID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
-import { outboundMessage } from '../relay';
+import { broadcastMessage } from '../relay';
 import { LEVEL_USER } from '../db/user';
 import ImageSize from 'image-size';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
+import { kaiheila } from '.';
 
 const getImageWidth = (url: string) => {
   let buffer: Buffer = null;
@@ -188,6 +196,8 @@ export const segmentToMessage = (
       message.push('@全体成员');
     } else if (allowMention && elem.type == 'notify' && elem.targetType == 'here') {
       message.push('@在线成员');
+    } else if (elem.type == 'unknown') {
+      message.push(`[${elem.content}]`);
     }
   }
   return { msg: message.join(' '), quote };
@@ -294,7 +304,15 @@ export const segmentToCard = async (
       if (typeof elem.content == 'string') {
         addText();
         images.push(elem.content);
+      } else {
+        const url = await bot.uploadImage('image.png', elem.content);
+        if (url) {
+          addText();
+          images.push(url);
+        }
       }
+    } else if (elem.type == 'unknown') {
+      text.push(`[${elem.content}]`);
     }
   }
   addText();
@@ -679,7 +697,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
           }
         } else if (msg.sessionType == 'CHANNEL') {
           // try relay
-          await outboundMessage(msg);
+          await broadcastMessage(msg);
         }
         return;
       }
@@ -711,7 +729,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         }
       } else if (msg.sessionType == 'CHANNEL') {
         // try relay if no commands are triggered
-        await outboundMessage(msg);
+        await broadcastMessage(msg);
       }
     });
 
@@ -743,9 +761,27 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         }
       } else if (msg.sessionType == 'CHANNEL') {
         // try relay
-        await outboundMessage(msg);
+        await broadcastMessage(msg);
       }
     });
+
+    const relayUnsupported = async (e: VideoMessage | FileMessage) => {
+      // no bot message
+      if (e.author.bot) return;
+      let type: 'file' | 'video' = 'file';
+      if (e.type == MessageType.video) {
+        type = 'video';
+      }
+
+      const msg = new KaiheilaMessage(this, e, type);
+      if (msg.sessionType == 'CHANNEL') {
+        // try relay
+        await broadcastMessage(msg);
+      }
+    };
+
+    this.instance.on('videoMessage', relayUnsupported);
+    this.instance.on('fileMessage', relayUnsupported);
 
     // buttons are always LEVEL_USER
     this.instance.on('buttonClick', async (e: ButtonClickEvent) => {
@@ -775,15 +811,16 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
 class KaiheilaMessage extends GenericMessage<BotInstance> {
   public constructor(
     bot: KaiheilaBotAdapter,
-    e: TextMessage | ButtonClickEvent | ImageMessage,
-    type: 'text' | 'button' | 'image'
+    e: TextMessage | ButtonClickEvent | ImageMessage | VideoMessage | FileMessage,
+    type: 'text' | 'button' | 'image' | 'video' | 'file'
   ) {
     super(bot, e);
 
-    this._type = type == 'button' ? 'button' : 'text';
+    this._type = type == 'button' ? 'button' : 'message';
+    this._eventMsgId = e.msgId;
 
-    if (this._type == 'text') {
-      e = e as TextMessage | ImageMessage;
+    if (this._type == 'message') {
+      e = e as TextMessage | ImageMessage | VideoMessage | FileMessage;
       const tag = `${e.author.username}#${e.author.identifyNum}`;
       const nicktag = `${e.author.nickname}#${e.author.identifyNum}`;
       this._userId = e.authorId;
@@ -791,7 +828,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       if (type == 'text') {
         const t = e as TextMessage;
         this._content = messageToSegment(this.bot, t.content, t.quote);
-      } else {
+      } else if (type == 'image') {
         const i = e as ImageMessage;
         this._content = [
           {
@@ -799,9 +836,17 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
             content: i.attachment.url,
           },
         ];
+      } else {
+        this._content = [
+          {
+            type: 'unknown',
+            content: type,
+            platform: this.bot.platform,
+            raw: e,
+          },
+        ];
       }
       this._msgId = e.msgId;
-      this._eventMsgId = e.msgId;
       this._author = {
         tag,
         nicktag,
@@ -816,7 +861,6 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       this._userKey = packID({ platform: this.bot.platform, id: e.userId });
       this._content = [{ type: 'text', content: e.value }];
       this._msgId = e.targetMsgId;
-      this._eventMsgId = e.msgId;
       this._author = {
         tag,
         nicktag: tag,

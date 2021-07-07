@@ -8,7 +8,7 @@ import {
 import { Client, MessageEventData, segment } from 'oicq';
 import { packID, unpackID } from '../utils/helpers';
 import { getUser, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
-import { outboundMessage } from '../relay';
+import { broadcastMessage } from '../relay';
 import { QMOTE } from '../utils/consts';
 
 let oicqLastMsgID: string = null;
@@ -63,6 +63,8 @@ export const segmentToOICQSegs = (
       if (elem.content) {
         result.push(segment.image(elem.content, true, 10000));
       }
+    } else if (elem.type == 'unknown') {
+      result.push(segment.text(`[${elem.content}]`));
     }
   }
 
@@ -266,7 +268,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
           }
         } else if (msg.sessionType == 'CHANNEL') {
           // try relay
-          await outboundMessage(msg);
+          await broadcastMessage(msg);
         }
         return;
       }
@@ -299,7 +301,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
         }
       } else if (msg.sessionType == 'CHANNEL') {
         // try relay if no commands are triggered
-        await outboundMessage(msg);
+        await broadcastMessage(msg);
       }
     });
 
@@ -338,7 +340,7 @@ class OICQMessage extends GenericMessage<Client> {
   public constructor(bot: OICQBotAdapter, e: MessageEventData) {
     super(bot, e);
 
-    this._type = 'text';
+    this._type = 'message';
 
     const tag = `${e.sender.nickname}#${e.sender.user_id}`;
     this._userId = `${e.sender.user_id}`;
@@ -418,8 +420,13 @@ class OICQMessage extends GenericMessage<Client> {
           platform: this.bot.platform,
           msgId: seg.data.id,
         });
-      } else if (seg.type == 'xml') {
-        console.log(seg.data);
+      } else {
+        this._content.push({
+          type: 'unknown',
+          platform: this.bot.platform,
+          content: seg.type,
+          raw: seg,
+        });
       }
 
       if (seg.type == 'reply') {
@@ -436,6 +443,7 @@ class OICQMessage extends GenericMessage<Client> {
 
     this._author = {
       tag,
+      nicktag: tag,
       nickname: e.sender.nickname,
       username: e.sender.nickname,
       avatar: `https://q2.qlogo.cn/headimg_dl?dst_uin=${this._userId}&spec=100&t=${

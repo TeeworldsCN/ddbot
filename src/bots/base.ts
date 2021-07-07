@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { ButtonHandler, ConverseHandler, TextHandler } from '../bottype';
 import { getUser, LEVEL_USER, User, UserModel } from '../db/user';
 import { Card } from '../utils/cardBuilder';
@@ -45,15 +46,15 @@ export interface UserInfo {
   // 昵称|群名片
   nickname: string;
   // 开黑啦：头像
-  avatar?: string;
+  avatar?: string | Buffer;
   // 开黑啦：是否在线
   online?: boolean;
   // 开黑啦：四位ID
   identifyNum?: string;
   // 开黑啦：用户名#四位ID
-  tag?: string;
+  tag: string;
   // 昵称+ID
-  nicktag?: string;
+  nicktag: string;
   // 开黑啦：角色ID
   roles?: number[];
   // 开黑啦：目前游戏信息
@@ -135,7 +136,8 @@ interface GenericMessageElementText {
 interface GenericMessageElementUnknown {
   type: 'unknown';
   platform: string;
-  content: any;
+  raw: any;
+  content: string;
 }
 
 export type GenericMessageElement =
@@ -257,7 +259,7 @@ export abstract class GenericMessage<BotType> {
   protected _msgId: string;
   protected _eventMsgId: string;
   protected _msgTimestamp: number;
-  protected _type: string;
+  protected _type: 'button' | 'message';
   protected _author: UserInfo;
   protected _raw: any;
   protected _bot: GenericBot<BotType>;
@@ -324,7 +326,10 @@ export abstract class GenericMessage<BotType> {
           content.push(`[#${c.content}]`);
           break;
         case 'image':
-          content.push(`[图片]`);
+          content.push(`[image]`);
+          break;
+        case 'unknown':
+          content.push(`[${c.content}]`);
           break;
         default:
           content.push(`[其他消息]`);
@@ -380,6 +385,18 @@ export abstract class GenericMessage<BotType> {
       this._dbuser = null;
     }
     return this._dbuser;
+  }
+
+  public async downloadAvatar() {
+    if (!this.author?.avatar) return;
+    if (typeof this.author.avatar != 'string') return;
+
+    try {
+      const { data } = await axios.get(this.author.avatar, { responseType: 'arraybuffer' });
+      this.author.avatar = data;
+    } catch (e) {
+      console.warn(`下载头像图片失败: ${this.author.avatar}`);
+    }
   }
 
   public get user() {

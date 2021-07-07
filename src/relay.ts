@@ -1,14 +1,15 @@
 import axios, { AxiosInstance } from 'axios';
-import { IncomingMessage } from 'http';
 import { segment } from 'oicq';
 import { kaiheila, oicq } from './bots';
-import { GenericMessage } from './bots/base';
+import { GenericBot, GenericMessage, MessageAction } from './bots/base';
 import { segmentToCard } from './bots/kaiheila';
 import { segmentToOICQSegs } from './bots/oicq';
 import { getRelay } from './db/relay';
 import { LEVEL_NORELAY } from './db/user';
 import { Card, SMD } from './utils/cardBuilder';
-import { unpackID } from './utils/helpers';
+import { packID, unpackID } from './utils/helpers';
+import { eImage, eQuote, eText } from './utils/messageElements';
+
 interface MatterMessage {
   avatar: string;
   event: string;
@@ -23,7 +24,17 @@ interface MatterMessage {
   timestamp: string;
   userid: string;
   label?: string;
-  extra: any;
+  Extra: {
+    file?: {
+      Avatar: string;
+      Comment: string;
+      Data: string;
+      Name: string;
+      SHA: string;
+      Size: number;
+      URL?: string;
+    }[];
+  };
 }
 
 const PROTOCOL_SHORT: { [key: string]: string } = {
@@ -34,6 +45,77 @@ const PROTOCOL_SHORT: { [key: string]: string } = {
 const proto = (protocol: string) => {
   return PROTOCOL_SHORT[protocol] || protocol;
 };
+
+class RelayFakeBotAdapter extends GenericBot<null> {
+  private name: string;
+
+  constructor(name: string) {
+    super(null);
+    this.name = name;
+  }
+  public makeChannelContext(_: string) {
+    return {};
+  }
+  public makeUserContext(_: string) {
+    return {};
+  }
+  public connect() {}
+
+  public get platform(): string {
+    return this.name;
+  }
+  public get platformShort(): string {
+    return proto(this.name);
+  }
+}
+
+class RelayMessage extends GenericMessage<null> {
+  constructor(msg: MatterMessage, bridgeName: string) {
+    super(new RelayFakeBotAdapter(msg.protocol), msg);
+    this._content = [];
+    this._channelId = `${bridgeName}:${msg.gateway}`;
+    this._channelKey = packID({ platform: 'gateway', id: this._channelId });
+    this._userId = `${bridgeName}:${msg.userid}`;
+    this._userKey = packID({ platform: 'gateway', id: this._userId });
+    this._msgTimestamp = parseFloat(msg.timestamp) * 1000;
+    this._sessionType = 'CHANNEL';
+    this._msgId = msg.id;
+    this._eventMsgId = msg.id;
+    this._type = 'message';
+    this._author = {
+      username: msg.username,
+      nickname: msg.username,
+      nicktag: msg.username,
+      tag: msg.username,
+      avatar: msg.avatar,
+    };
+
+    if (msg.text) {
+      const quote = msg.text.match(/(.*)\(re (.*)\)/);
+      if (quote) {
+        this._content.push(eQuote('relayMsg', quote[2], msg.protocol));
+        this._content.push(eText(quote[1]));
+      } else {
+        this._content.push(eText(msg.text));
+      }
+    }
+    if (msg.Extra?.file) {
+      for (const file of msg.Extra.file) {
+        if (file.Name.match('.*.(png|jpeg|jpg|gif)')) {
+          if (file.Data) {
+            this._content.push(eImage(Buffer.from(file.Data, 'base64')));
+          } else if (file.URL) {
+            this._content.push(eImage(file.URL));
+          }
+        }
+      }
+    }
+  }
+
+  public makeReply(_: MessageAction) {
+    return {};
+  }
+}
 
 const BRIDGES = (() => {
   const info = process.env.MATTERBRIDGE_API
@@ -61,55 +143,20 @@ const BRIDGES = (() => {
   return result;
 })();
 
-const broadcastMessage = async (bridge: string, msg: MatterMessage) => {
-  if (!msg?.gateway) return;
-
-  const doc = await getRelay(`gateway|${bridge}:${msg.gateway}`);
-  if (!doc) return;
-
-  // broadcast
-  for (const channel of doc.channels) {
-    const unpacked = unpackID(channel);
-    if (unpacked.platform == 'kaiheila') {
-      if (kaiheila) {
-        const card = new Card('sm');
-        if (msg.avatar) {
-          card.addTextWithImage(
-            `**[${SMD(proto(msg.protocol))}] ${SMD(msg.username)}**\n${SMD(msg.text)}`,
-            { src: `https://ip.webmasterapi.com/api/imageproxy/32/${msg.avatar}` },
-            'sm',
-            false,
-            true,
-            true
-          );
-        } else {
-          card.addMarkdown(`**[${SMD(proto(msg.protocol))}] ${SMD(msg.username)}**`);
-          card.addText(msg.text);
-        }
-        kaiheila.channel(channel).card(card);
-      }
-    } else {
-      if (oicq) {
-        oicq.channel(channel).text(`[${proto(msg.protocol)}] ${msg.username}: ${msg.text}`);
-      }
-    }
-  }
-};
-
 const queryBridge = (name: string) => {
   BRIDGES[name]
     .get<MatterMessage[]>('/messages')
     .then(res => {
       for (const msg of res.data) {
-        broadcastMessage(name, msg);
+        broadcastMessage(new RelayMessage(msg, name));
       }
-      setTimeout(queryBridge, 1000, name);
+      setTimeout(queryBridge, 500, name);
     })
     .catch(err => {
       console.log(`bridge ${name} failed to connect`);
       console.log(err.message);
-      console.log('retrying bridge in 10 seconds');
-      setTimeout(queryBridge, 10000, name);
+      console.log('retrying bridge in 5 seconds');
+      setTimeout(queryBridge, 5000, name);
     });
 };
 
@@ -133,7 +180,7 @@ export const sendMessageToGateway = async (
         username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
         text: url,
         gateway,
-        avatar: msg.author?.avatar,
+        avatar: typeof msg.author?.avatar == 'string' ? msg.author?.avatar : undefined,
       });
     } catch (err) {
       await msg.reply.text(`桥接图片至${bridge}发送失败`);
@@ -147,7 +194,7 @@ export const sendMessageToGateway = async (
         username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
         text: text.splice(0, text.length).join(''),
         gateway,
-        avatar: msg.author?.avatar,
+        avatar: typeof msg.author?.avatar == 'string' ? msg.author?.avatar : undefined,
       });
     } catch (err) {
       await msg.reply.text(`桥接消息至${bridge}发送失败`);
@@ -185,6 +232,9 @@ export const sendMessageToGateway = async (
           text.push(`[image]`);
         }
         break;
+      case 'unknown':
+        text.push(`[${c.content}]`);
+        break;
       default:
         text.push(`[unsupported]`);
     }
@@ -214,7 +264,7 @@ export const sendMessageToGateway = async (
 //   }
 // };
 
-export const outboundMessage = async (msg: GenericMessage<any>, update: boolean = false) => {
+export const broadcastMessage = async (msg: GenericMessage<any>, update: boolean = false) => {
   const relay = await getRelay(msg.channelKey);
   if (!relay) return false;
 
@@ -233,14 +283,25 @@ export const outboundMessage = async (msg: GenericMessage<any>, update: boolean 
       if (kaiheila) {
         const card = new Card('sm');
         if (msg.author?.avatar) {
-          card.addTextWithImage(
-            `**${SMD(msg.author.nicktag)}\n[${SMD(msg.bot.platformShort)}]**`,
-            { src: `${msg.author?.avatar}` },
-            'sm',
-            false,
-            true,
-            true
-          );
+          if (typeof msg.author?.avatar != 'string') {
+            msg.author.avatar = await kaiheila.uploadImage(
+              `avatar-${msg.userKey}.png`,
+              msg.author.avatar
+            );
+          }
+
+          if (!msg.author.avatar) {
+            card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
+          } else {
+            card.addTextWithImage(
+              `**[${SMD(msg.bot.platformShort)}]\n${SMD(msg.author.nicktag)}**`,
+              { src: `${msg.author?.avatar}` },
+              'sm',
+              false,
+              true,
+              true
+            );
+          }
         } else {
           card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
         }
