@@ -21,7 +21,7 @@
     "hashids": "^2.2.8",
     "image-size": "^1.0.0",
     "jsonwebtoken": "^8.5.1",
-    "kaiheila-bot-root": "^0.2.8",
+    "kaiheila-bot-root": "^0.2.9",
     "lodash": "^4.17.21",
     "luxon": "^1.26.0",
     "mongoose": "^5.12.13",
