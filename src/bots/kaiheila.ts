@@ -197,6 +197,8 @@ export const segmentToMessage = (
       message.push('@全体成员');
     } else if (allowMention && elem.type == 'notify' && elem.targetType == 'here') {
       message.push('@在线成员');
+    } else if (elem.type == 'link') {
+      message.push(elem.url);
     } else if (elem.type == 'unknown') {
       message.push(`[${elem.content}]`);
     }
@@ -317,6 +319,10 @@ export const segmentToCard = async (
           }
         }
       }
+    } else if (elem.type == 'link') {
+      addText();
+      await addImages();
+      card.addMarkdown(`[${elem.content}](${elem.url})`);
     } else if (elem.type == 'unknown') {
       text.push(`[${elem.content}]`);
     }

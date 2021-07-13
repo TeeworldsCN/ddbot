@@ -133,6 +133,12 @@ interface GenericMessageElementText {
   content: string;
 }
 
+interface GenericMessageElementLink {
+  type: 'link';
+  content: string;
+  url: string;
+}
+
 interface GenericMessageElementUnknown {
   type: 'unknown';
   platform: string;
@@ -148,6 +154,7 @@ export type GenericMessageElement =
   | GenericMessageElementChannel
   | GenericMessageElementEmote
   | GenericMessageElementNotify
+  | GenericMessageElementLink
   | GenericMessageElementUnknown;
 
 export abstract class GenericBot<BotType> {
@@ -253,8 +260,8 @@ export const quotify = (text: string) => {
     text
       .slice(0, 64)
       .split('\n')
-      .map(s => `> ${s}`)
-      .join('\n') + '\n'
+      .map(s => (s.trim() ? `> ${s}` : `> 　`))
+      .join('\n') + '\n\n'
   );
 };
 
@@ -306,9 +313,9 @@ export abstract class GenericMessage<BotType> {
 
   public get onlyText() {
     return this._content
-      .filter(e => e.type == 'text')
-      .map(e => e.content)
-      .join('')
+      .filter(e => e.type == 'text' || e.type == 'link')
+      .map(e => (e.type == 'link' ? e.url : e.content))
+      .join(' ')
       .trim();
   }
 
@@ -338,6 +345,9 @@ export abstract class GenericMessage<BotType> {
         case 'image':
           content.push(`[image]`);
           break;
+        case 'link':
+          content.push(`${c.url}`);
+          break;
         case 'unknown':
           content.push(`[${c.content}]`);
           break;
@@ -346,7 +356,7 @@ export abstract class GenericMessage<BotType> {
       }
     }
 
-    this._text = content.join('').trim();
+    this._text = content.join(' ').trim();
     return this._text;
   }
 

@@ -205,7 +205,7 @@ export const sendMessageToGateway = async (
     try {
       await BRIDGES[bridge].post('/message', {
         username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
-        text: text.splice(0, text.length).join(''),
+        text: text.splice(0, text.length).join(' '),
         gateway,
         avatar: typeof msg.author?.avatar == 'string' ? msg.author?.avatar : undefined,
       });
@@ -244,6 +244,9 @@ export const sendMessageToGateway = async (
         } else {
           text.push(`[image]`);
         }
+        break;
+      case 'link':
+        text.push(c.url);
         break;
       case 'unknown':
         text.push(`[${c.content}]`);

@@ -11,6 +11,7 @@ import { packID, unpackID } from '../utils/helpers';
 import { getUser, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
 import { broadcastMessage } from '../relay';
 import { QMOTE } from '../utils/consts';
+import { parse as parseXML } from 'fast-xml-parser';
 
 let oicqLastMsgID: string = null;
 
@@ -34,9 +35,9 @@ export const segmentToOICQSegs = (
       result.push(segment.text(elem.content));
     } else if (elem.type == 'quote' && elem.platform != bot.platform) {
       if (elem.content) {
-        result.push(segment.text(quotify(elem.content)));
+        result.push(segment.text('\n' + quotify(elem.content) + '\n---\n'));
       } else {
-        result.push(segment.text(`> 回复了一条消息\n`));
+        result.push(segment.text(`\n> 回复了一条消息\n---\n`));
       }
     } else if (elem.type == 'mention') {
       if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
@@ -64,6 +65,8 @@ export const segmentToOICQSegs = (
       if (elem.content) {
         result.push(segment.image(elem.content, true, 10000));
       }
+    } else if (elem.type == 'link') {
+      result.push(segment.text(` ${elem.url} `));
     } else if (elem.type == 'unknown') {
       result.push(segment.text(`[${elem.content}]`));
     }
@@ -337,6 +340,43 @@ export class OICQBotAdapter extends GenericBot<Client> {
     this.started = true;
   }
 }
+
+const parseOICQXML = (xml: string): GenericMessageElement => {
+  const data = parseXML(xml, {
+    ignoreAttributes: false,
+  });
+
+  if (data?.msg?.['@_url']) {
+    let title = data?.msg?.item?.title;
+    if (Array.isArray(title)) {
+      title = title[0];
+    }
+
+    return {
+      type: 'link',
+      content: data?.msg?.item?.title || data?.msg?.['@_url'],
+      url: data?.msg?.['@_url'],
+    };
+  } else {
+    let title = data?.msg?.item?.title;
+    if (!Array.isArray(title)) {
+      title = [title];
+    }
+    const content = title.map((t: any) => (typeof t == 'string' ? t : t?.['#text'] || ''));
+    if (data?.msg?.item?.summary) {
+      if (typeof data.msg.item.summary == 'string') {
+        content.push(data.msg.item.summary);
+      } else if (data.msg.item.summary?.['#text']) {
+        content.push(data.msg.item.summary['#text']);
+      }
+    }
+    return {
+      type: 'text',
+      content: content.join('\n'),
+    };
+  }
+};
+
 class OICQMessage extends GenericMessage<Client> {
   public constructor(bot: OICQBotAdapter, e: MessageEventData) {
     super(bot, e);
@@ -421,6 +461,8 @@ class OICQMessage extends GenericMessage<Client> {
           platform: this.bot.platform,
           msgId: seg.data.id,
         });
+      } else if (seg.type == 'xml') {
+        this._content.push(parseOICQXML(seg.data.data));
       } else {
         this._content.push({
           type: 'unknown',
