@@ -342,37 +342,76 @@ export class OICQBotAdapter extends GenericBot<Client> {
 }
 
 const parseOICQXML = (xml: string): GenericMessageElement => {
-  const data = parseXML(xml, {
-    ignoreAttributes: false,
-  });
+  try {
+    const data = parseXML(xml, {
+      ignoreAttributes: false,
+    });
 
-  if (data?.msg?.['@_url']) {
-    let title = data?.msg?.item?.title;
-    if (Array.isArray(title)) {
-      title = title[0];
-    }
-
-    return {
-      type: 'link',
-      content: data?.msg?.item?.title || data?.msg?.['@_url'],
-      url: data?.msg?.['@_url'],
-    };
-  } else {
-    let title = data?.msg?.item?.title;
-    if (!Array.isArray(title)) {
-      title = [title];
-    }
-    const content = title.map((t: any) => (typeof t == 'string' ? t : t?.['#text'] || ''));
-    if (data?.msg?.item?.summary) {
-      if (typeof data.msg.item.summary == 'string') {
-        content.push(data.msg.item.summary);
-      } else if (data.msg.item.summary?.['#text']) {
-        content.push(data.msg.item.summary['#text']);
+    if (data?.msg?.['@_url']) {
+      let title = data?.msg?.item?.title;
+      if (Array.isArray(title)) {
+        title = title[0];
       }
+
+      return {
+        type: 'link',
+        content: data?.msg?.item?.title || data?.msg?.['@_url'],
+        url: data?.msg?.['@_url'],
+      };
+    } else {
+      let title = data?.msg?.item?.title;
+      if (!Array.isArray(title)) {
+        title = [title];
+      }
+      const content = title.map((t: any) => (typeof t == 'string' ? t : t?.['#text'] || ''));
+      if (data?.msg?.item?.summary) {
+        if (typeof data.msg.item.summary == 'string') {
+          content.push(data.msg.item.summary);
+        } else if (data.msg.item.summary?.['#text']) {
+          content.push(data.msg.item.summary['#text']);
+        }
+      }
+      return {
+        type: 'text',
+        content: content.join('\n'),
+      };
     }
+  } catch {
     return {
       type: 'text',
-      content: content.join('\n'),
+      content: '[invalid xml message]',
+    };
+  }
+};
+
+const parseOICQJson = (json: string): GenericMessageElement => {
+  try {
+    const data = JSON.parse(json);
+    if (data?.prompt) {
+      return {
+        type: 'text',
+        content: `[card:${data.prompt}]`,
+      };
+    } else if (data?.desc) {
+      return {
+        type: 'text',
+        content: `[card:${data.desc}]`,
+      };
+    } else if (data?.text) {
+      return {
+        type: 'text',
+        content: `[card:${data.text}]`,
+      };
+    } else if (data?.app) {
+      return {
+        type: 'text',
+        content: `[card:${data.app}]`,
+      };
+    }
+  } catch {
+    return {
+      type: 'text',
+      content: '[invalid json message]',
     };
   }
 };
@@ -463,6 +502,8 @@ class OICQMessage extends GenericMessage<Client> {
         });
       } else if (seg.type == 'xml') {
         this._content.push(parseOICQXML(seg.data.data));
+      } else if (seg.type == 'json') {
+        this._content.push(parseOICQJson(seg.data.data));
       } else {
         this._content.push({
           type: 'unknown',
