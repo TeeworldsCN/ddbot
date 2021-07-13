@@ -91,9 +91,15 @@ class RelayMessage extends GenericMessage<null> {
     };
 
     if (msg.text) {
-      const isImage = msg.text.match(/^(?:https?:\/\/|\/)(?:[^\s]+\.(?:png|jpg|jpeg|gif))$/i);
-      if (isImage) {
-        this._content.push(eImage(msg.text));
+      const imageMatch = msg.text.match(/(.*)(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif))(.*)/i);
+      if (imageMatch) {
+        if (imageMatch[1]) {
+          this._content.push(eText(imageMatch[1]));
+        }
+        this._content.push(eImage(imageMatch[2]));
+        if (imageMatch[3]) {
+          this._content.push(eText(imageMatch[3]));
+        }
       } else {
         const quote = msg.text.match(/(.*)\(re (.*)\)/s);
         if (quote) {
