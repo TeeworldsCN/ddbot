@@ -35,7 +35,7 @@ export const segmentToOICQSegs = (
       result.push(segment.text(elem.content));
     } else if (elem.type == 'quote' && elem.platform != bot.platform) {
       if (elem.content) {
-        result.push(segment.text('\n' + quotify(elem.content) + '\n---\n'));
+        result.push(segment.text('\n' + quotify(elem.content) + '---\n'));
       } else {
         result.push(segment.text(`\n> 回复了一条消息\n---\n`));
       }

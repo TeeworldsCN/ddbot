@@ -256,11 +256,13 @@ export abstract class GenericBot<BotType> {
 }
 
 export const quotify = (text: string) => {
-  return text
-    .slice(0, 64)
-    .split('\n')
-    .map(s => (s.trim() ? `> ${s}` : `> 　`))
-    .join('\n');
+  return (
+    text
+      .slice(0, 64)
+      .split('\n')
+      .map(s => (s.trim() ? `> ${s}` : `> 　`))
+      .join('\n') + '\n'
+  );
 };
 
 export abstract class GenericMessage<BotType> {
