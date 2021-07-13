@@ -91,12 +91,17 @@ class RelayMessage extends GenericMessage<null> {
     };
 
     if (msg.text) {
-      const quote = msg.text.match(/(.*)\(re (.*)\)/s);
-      if (quote) {
-        this._content.push(eQuote('relayMsg', quote[2], msg.protocol));
-        this._content.push(eText(quote[1]));
+      const isImage = msg.text.match(/^(?:https?:\/\/|\/)(?:[^\s]+\.(?:png|jpg|jpeg|gif))$/i);
+      if (isImage) {
+        this._content.push(eImage(msg.text));
       } else {
-        this._content.push(eText(msg.text));
+        const quote = msg.text.match(/(.*)\(re (.*)\)/s);
+        if (quote) {
+          this._content.push(eQuote('relayMsg', quote[2], msg.protocol));
+          this._content.push(eText(quote[1]));
+        } else {
+          this._content.push(eText(msg.text));
+        }
       }
     }
     if (msg.Extra?.file) {

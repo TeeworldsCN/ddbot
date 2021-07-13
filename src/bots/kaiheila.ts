@@ -305,16 +305,16 @@ export const segmentToCard = async (
     } else if (elem.type == 'image') {
       if (!allowImages) {
         text.push(`[image]`);
-        break;
-      }
-      if (typeof elem.content == 'string') {
-        addText();
-        images.push(elem.content);
       } else {
-        const url = await bot.uploadImage('image.png', elem.content);
-        if (url) {
+        if (typeof elem.content == 'string') {
           addText();
-          images.push(url);
+          images.push(elem.content);
+        } else {
+          const url = await bot.uploadImage('image.png', elem.content);
+          if (url) {
+            addText();
+            images.push(url);
+          }
         }
       }
     } else if (elem.type == 'unknown') {
