@@ -96,15 +96,14 @@ class RelayMessage extends GenericMessage<null> {
         this._content.push(eQuote('relayMsg', quote[2], msg.protocol));
         this._content.push(eText(quote[1]));
       } else {
-        const imageMatch = msg.text.match(/(.*)(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif))(.*)/i);
+        const imageMatch = msg.text.match(/(.*)(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif))(.*)/s);
         if (imageMatch) {
-          console.log(`${imageMatch.join('|')}`);
           if (imageMatch[1]) {
-            this._content.push(eText(imageMatch[1]));
+            this._content.push(eText(imageMatch[1].trim()));
           }
           this._content.push(eImage(imageMatch[2]));
           if (imageMatch[3]) {
-            this._content.push(eText(imageMatch[3]));
+            this._content.push(eText(imageMatch[3].trim()));
           }
         } else {
           this._content.push(eText(msg.text));
