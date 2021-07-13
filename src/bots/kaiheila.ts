@@ -208,6 +208,7 @@ export const segmentToCard = async (
   bot: GenericBot<any>,
   content: GenericMessageElement[],
   card: Card,
+  allowImages: boolean,
   mention: 'ignore' | 'mention' | 'text' = 'ignore'
 ): Promise<string> => {
   let quote = undefined;
@@ -302,6 +303,10 @@ export const segmentToCard = async (
         text.push(`[${elem.name}]`);
       }
     } else if (elem.type == 'image') {
+      if (!allowImages) {
+        text.push(`[image]`);
+        break;
+      }
       if (typeof elem.content == 'string') {
         addText();
         images.push(elem.content);
@@ -361,7 +366,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           const card = new Card('lg');
           if (card.isEmpty) return null;
-          const quote = await segmentToCard(this, content, card, 'mention');
+          const quote = await segmentToCard(this, content, card, true, 'mention');
           try {
             const result = await this.instance.API.message.create(
               MSG_TYPES.text,
@@ -534,7 +539,7 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
         } else {
           const card = new Card('lg');
           if (card.isEmpty) return null;
-          const quote = await segmentToCard(this, content, card, 'mention');
+          const quote = await segmentToCard(this, content, card, true, 'mention');
           try {
             const result = await this.instance.API.directMessage.create(
               MSG_TYPES.text,

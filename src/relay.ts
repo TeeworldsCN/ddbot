@@ -284,30 +284,31 @@ export const broadcastMessage = async (msg: GenericMessage<any>, update: boolean
     if (unpacked.platform == 'kaiheila') {
       if (kaiheila) {
         const card = new Card('sm');
-        if (msg.author?.avatar) {
-          if (typeof msg.author?.avatar != 'string') {
-            msg.author.avatar = await kaiheila.uploadImage(
-              `avatar-${msg.userKey}.png`,
-              msg.author.avatar
-            );
-          }
+        // if (msg.author?.avatar) {
+        //   if (typeof msg.author?.avatar != 'string') {
+        //     msg.author.avatar = await kaiheila.uploadImage(
+        //       `avatar-${msg.userKey}.png`,
+        //       msg.author.avatar
+        //     );
+        //   }
 
-          if (!msg.author.avatar) {
-            card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
-          } else {
-            card.addTextWithImage(
-              `**[${SMD(msg.bot.platformShort)}]\n${SMD(msg.author.nicktag)}**`,
-              { src: `${msg.author?.avatar}` },
-              'sm',
-              false,
-              true,
-              true
-            );
-          }
-        } else {
-          card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
-        }
-        await segmentToCard(kaiheila, msg.content, card, 'text');
+        //   if (!msg.author.avatar) {
+        //     card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
+        //   } else {
+        //     card.addTextWithImage(
+        //       `**[${SMD(msg.bot.platformShort)}]\n${SMD(msg.author.nicktag)}**`,
+        //       { src: `${msg.author?.avatar}` },
+        //       'sm',
+        //       false,
+        //       true,
+        //       true
+        //     );
+        //   }
+        // } else {
+        //   card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
+        // }
+        card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
+        await segmentToCard(kaiheila, msg.content, card, false, 'text');
         if (card.length == 1) continue;
         kaiheila.channel(channel).card(card);
         // .then(id => {
