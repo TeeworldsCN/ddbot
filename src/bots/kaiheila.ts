@@ -7,7 +7,7 @@ import {
   VideoMessage,
 } from 'kaiheila-bot-root';
 import {
-  GenericBot,
+  GenericBotAdapter,
   GenericMessage,
   GenericMessageElement,
   MessageAction,
@@ -15,7 +15,7 @@ import {
   quotify,
 } from './base';
 import { Card } from '../utils/cardBuilder';
-import { packID, unpackID } from '../utils/helpers';
+import { packID, unpackChannelID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
 import { broadcastMessage } from '../relay';
 import { LEVEL_USER } from '../db/user';
@@ -63,10 +63,8 @@ const MSG_TYPES = {
   card: 10,
 };
 
-const PLATFORM = 'kaiheila';
-
 const messageToSegment = (
-  bot: GenericBot<any>,
+  bot: GenericBotAdapter<any>,
   msg: string,
   quote?: TextMessage
 ): GenericMessageElement[] => {
@@ -79,10 +77,10 @@ const messageToSegment = (
   if (quote) {
     result.push({
       type: 'quote',
-      platform: bot.platform,
+      platform: bot.platformKey,
       content: quote.content,
       msgId: quote.msgId,
-      userKey: packID({ platform: bot.platform, id: quote.authorId }),
+      userKey: bot.packID(quote.authorId),
     });
   }
 
@@ -105,7 +103,7 @@ const messageToSegment = (
       result.push({
         type: 'mention',
         content: mention[1],
-        userKey: packID({ platform: bot.platform, id: mention[2] }),
+        userKey: bot.packID(mention[2]),
       });
       continue;
     }
@@ -115,7 +113,7 @@ const messageToSegment = (
       result.push({
         type: 'channel',
         content: 'CHANNEL',
-        channelKey: packID({ platform: bot.platform, id: channel[1] }),
+        channelKey: bot.packChannelID(channel[1]),
       });
       continue;
     }
@@ -124,7 +122,7 @@ const messageToSegment = (
       pushText();
       result.push({
         type: 'emote',
-        platform: bot.platform,
+        platform: bot.platformKey,
         name: emote[1],
         id: part,
         content: `https://img.kaiheila.cn/emojis/${emote[2]}.png`,
@@ -172,25 +170,28 @@ const messageToSegment = (
 };
 
 export const segmentToMessage = (
-  bot: GenericBot<any>,
+  bot: GenericBotAdapter<any>,
   content: GenericMessageElement[],
   allowMention: boolean = false
 ): { msg: string; quote?: string } => {
   let quote = undefined;
   const message = [];
   for (const elem of content) {
-    if (elem.type == 'quote' && elem.platform == bot.platform && quote != null) {
+    if (elem.type == 'quote' && elem.platform == bot.platformKey && quote != null) {
       quote = elem.msgId;
     } else if (elem.type == 'text') {
       message.push(elem.content);
     } else if (
       allowMention &&
       elem.type == 'mention' &&
-      unpackID(elem.userKey).platform == bot.platform
+      unpackID(elem.userKey).platform == bot.platformKey
     ) {
       message.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
-    } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
-      message.push(`#channel:${unpackID(elem.channelKey).id};`);
+    } else if (
+      elem.type == 'channel' &&
+      unpackChannelID(elem.channelKey).platform == bot.platformKey
+    ) {
+      message.push(`#channel:${unpackChannelID(elem.channelKey).id};`);
     } else if (allowMention && elem.type == 'notify' && elem.targetType == 'role') {
       message.push(elem.content); // role 目前只有开黑啦有
     } else if (allowMention && elem.type == 'notify' && elem.targetType == 'all') {
@@ -207,7 +208,7 @@ export const segmentToMessage = (
 };
 
 export const segmentToCard = async (
-  bot: GenericBot<any>,
+  bot: GenericBotAdapter<any>,
   content: GenericMessageElement[],
   card: Card,
   allowImages: boolean,
@@ -247,9 +248,9 @@ export const segmentToCard = async (
   };
 
   for (const elem of content) {
-    if (elem.type == 'quote' && elem.platform == bot.platform && quote != null) {
+    if (elem.type == 'quote' && elem.platform == bot.platformKey && quote != null) {
       quote = elem.msgId;
-    } else if (elem.type == 'quote' && elem.platform != bot.platform) {
+    } else if (elem.type == 'quote' && elem.platform != bot.platformKey) {
       if (elem.content) {
         addText();
         await addImages();
@@ -261,16 +262,19 @@ export const segmentToCard = async (
       await addImages();
       text.push(elem.content);
     } else if (elem.type == 'mention') {
-      if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
+      if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platformKey) {
         await addImages();
         text.push(`@${elem.content}#${unpackID(elem.userKey).id}`);
       } else if (mention == 'text') {
         await addImages();
         text.push(`[@${elem.content}]`);
       }
-    } else if (elem.type == 'channel' && unpackID(elem.channelKey).platform == bot.platform) {
+    } else if (
+      elem.type == 'channel' &&
+      unpackChannelID(elem.channelKey).platform == bot.platformKey
+    ) {
       await addImages();
-      text.push(`#channel:${unpackID(elem.channelKey).id};`);
+      text.push(`#channel:${unpackChannelID(elem.channelKey).id};`);
     } else if (elem.type == 'notify' && elem.targetType == 'role') {
       if (mention == 'mention') {
         await addImages();
@@ -332,7 +336,7 @@ export const segmentToCard = async (
   return quote;
 };
 
-export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
+export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
       text: async (content: string, quote?: string, onlyTo?: string) => {
@@ -669,14 +673,6 @@ export class KaiheilaBotAdapter extends GenericBot<BotInstance> {
     return null;
   }
 
-  public get platform(): string {
-    return PLATFORM;
-  }
-
-  public get platformShort(): string {
-    return 'KH';
-  }
-
   public connect() {
     this.instance.on('textMessage', async (e: TextMessage) => {
       // no bot message
@@ -836,7 +832,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       const tag = `${e.author.username}#${e.author.identifyNum}`;
       const nicktag = `${e.author.nickname}#${e.author.identifyNum}`;
       this._userId = e.authorId;
-      this._userKey = packID({ platform: this.bot.platform, id: e.authorId });
+      this._userKey = this.bot.packID(e.authorId);
       if (type == 'text') {
         const t = e as TextMessage;
         this._content = messageToSegment(this.bot, t.content, t.quote);
@@ -853,7 +849,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
           {
             type: 'unknown',
             content: type,
-            platform: this.bot.platform,
+            platform: this.bot.platformKey,
             raw: e,
           },
         ];
@@ -870,7 +866,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       e = e as ButtonClickEvent;
       const tag = `${e.user.username}#${e.user.identifyNum}`;
       this._userId = e.userId;
-      this._userKey = packID({ platform: this.bot.platform, id: e.userId });
+      this._userKey = this.bot.packID(e.userId);
       this._content = [{ type: 'text', content: e.value }];
       this._msgId = e.targetMsgId;
       this._author = {
@@ -881,7 +877,7 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       };
     }
 
-    this._channelKey = packID({ platform: this.bot.platform, id: e.channelId });
+    this._channelKey = this.bot.packChannelID(e.channelId);
     this._channelId = e.channelId;
     this._sessionType = e.channelType == 'GROUP' ? 'CHANNEL' : 'DM';
     this._msgTimestamp = e.msgTimestamp;
@@ -898,5 +894,13 @@ class KaiheilaMessage extends GenericMessage<BotInstance> {
       addReaction: e => context.addReaction(this.msgId, e),
       deleteReaction: (e, u) => context.deleteReaction(this.msgId, e, u),
     };
+  }
+
+  public get platform(): string {
+    return 'kaiheila';
+  }
+
+  public get platformShort(): string {
+    return 'KH';
   }
 }

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ButtonHandler, ConverseHandler, TextHandler } from '../bottype';
 import { getUser, LEVEL_USER, User, UserModel } from '../db/user';
 import { Card } from '../utils/cardBuilder';
-import { unpackID } from '../utils/helpers';
+import { packChannelID, packID, unpackID } from '../utils/helpers';
 
 export type MessageReply = {
   text: (content: string, quote?: string, temp?: boolean) => Promise<string>;
@@ -157,8 +157,18 @@ export type GenericMessageElement =
   | GenericMessageElementLink
   | GenericMessageElementUnknown;
 
-export abstract class GenericBot<BotType> {
+const globalCommands: {
+  [key: string]: {
+    func: TextHandler;
+    desc: string | boolean | number;
+    level: number;
+  };
+} = {};
+
+export abstract class GenericBotAdapter<BotType> {
   protected _instance: any;
+  protected _platform: string;
+  protected _name: string;
   public started: boolean = false;
 
   public commands: {
@@ -179,8 +189,9 @@ export abstract class GenericBot<BotType> {
     };
   } = {};
 
-  constructor(instance: any) {
+  constructor(instance: any, platform: string) {
     this._instance = instance;
+    this._platform = platform;
   }
 
   public addCommand(
@@ -208,7 +219,7 @@ export abstract class GenericBot<BotType> {
   // 频道相关
   public channel(channelKey: string): MessageAction {
     const { platform, id } = unpackID(channelKey);
-    if (platform !== this.platform) return EMPTY_ACTIONS;
+    if (platform !== this._platform) return EMPTY_ACTIONS;
 
     return {
       ...EMPTY_ACTIONS,
@@ -219,12 +230,28 @@ export abstract class GenericBot<BotType> {
   // 私聊相关
   public dm(userKey: string): MessageAction {
     const { platform, id } = unpackID(userKey);
-    if (platform !== this.platform) return EMPTY_ACTIONS;
+    if (platform !== this._platform) return EMPTY_ACTIONS;
 
     return {
       ...EMPTY_ACTIONS,
       ...this.makeUserContext(id),
     };
+  }
+
+  public packID(id: string): string {
+    return packID({ platform: this._platform, id });
+  }
+
+  public packChannelID(id: string): string {
+    return packChannelID({ platform: this._platform, botName: this._name, id });
+  }
+
+  public get platformKey() {
+    return this._platform;
+  }
+
+  public get botName() {
+    return this._name;
   }
 
   public get instance(): BotType {
@@ -250,8 +277,6 @@ export abstract class GenericBot<BotType> {
 
   public abstract makeChannelContext(channelId: string): Partial<MessageAction>;
   public abstract makeUserContext(userId: string): Partial<MessageAction>;
-  public abstract get platform(): string;
-  public abstract get platformShort(): string;
   public abstract connect(): void;
 }
 
@@ -260,6 +285,7 @@ export const quotify = (text: string) => {
     text
       .slice(0, 64)
       .split('\n')
+      .filter(s => !s.startsWith('>'))
       .map(s => (s.trim() ? `> ${s}` : `> 　`))
       .join('\n') + '\n'
   );
@@ -279,13 +305,13 @@ export abstract class GenericMessage<BotType> {
   protected _type: 'button' | 'message';
   protected _author: UserInfo;
   protected _raw: any;
-  protected _bot: GenericBot<BotType>;
+  protected _bot: GenericBotAdapter<BotType>;
   protected _dbuser: User;
   protected _text: string = null;
 
   public command: string = null;
 
-  public constructor(bot: GenericBot<BotType>, e: any) {
+  public constructor(bot: GenericBotAdapter<BotType>, e: any) {
     this._raw = e;
     this._bot = bot;
     this._dbuser = null;
@@ -392,7 +418,7 @@ export abstract class GenericMessage<BotType> {
     return this._type;
   }
 
-  public get bot(): GenericBot<BotType> {
+  public get bot(): GenericBotAdapter<BotType> {
     return this._bot;
   }
 
@@ -476,6 +502,9 @@ export abstract class GenericMessage<BotType> {
       ...this.makeReply(context),
     };
   }
+
+  public abstract get platform(): string;
+  public abstract get platformShort(): string;
 
   public async fetchExtraMsgInfo(): Promise<void> {}
   public async fetchMsgAssets(): Promise<void> {}

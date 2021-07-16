@@ -9,8 +9,21 @@ export const unpackID = (id: string) => {
   };
 };
 
+export const unpackChannelID = (id: string) => {
+  const data = id.split('|');
+  return {
+    platform: data[0],
+    botName: data[1],
+    id: data.slice(2).join(''),
+  };
+};
+
 export const packID = (data: { platform: string; id: string }) => {
   return `${data.platform}|${data.id}`;
+};
+
+export const packChannelID = (data: { platform: string; botName: string; id: string }) => {
+  return `${data.platform}|${data.botName}|${data.id}`;
 };
 
 export const dateTime = (date: number) =>

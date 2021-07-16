@@ -1,5 +1,5 @@
 import {
-  GenericBot,
+  GenericBotAdapter,
   GenericMessage,
   GenericMessageElement,
   MessageAction,
@@ -16,14 +16,14 @@ import { parse as parseXML } from 'fast-xml-parser';
 let oicqLastMsgID: string = null;
 
 export const segmentToOICQSegs = (
-  bot: GenericBot<any>,
+  bot: GenericBotAdapter<any>,
   content: GenericMessageElement[],
   mention: 'ignore' | 'mention' | 'text' = 'ignore'
 ) => {
   const result = [];
 
   for (const elem of content) {
-    if (elem.type == 'quote' && elem.platform == bot.platform) {
+    if (elem.type == 'quote' && elem.platform == bot.platformKey) {
       result.push(segment.reply(elem.msgId));
       result.push(segment.at(parseInt(unpackID(elem.userKey).id)));
       break;
@@ -33,14 +33,14 @@ export const segmentToOICQSegs = (
   for (const elem of content) {
     if (elem.type == 'text') {
       result.push(segment.text(elem.content));
-    } else if (elem.type == 'quote' && elem.platform != bot.platform) {
+    } else if (elem.type == 'quote' && elem.platform != bot.platformKey) {
       if (elem.content) {
         result.push(segment.text('\n' + quotify(elem.content) + '---\n'));
       } else {
         result.push(segment.text(`\n> 回复了一条消息\n---\n`));
       }
     } else if (elem.type == 'mention') {
-      if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platform) {
+      if (mention == 'mention' && unpackID(elem.userKey).platform == bot.platformKey) {
         result.push(segment.at(parseInt(unpackID(elem.userKey).id)));
       } else if (mention == 'text') {
         result.push(segment.text(`[@${elem.content}]`));
@@ -75,7 +75,7 @@ export const segmentToOICQSegs = (
   return result;
 };
 
-export class OICQBotAdapter extends GenericBot<Client> {
+export class OICQBotAdapter extends GenericBotAdapter<Client> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {
       text: async (content: string, quote?: string, onlyTo?: string) => {
@@ -231,14 +231,6 @@ export class OICQBotAdapter extends GenericBot<Client> {
     return this.uploadImage(name, data);
   }
 
-  public get platform(): string {
-    return 'oicq';
-  }
-
-  public get platformShort(): string {
-    return 'Q';
-  }
-
   public connect() {
     this.instance.on('message', async e => {
       if (oicqLastMsgID === e.message_id) return;
@@ -316,7 +308,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
     });
 
     this.instance.on('request.friend.add', async data => {
-      const userKey = packID({ platform: this.platform, id: data.user_id.toString() });
+      const userKey = this.packID(data.user_id.toString());
       const user = await getUser(userKey);
       if ((user?.level ?? LEVEL_USER) > LEVEL_MANAGER) {
         await this.instance.setFriendAddRequest(data.flag, false, '抱歉，我暂时不能加好友。');
@@ -326,7 +318,7 @@ export class OICQBotAdapter extends GenericBot<Client> {
     });
 
     this.instance.on('request.group.invite', async data => {
-      const userKey = packID({ platform: this.platform, id: data.user_id.toString() });
+      const userKey = this.packID(data.user_id.toString());
       const user = await getUser(userKey);
       if ((user?.level ?? LEVEL_USER) > LEVEL_MANAGER) {
         await this.instance.setGroupAddRequest(data.flag, false);
@@ -424,7 +416,7 @@ class OICQMessage extends GenericMessage<Client> {
 
     const tag = `${e.sender.nickname}#${e.sender.user_id}`;
     this._userId = `${e.sender.user_id}`;
-    this._userKey = packID({ platform: this.bot.platform, id: this._userId });
+    this._userKey = this.bot.packID(this._userId);
 
     this._content = [];
 
@@ -445,13 +437,13 @@ class OICQMessage extends GenericMessage<Client> {
           this._content.push({
             type: 'mention',
             content: (seg.data.text || '').slice(1),
-            userKey: packID({ platform: this.bot.platform, id: seg.data.qq.toString() }),
+            userKey: this.bot.packID(seg.data.qq.toString()),
           });
         }
       } else if (seg.type == 'bface') {
         this._content.push({
           type: 'emote',
-          platform: this.bot.platform,
+          platform: this.bot.platformKey,
           content: seg.data.file,
           id: null,
           name: seg.data.text,
@@ -460,7 +452,7 @@ class OICQMessage extends GenericMessage<Client> {
         if (seg.data.text) {
           this._content.push({
             type: 'emote',
-            platform: this.bot.platform,
+            platform: this.bot.platformKey,
             content: null,
             id: null,
             name: seg.data.text,
@@ -472,7 +464,7 @@ class OICQMessage extends GenericMessage<Client> {
           if (qmote) {
             this._content.push({
               type: 'emote',
-              platform: this.bot.platform,
+              platform: this.bot.platformKey,
               content: null,
               id: null,
               name: qmote.name,
@@ -482,7 +474,7 @@ class OICQMessage extends GenericMessage<Client> {
           } else {
             this._content.push({
               type: 'emote',
-              platform: this.bot.platform,
+              platform: this.bot.platformKey,
               content: null,
               id: null,
               name: seg.data.id.toString(),
@@ -497,7 +489,7 @@ class OICQMessage extends GenericMessage<Client> {
       } else if (seg.type == 'reply') {
         this._content.push({
           type: 'quote',
-          platform: this.bot.platform,
+          platform: this.bot.platformKey,
           msgId: seg.data.id,
         });
       } else if (seg.type == 'xml') {
@@ -507,7 +499,7 @@ class OICQMessage extends GenericMessage<Client> {
       } else {
         this._content.push({
           type: 'unknown',
-          platform: this.bot.platform,
+          platform: this.bot.platformKey,
           content: seg.type,
           raw: seg,
         });
@@ -537,12 +529,12 @@ class OICQMessage extends GenericMessage<Client> {
 
     if (e.message_type == 'private') {
       this._sessionType = 'DM';
-      this._channelKey = packID({ platform: this.bot.platform, id: this._userId });
+      this._channelKey = this.bot.packChannelID(this._userId);
       this._channelId = this._userId;
     } else if (e.message_type == 'group') {
       this._sessionType = 'CHANNEL';
       this._channelId = `${e.group_id}`;
-      this._channelKey = packID({ platform: this.bot.platform, id: this._channelId });
+      this._channelKey = this.bot.packChannelID(this._channelId);
       this._channelName = `${e.group_name}`;
       this._author.isMaster = e.sender.role == 'owner';
       let roleId = 0;
@@ -559,7 +551,7 @@ class OICQMessage extends GenericMessage<Client> {
     } else if (e.message_type == 'discuss') {
       this._sessionType = 'CHANNEL';
       this._channelId = `${e.discuss_id}`;
-      this._channelKey = packID({ platform: this.bot.platform, id: this._channelId });
+      this._channelKey = this.bot.packChannelID(this._channelId);
       this._channelName = `${e.discuss_name}`;
       this.author.isMaster = false;
       this._author.hoistInfo = {
@@ -593,15 +585,20 @@ class OICQMessage extends GenericMessage<Client> {
           console.warn(result);
           return;
         }
-        part.userKey = packID({
-          platform: this.bot.platform,
-          id: result.data.sender.user_id.toString(),
-        });
+        part.userKey = this.bot.packID(result.data.sender.user_id.toString());
 
         const quoteMsg = new OICQMessage(this.bot, result.data);
-        part.content = quoteMsg.text;
+        part.content = `${result.data.sender.nickname}: ${quoteMsg.text}`;
       }
     }
     this._text = null;
+  }
+
+  public get platform(): string {
+    return 'oicq';
+  }
+
+  public get platformShort(): string {
+    return 'Q';
   }
 }

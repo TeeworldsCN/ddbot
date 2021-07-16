@@ -4,8 +4,7 @@ import { DateTime } from 'luxon';
 import axios, { AxiosInstance } from 'axios';
 import sha1 from 'sha1';
 import { TextHandler } from '../bottype';
-import { GenericBot, GenericMessage, MessageAction, MessageReply } from './base';
-import { packID } from '../utils/helpers';
+import { GenericBotAdapter, GenericMessage, MessageAction, MessageReply } from './base';
 import { parse, j2xParser } from 'fast-xml-parser';
 import FormData from 'form-data';
 import { WechatReplyModel } from '../db/wechatReply';
@@ -64,21 +63,12 @@ const checkSign = (req: express.Request, res: express.Response, next: express.Ne
   res.sendStatus(404);
 };
 
-const PLATFORM = 'wechat';
-
-export class WechatBotAdapter extends GenericBot<AxiosInstance> {
+export class WechatBotAdapter extends GenericBotAdapter<AxiosInstance> {
   public makeChannelContext(channelId: string): Partial<MessageAction> {
     return {};
   }
   public makeUserContext(userId: string): Partial<MessageAction> {
     return {};
-  }
-  public get platform(): string {
-    return PLATFORM;
-  }
-
-  public get platformShort(): string {
-    return 'W';
   }
 
   public async uploadImage(name: string, imageData: Buffer) {
@@ -208,7 +198,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     this._type = 'message';
 
     this._userId = req.body.FromUserName.__cdata;
-    this._userKey = packID({ platform: this.bot.platform, id: this._userId });
+    this._userKey = this.bot.packID(this._userId);
     this._content = [{ type: 'text', content: req.body.Content.__cdata }];
     this._msgId = req.body.MsgId;
     this._eventMsgId = req.body.MsgId;
@@ -221,7 +211,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     if (!this._author.nickname) this._author.nickname = this._author.username;
 
     this._channelId = req.body.ToUserName.__cdata;
-    this._channelKey = packID({ platform: this.bot.platform, id: req.body.ToUserName.__cdata });
+    this._channelKey = this.bot.packChannelID(req.body.ToUserName.__cdata);
     this._sessionType = 'DM';
     this._msgTimestamp = req.body.CreateTime;
   }
@@ -287,6 +277,14 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     //   console.warn(`[微信]获取用户信息(${this.userId})失败`);
     //   console.warn(e);
     // }
+  }
+
+  public get platform(): string {
+    return 'wechat';
+  }
+
+  public get platformShort(): string {
+    return 'W';
   }
 }
 

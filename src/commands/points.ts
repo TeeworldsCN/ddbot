@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { GenericBot } from '../bots/base';
+import { GenericBotAdapter } from '../bots/base';
 import { compile } from 'vega-lite';
 import sharp from 'sharp';
 import { View, parse } from 'vega';
@@ -13,7 +13,7 @@ import _ from 'lodash';
 import { eImage, eMention, eText } from '../utils/messageElements';
 
 const uploadGraph = async (
-  bot: GenericBot<any>,
+  bot: GenericBotAdapter<any>,
   data: any[],
   name: string,
   points: number,
