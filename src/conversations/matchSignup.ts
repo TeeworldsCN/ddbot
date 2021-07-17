@@ -43,7 +43,7 @@ export const findTeam = async (teamToken: string) => {
 export const matchSignup: ConverseHandler = async (msg, progress, context: Context) => {
   if (
     DateTime.now() < DateTime.fromISO('2021-06-20T00:00:00+0800') &&
-    msg.userLevel > LEVEL_TESTER
+    msg.effectiveUserLevel > LEVEL_TESTER
   ) {
     await msg.reply.text('报名还没有开始，请在6月20号0点之后再次尝试[擦汗]');
     return -1;

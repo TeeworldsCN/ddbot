@@ -2,22 +2,45 @@ import { Document, Schema, model } from 'mongoose';
 
 // Level越高权限越低
 export const LEVEL_ADMIN = 1;
-export const LEVEL_OPERATOR = 2;
-export const LEVEL_MODS = 3;
+export const LEVEL_SUBADMIN = 2;
+export const LEVEL_OPERATOR = 3;
+export const LEVEL_MODS = 4;
 export const LEVEL_MANAGER = 5;
 export const LEVEL_TESTER = 9;
 export const LEVEL_USER = 10;
 export const LEVEL_IGNORE = 11;
 export const LEVEL_NORELAY = 12;
 export const LEVEL_NAMES: { [key: number]: string } = {
-  1: '超级管理员',
-  2: '机器人管理',
-  3: '服务器管理',
+  1: '机器人主人',
+  2: '超级管理员',
+  3: '机器人管理',
+  4: '服务器管理',
   5: '群管理员',
   9: '测试员',
   10: '用户',
   11: '禁用指令用户',
   12: '禁用转发用户',
+};
+
+export const LEVEL_KEY: { [key: string]: number } = {
+  admin: 1,
+  subadmin: 2,
+  operator: 3,
+  mods: 4,
+  manager: 5,
+  tester: 9,
+  user: 10,
+  ignore: 11,
+  norelay: 12,
+};
+
+export const levelOf = (level: number | string, def?: number): number => {
+  if (typeof level === 'string') {
+    return LEVEL_KEY[level] || parseInt(level) || def;
+  } else if (typeof level === 'number') {
+    return level;
+  }
+  return def;
 };
 
 export interface User extends Document {

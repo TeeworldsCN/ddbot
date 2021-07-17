@@ -6,7 +6,7 @@ import {
   initAdmins,
   LEVEL_ADMIN,
   LEVEL_MANAGER,
-  LEVEL_OPERATOR,
+  LEVEL_SUBADMIN,
   LEVEL_TESTER,
   LEVEL_USER,
 } from './db/user';
@@ -22,6 +22,7 @@ import {
   unrelay,
   begone,
   checkface,
+  channelLevel,
 } from './commands/adminTools';
 import {
   wechatListKeywords,
@@ -39,13 +40,14 @@ import { me } from './commands/me';
 import { simplePoints as sp, points, simplerPoints as ssp } from './commands/points';
 import { rank } from './commands/rank';
 import { top } from './commands/top';
-import { generalHelp, wechatHelp } from './commands/helps';
+import { generalHelp, generalHelpEng, wechatHelp } from './commands/helps';
 import { matchSignup } from './conversations/matchSignup';
 import { exportRegistration, registrationCheck } from './commands/signupManage';
 import { feederStart } from './rss';
-import { kaiheila, oicq, wechat } from './bots';
+import { bridges, kaiheila, oicq, wechat } from './bots';
 import { hookMsg } from './hookMsg';
-import { relayStart } from './relay';
+import { GLOBAL_COMMAND } from './bots/base';
+import { dice, gpt2, gpt2xl, roll, uuid } from './commands/fun';
 
 /*
   连接数据库
@@ -66,18 +68,19 @@ import { relayStart } from './relay';
     机器人指令绑定
 */
 
-const MANAGER_BOTS = [kaiheila, oicq];
+const MANAGER_BOTS = [kaiheila, oicq, ...Object.values(bridges)];
 for (const bot of MANAGER_BOTS) {
   if (bot) {
     // 管理指令
     bot.addCommand(LEVEL_ADMIN, 'nuke', nuke);
     bot.addCommand(LEVEL_ADMIN, 'assign', assign);
     bot.addCommand(LEVEL_ADMIN, 'revoke', revoke);
-    bot.addCommand(LEVEL_OPERATOR, 'wxtoken', wechatGetToken);
-    bot.addCommand(LEVEL_OPERATOR, 'wxsetkw', wechatSetKeyword);
-    bot.addCommand(LEVEL_OPERATOR, 'wxlskw', wechatListKeywords);
-    bot.addCommand(LEVEL_OPERATOR, 'wxrmkw', wechatRemoveKeyword);
-    bot.addCommand(LEVEL_OPERATOR, 'wxtestkw', wechatAutoReplyCommand);
+    bot.addCommand(LEVEL_SUBADMIN, 'channelcmd', channelLevel);
+    bot.addCommand(LEVEL_SUBADMIN, 'wxtoken', wechatGetToken);
+    bot.addCommand(LEVEL_SUBADMIN, 'wxsetkw', wechatSetKeyword);
+    bot.addCommand(LEVEL_SUBADMIN, 'wxlskw', wechatListKeywords);
+    bot.addCommand(LEVEL_SUBADMIN, 'wxrmkw', wechatRemoveKeyword);
+    bot.addCommand(LEVEL_SUBADMIN, 'wxtestkw', wechatAutoReplyCommand);
     bot.addCommand(LEVEL_MANAGER, 'sub', subscribe);
     bot.addCommand(LEVEL_MANAGER, 'unsub', unsubscribe);
     bot.addCommand(LEVEL_MANAGER, 'listsub', listSub);
@@ -89,7 +92,6 @@ for (const bot of MANAGER_BOTS) {
 
 if (kaiheila) {
   // 开黑啦指令
-  kaiheila.addCommand(LEVEL_USER, 'me', me);
   kaiheila.addCommand(LEVEL_USER, 'bind', bind, '绑定DDNetID (.bind tee)');
   kaiheila.addCommand(LEVEL_USER, 'points', points, '查询DDN点数 (.points [tee])');
   kaiheila.addCommand(LEVEL_USER, 'rank', rank, '查询DDN地图排名 (.rank "Yun Gu" [tee])');
@@ -106,13 +108,12 @@ if (kaiheila) {
   kaiheila.addConverse(LEVEL_TESTER, 'testmatch', matchSignup);
 
   // 开黑啦报名管理指令
-  kaiheila.addCommand(LEVEL_OPERATOR, 'setreg', registrationCheck);
-  kaiheila.addCommand(LEVEL_OPERATOR, 'exportreg', exportRegistration);
+  kaiheila.addCommand(LEVEL_SUBADMIN, 'setreg', registrationCheck);
+  kaiheila.addCommand(LEVEL_SUBADMIN, 'exportreg', exportRegistration);
 }
 
 if (wechat) {
   // 微信指令
-  wechat.addCommand(LEVEL_USER, '.me', me);
   wechat.addCommand(LEVEL_USER, 'bind', bind, true);
   wechat.addCommand(LEVEL_USER, 'points', sp, true);
   wechat.addCommand(LEVEL_USER, 'heatmap', points, true);
@@ -131,11 +132,38 @@ if (wechat) {
 
 if (oicq) {
   // OICQ指令
-  oicq.addCommand(LEVEL_USER, 'me', me);
   oicq.addCommand(LEVEL_USER, 'help', generalHelp, '显示该帮助消息');
-  oicq.addCommand(LEVEL_OPERATOR, 'gun', begone);
-  oicq.addCommand(LEVEL_OPERATOR, '滚', begone);
-  oicq.addCommand(LEVEL_OPERATOR, 'checkface', checkface);
+  oicq.addCommand(LEVEL_SUBADMIN, 'gun', begone);
+  oicq.addCommand(LEVEL_SUBADMIN, '滚', begone);
+  oicq.addCommand(LEVEL_SUBADMIN, 'checkface', checkface);
+}
+
+for (const name in bridges) {
+  bridges[name].addCommand(LEVEL_USER, 'help', generalHelpEng);
+  bridges[name].addCommand(LEVEL_MANAGER, 'sub', subscribe);
+  bridges[name].addCommand(LEVEL_MANAGER, 'unsub', unsubscribe);
+  bridges[name].addCommand(LEVEL_MANAGER, 'listsub', listSub);
+}
+
+GLOBAL_COMMAND(LEVEL_USER, 'me', me);
+GLOBAL_COMMAND(LEVEL_USER, 'roll', roll, '生成随机数 (.roll [min] [max])', 'roll a number (1-100)');
+GLOBAL_COMMAND(LEVEL_USER, 'dice', dice, '掷骰子 (.dice [n])', 'roll dice (.dice [n])');
+GLOBAL_COMMAND(LEVEL_USER, 'uuid', uuid, '生成UUID', 'generate a uuid v4');
+if (process.env.BOOSTE_TOKEN) {
+  GLOBAL_COMMAND(
+    LEVEL_USER,
+    'gpt2',
+    gpt2,
+    '用GPT2模型生成10个词 (.gpt2 <英文文本>)',
+    'generate text using gpt2 (10 words)'
+  );
+  GLOBAL_COMMAND(
+    LEVEL_USER,
+    'gpt2xl',
+    gpt2xl,
+    '用GPT2XL模型生成5个词 (.gpt2xl <英文文本>)',
+    'generate text using gpt2 (5 words)'
+  );
 }
 
 /*
@@ -144,6 +172,9 @@ if (oicq) {
 if (kaiheila) kaiheila.connect();
 if (wechat) wechat.connect();
 if (oicq) oicq.connect();
+for (const name in bridges) {
+  bridges[name].connect();
+}
 
 /*
   挂载订阅消息Webhook
@@ -158,10 +189,5 @@ webhookStart();
   启动订阅
 */
 feederStart();
-
-/*
-  启动桥接
-*/
-relayStart();
 
 console.log('Bot Started');

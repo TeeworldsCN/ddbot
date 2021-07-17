@@ -1,37 +1,70 @@
-// 多Bot共用Adapter和Message
+import { segment } from 'oicq';
+import { getRelay } from './db/relay';
+import { LEVEL_NORELAY } from './db/user';
+import { unpackChannelID } from './utils/helpers';
+import { EMPTY_ACTIONS, GenericMessage, MessageReply, quotify } from './bots/base';
+import { bridges, kaiheila, oicq } from './bots';
+import { segmentToCard } from './bots/kaiheila';
+import { segmentToOICQSegs } from './bots/oicq';
+import { Card, SMD } from './utils/cardBuilder';
 
-export const sendMessageToGateway = async (
-  bridge: string,
-  gateway: string,
-  msg: GenericMessage<any>
-) => {
-  if (!BRIDGES[bridge]) return;
+// 多Bot共用Adapter和Message
+export class RelayMessage {
+  private baseMessage: GenericMessage<any>;
+  constructor(baseMessage: GenericMessage<any>) {
+    this.baseMessage = baseMessage;
+  }
+
+  public get replyOne(): MessageReply {
+    return this.baseMessage.reply;
+  }
+
+  // TODO: add more message types?
+  public get reply(): MessageReply {
+    return {
+      ...EMPTY_ACTIONS,
+      text: async (content: string, quote?: string, temp?: boolean) => {
+        broadcastText(content, this.baseMessage);
+        return null;
+      },
+    };
+  }
+
+  public get base(): GenericMessage<any> {
+    return this.baseMessage;
+  }
+}
+
+const relayMessageToGateway = async (name: string, gateway: string, msg: GenericMessage<any>) => {
+  if (!bridges[name]) return;
 
   const text: string[] = [];
   const sendImage = async (url: string) => {
     try {
-      await BRIDGES[bridge].post('/message', {
-        username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
+      await bridges[name].instance.post('/message', {
+        username: `[${msg.platformShort}] ${msg.author.nickname}`,
         text: url,
         gateway,
         avatar: typeof msg.author?.avatar == 'string' ? msg.author?.avatar : undefined,
       });
     } catch (err) {
-      await msg.reply.text(`桥接图片至${bridge}发送失败`);
+      console.error(`桥接图片至${name}发送失败`);
+      console.error(err);
     }
   };
 
   const sendText = async () => {
     if (text.length == 0) return;
     try {
-      await BRIDGES[bridge].post('/message', {
-        username: `[${msg.bot.platformShort}] ${msg.author.nickname}`,
+      await bridges[name].instance.post('/message', {
+        username: `[${msg.platformShort}] ${msg.author.nickname}`,
         text: text.splice(0, text.length).join(' '),
         gateway,
         avatar: typeof msg.author?.avatar == 'string' ? msg.author?.avatar : undefined,
       });
     } catch (err) {
-      await msg.reply.text(`桥接消息至${bridge}发送失败`);
+      console.error(`桥接消息至${name}发送失败`);
+      console.error(err);
     }
   };
 
@@ -101,7 +134,7 @@ export const sendMessageToGateway = async (
 //   }
 // };
 
-export const broadcastMessage = async (msg: GenericMessage<any>, update: boolean = false) => {
+export const broadcastRelay = async (msg: GenericMessage<any>, update: boolean = false) => {
   const relay = await getRelay(msg.channelKey);
   if (!relay) return false;
 
@@ -115,11 +148,11 @@ export const broadcastMessage = async (msg: GenericMessage<any>, update: boolean
   for (const channel of relay.channels) {
     if (channel == msg.channelKey) continue;
 
-    const unpacked = unpackID(channel);
+    const unpacked = unpackChannelID(channel);
     if (unpacked.platform == 'kaiheila') {
       if (kaiheila) {
         const card = new Card('sm');
-        card.addMarkdown(`**[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}**`);
+        card.addMarkdown(`**[${SMD(msg.platformShort)}] ${SMD(msg.author.nicktag)}**`);
         await segmentToCard(kaiheila, msg.content, card, false, 'text');
         if (card.length == 1) continue;
         kaiheila.channel(channel).card(card);
@@ -132,7 +165,7 @@ export const broadcastMessage = async (msg: GenericMessage<any>, update: boolean
         const segs = segmentToOICQSegs(oicq, msg.content, 'text');
         if (segs.length == 0) continue;
         oicq.instance.sendGroupMsg(parseInt(unpacked.id), [
-          segment.text(`[${SMD(msg.bot.platformShort)}] ${SMD(msg.author.nicktag)}: `),
+          segment.text(`[${SMD(msg.platformShort)}] ${SMD(msg.author.nicktag)}: `),
           ...segs,
         ]);
         // .then(data => {
@@ -140,8 +173,33 @@ export const broadcastMessage = async (msg: GenericMessage<any>, update: boolean
         // });
       }
     } else if (unpacked.platform == 'gateway') {
-      const [name, gateway] = unpacked.id.split(':');
-      sendMessageToGateway(name, gateway, msg);
+      relayMessageToGateway(unpacked.botName, unpacked.id, msg);
+    }
+  }
+
+  return true;
+};
+
+export const broadcastText = async (text: string, caller?: GenericMessage<any>) => {
+  if (caller) {
+    await caller.fillMsgDetail();
+    if (caller.userLevel >= LEVEL_NORELAY) return;
+  }
+
+  // do normal reply if it's not a relay channel
+  const relay = (await getRelay(caller.channelKey)) || {
+    channels: caller ? [caller.channelKey] : [],
+  };
+
+  // broadcast
+  for (const channel of relay.channels) {
+    const unpacked = unpackChannelID(channel);
+    if (unpacked.platform == 'kaiheila') {
+      if (kaiheila) kaiheila.channel(channel).text(text);
+    } else if (unpacked.platform == 'oicq') {
+      if (oicq) oicq.channel(channel).text(text);
+    } else if (unpacked.platform == 'gateway') {
+      if (bridges[unpacked.botName].channel(channel).text(text)) return;
     }
   }
 

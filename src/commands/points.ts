@@ -214,8 +214,8 @@ export const points: TextHandler = async msg => {
   const temporary = msg.type == 'button';
   const card = new Card('lg');
 
-  const isKaiheila = msg.bot.platform == 'kaiheila';
-  const isWechat = msg.bot.platform == 'wechat';
+  const isKaiheila = msg.platform == 'kaiheila';
+  const isWechat = msg.platform == 'wechat';
 
   if (temporary) card.addContext(['该消息只有您可见']);
 
@@ -295,7 +295,7 @@ export const points: TextHandler = async msg => {
   );
   allMaps.sort((a, b) => (b.first_finish || 0) - (a.first_finish || 0));
   let imageID = null;
-  const size: 'lg' | 'sm' = msg.bot.platform == 'wechat' ? 'sm' : 'lg';
+  const size: 'lg' | 'sm' = msg.platform == 'wechat' ? 'sm' : 'lg';
 
   try {
     imageID = await uploadGraph(msg.bot, allMaps, player.player, player.points.points, size);
@@ -386,7 +386,7 @@ export const simplePoints: TextHandler = async msg => {
   const name = query.getRest(1);
 
   const searchName = name || msg.user?.ddnetid;
-  const isWechat = msg.bot.platform == 'wechat';
+  const isWechat = msg.platform == 'wechat';
 
   if (!searchName) {
     if (isWechat) {
@@ -450,7 +450,7 @@ export const simplerPoints: TextHandler = async msg => {
   const name = query.getRest(1);
 
   const searchName = name || msg.user?.ddnetid;
-  const isWechat = msg.bot.platform == 'wechat';
+  const isWechat = msg.platform == 'wechat';
 
   if (!searchName) {
     if (isWechat) {

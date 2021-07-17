@@ -1,7 +1,9 @@
-import axios, { AxiosInstance } from 'axios';
-import { packID } from '../utils/helpers';
+import { AxiosInstance } from 'axios';
+import { command } from 'commander';
+import { LEVEL_USER } from '../db/user';
+import { broadcastRelay, RelayMessage } from '../relay';
 import { eQuote, eText, eImage } from '../utils/messageElements';
-import { GenericBotAdapter, GenericMessage, MessageAction } from './base';
+import { GenericBotAdapter, GenericMessage, MessageAction, MessageReply } from './base';
 
 interface MatterMessage {
   avatar: string;
@@ -39,24 +41,7 @@ const proto = (protocol: string) => {
   return PROTOCOL_SHORT[protocol] || protocol;
 };
 
-const queryBridge = (name: string) => {
-  BRIDGES[name]
-    .get<MatterMessage[]>('/messages')
-    .then(res => {
-      for (const msg of res.data) {
-        new MatterBridgeMessage(msg, name);
-      }
-      setTimeout(queryBridge, 500, name);
-    })
-    .catch(err => {
-      console.log(`bridge ${name} failed to connect`);
-      console.log(err.message);
-      console.log('retrying bridge in 5 seconds');
-      setTimeout(queryBridge, 5000, name);
-    });
-};
-
-class MatterBridgeMessage extends GenericMessage<null> {
+class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
   private _platform: string;
   private _bridgeName: string;
 
@@ -122,8 +107,12 @@ class MatterBridgeMessage extends GenericMessage<null> {
     return this._bridgeName;
   }
 
-  public makeReply(_: MessageAction) {
-    return {};
+  public makeReply(context: MessageAction): Partial<MessageReply> {
+    return {
+      text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
+      image: (c, t) => context.image(c, t ? this.userId : undefined),
+      delete: () => this.sessionType == 'CHANNEL' && context.delete(this.msgId),
+    };
   }
 
   public get platform(): string {
@@ -141,11 +130,42 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
       text: async (content: string, quote?: string, onlyTo?: string) => {
         try {
           const data = await this.instance.post('/message', {
-            username: `ddbot`,
+            username: this.botName,
             text: content,
             gateway,
-            avatar: undefined, // TODO: add avatar
+            avatar:
+              'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
           });
+          return data.data.id;
+        } catch {
+          return null;
+        }
+      },
+      image: async (image: string, onlyTo?: string) => {
+        try {
+          const data = await this.instance.post('/message', {
+            username: this.botName,
+            text: image,
+            gateway,
+            avatar:
+              'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
+          });
+          return data.data.id;
+        } catch {
+          return null;
+        }
+      },
+      delete: async (msgid: string) => {
+        try {
+          const data = await this.instance.post('/message', {
+            username: this.botName,
+            id: msgid,
+            event: 'msg_delete',
+            gateway,
+            avatar:
+              'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
+          });
+          return data.data.id;
         } catch {
           return null;
         }
@@ -153,14 +173,71 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
     };
   }
 
-  // bridge does not
+  // bridge does not support direct messages
   public makeUserContext(_: string) {
     return {};
   }
 
+  public queryBridge() {
+    this.instance
+      .get<MatterMessage[]>('/messages')
+      .then(async res => {
+        for (const matterMessage of res.data) {
+          if (!matterMessage.event) {
+            const msg = new MatterBridgeMessage(this, matterMessage, this.botName);
+            const text = msg.onlyText;
+
+            if (!text.startsWith('.') && !text.startsWith('。')) {
+              // not a command, do relay
+              // no support for converse
+              await broadcastRelay(msg);
+              setTimeout(() => {
+                this.queryBridge();
+              }, 500);
+              return;
+            }
+
+            msg.command = text.replace(/^[\.。] ?/, '');
+            const command = msg.command.split(' ')[0].toLowerCase();
+
+            if (this.globalCommands[command]) {
+              await broadcastRelay(msg);
+              await msg.fillMsgDetail();
+              if (msg.effectiveUserLevel > LEVEL_USER) return;
+              if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
+              this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
+                console.error(`Error proccessing global command '${text}'`);
+                console.error(reason);
+              });
+            } else if (this.commands[command]) {
+              await msg.fillMsgDetail();
+              if (msg.effectiveUserLevel > LEVEL_USER) return;
+              if (msg.effectiveUserLevel > this.commands[command].level) return;
+
+              this.commands[command].func(msg).catch(reason => {
+                console.error(`Error proccessing command '${text}'`);
+                console.error(reason);
+              });
+            } else {
+              await broadcastRelay(msg);
+            }
+          }
+        }
+        setTimeout(() => {
+          this.queryBridge();
+        }, 500);
+      })
+      .catch(err => {
+        console.log(`bridge ${this.botName} failed to connect`);
+        console.log(err.message);
+        console.log('retrying bridge in 5 seconds');
+        setTimeout(() => {
+          this.queryBridge();
+        }, 5000);
+      });
+  }
+
   public connect() {
-    for (const name in BRIDGES) {
-      queryBridge(name);
-    }
+    this.queryBridge();
   }
 }

@@ -9,6 +9,8 @@ import { parse, j2xParser } from 'fast-xml-parser';
 import FormData from 'form-data';
 import { WechatReplyModel } from '../db/wechatReply';
 import _ from 'lodash';
+import { LEVEL_USER } from '../db/user';
+import { RelayMessage } from '../relay';
 
 const xmlParseOption = {
   ignoreAttributes: true,
@@ -127,7 +129,7 @@ export class WechatBotAdapter extends GenericBotAdapter<AxiosInstance> {
         const converse = await msg.getConverse();
         const context = converse.context;
         if (converse.key && this.converses[converse.key]) {
-          if (msg.userLevel > this.converses[converse.key].level) return;
+          if (msg.effectiveUserLevel > this.converses[converse.key].level) return;
 
           const progress = await this.converses[converse.key].func<any>(
             msg,
@@ -143,16 +145,27 @@ export class WechatBotAdapter extends GenericBotAdapter<AxiosInstance> {
           await msg.finishConverse();
         }
 
-        if (this.commands[command]) {
+        if (this.globalCommands[command]) {
+          await msg.fillMsgDetail();
+          if (msg.effectiveUserLevel > LEVEL_USER) return;
+          if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
+
+          this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
+            console.error(`Error proccessing global command '${text}'`);
+            console.error(reason);
+          });
+        } else if (this.commands[command]) {
           try {
-            if (msg.userLevel > this.commands[command].level) return;
+            if (msg.effectiveUserLevel > LEVEL_USER) return;
+            if (msg.effectiveUserLevel > this.commands[command].level) return;
             await this.commands[command].func(msg);
           } catch (e) {
             console.error(`Error proccessing command '${text}'`);
             console.error(e);
           }
         } else if (this.converses[command]) {
-          if (msg.userLevel > this.converses[command].level) return;
+          if (msg.effectiveUserLevel > LEVEL_USER) return;
+          if (msg.effectiveUserLevel > this.converses[command].level) return;
           const context = {};
           const progress = await this.converses[command].func<any>(msg, 0, context);
           if (progress && progress >= 0) {

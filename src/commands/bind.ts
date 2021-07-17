@@ -5,13 +5,13 @@ import { CommandParser } from '../utils/commandParser';
 import { UserModel } from '../db/user';
 
 export const bind: TextHandler = async msg => {
-  if (msg.bot.platform == 'oicq' && msg.sessionType == 'CHANNEL') return;
+  if (msg.platform == 'oicq' && msg.sessionType == 'CHANNEL') return;
 
   const query = new CommandParser(msg.command);
   const searchName = query.getRest(1);
 
   if (!searchName) {
-    if (msg.bot.platform == 'kaiheila') {
+    if (msg.platform == 'kaiheila') {
       const card = new Card('sm');
       card.addContext(['该消息只有您可见']);
 
@@ -34,7 +34,7 @@ export const bind: TextHandler = async msg => {
   ).exec();
 
   if (result.ok) {
-    if (msg.bot.platform == 'kaiheila') {
+    if (msg.platform == 'kaiheila') {
       const card = new Card('sm');
       card.addContext(['该消息只有您可见']);
 
@@ -48,7 +48,7 @@ export const bind: TextHandler = async msg => {
       await msg.reply.text(`"${msg.author.nickname}"成功绑定DDNet ID: ${searchName}`);
     }
   } else {
-    if (msg.bot.platform == 'kaiheila') {
+    if (msg.platform == 'kaiheila') {
       const card = new Card('sm');
       card.addContext(['该消息只有您可见']);
 

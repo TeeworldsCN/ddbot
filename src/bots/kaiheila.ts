@@ -15,14 +15,13 @@ import {
   quotify,
 } from './base';
 import { Card } from '../utils/cardBuilder';
-import { packID, unpackChannelID, unpackID } from '../utils/helpers';
+import { unpackChannelID, unpackID } from '../utils/helpers';
 import { BotInstance } from 'kaiheila-bot-root/dist/BotInstance';
-import { broadcastMessage } from '../relay';
 import { LEVEL_USER } from '../db/user';
 import ImageSize from 'image-size';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
-import { kaiheila } from '.';
+import { broadcastRelay, RelayMessage } from '../relay';
 
 const getImageWidth = (url: string) => {
   let buffer: Buffer = null;
@@ -684,11 +683,11 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
         if (msg.sessionType == 'DM') {
           // 是私聊的情况下检查会话
           await msg.fillMsgDetail();
-          if (msg.userLevel > LEVEL_USER) return;
+          if (msg.effectiveUserLevel > LEVEL_USER) return;
           const converse = await msg.getConverse();
           const context = converse.context;
           if (converse.key && this.converses[converse.key]) {
-            if (msg.userLevel > this.converses[converse.key].level) return;
+            if (msg.effectiveUserLevel > this.converses[converse.key].level) return;
 
             const progress = await this.converses[converse.key].func<any>(
               msg,
@@ -705,7 +704,7 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
           }
         } else if (msg.sessionType == 'CHANNEL') {
           // try relay
-          await broadcastMessage(msg);
+          await broadcastRelay(msg);
         }
         return;
       }
@@ -713,10 +712,20 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
       msg.command = text.replace(/^[\.。] ?/, '');
       const command = msg.command.split(' ')[0].toLowerCase();
 
-      if (this.commands[command]) {
+      if (this.globalCommands[command]) {
+        await broadcastRelay(msg);
         await msg.fillMsgDetail();
-        if (msg.userLevel > LEVEL_USER) return;
-        if (msg.userLevel > this.commands[command].level) return;
+        if (msg.effectiveUserLevel > LEVEL_USER) return;
+        if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
+
+        this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
+          console.error(`Error proccessing global command '${text}'`);
+          console.error(reason);
+        });
+      } else if (this.commands[command]) {
+        await msg.fillMsgDetail();
+        if (msg.effectiveUserLevel > LEVEL_USER) return;
+        if (msg.effectiveUserLevel > this.commands[command].level) return;
 
         this.commands[command].func(msg).catch(reason => {
           console.error(`Error proccessing command '${text}'`);
@@ -725,8 +734,8 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
       } else if (msg.sessionType == 'DM' && this.converses[command]) {
         // 只有私聊会触发会话
         await msg.fillMsgDetail();
-        if (msg.userLevel > LEVEL_USER) return;
-        if (msg.userLevel > this.converses[command].level) return;
+        if (msg.effectiveUserLevel > LEVEL_USER) return;
+        if (msg.effectiveUserLevel > this.converses[command].level) return;
 
         const context = {};
         const progress = await this.converses[command].func<any>(msg, 0, context);
@@ -737,7 +746,7 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
         }
       } else if (msg.sessionType == 'CHANNEL') {
         // try relay if no commands are triggered
-        await broadcastMessage(msg);
+        await broadcastRelay(msg);
       }
     });
 
@@ -748,11 +757,11 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
       if (msg.sessionType == 'DM') {
         // 是私聊的情况下检查会话
         await msg.fillMsgDetail();
-        if (msg.userLevel > LEVEL_USER) return;
+        if (msg.effectiveUserLevel > LEVEL_USER) return;
         const converse = await msg.getConverse();
         const context = converse.context;
         if (converse.key && this.converses[converse.key]) {
-          if (msg.userLevel > this.converses[converse.key].level) return;
+          if (msg.effectiveUserLevel > this.converses[converse.key].level) return;
 
           const progress = await this.converses[converse.key].func<any>(
             msg,
@@ -769,7 +778,7 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
         }
       } else if (msg.sessionType == 'CHANNEL') {
         // try relay
-        await broadcastMessage(msg);
+        await broadcastRelay(msg);
       }
     });
 
@@ -784,7 +793,7 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
       const msg = new KaiheilaMessage(this, e, type);
       if (msg.sessionType == 'CHANNEL') {
         // try relay
-        await broadcastMessage(msg);
+        await broadcastRelay(msg);
       }
     };
 

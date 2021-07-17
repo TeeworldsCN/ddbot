@@ -322,4 +322,6 @@ export const QMOTE: {
   322: { name: '拒绝', eng: 'i refuse' },
   323: { name: '嫌弃', eng: 'disgusted' },
   324: { name: '吃糖', eng: 'lolipop demolisher' },
+  325: { name: '惊吓', eng: 'der schrei' },
+  326: { name: '生气', eng: 'robo rage' },
 };

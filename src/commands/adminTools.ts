@@ -1,10 +1,10 @@
 import { CommandParser } from '../utils/commandParser';
 import { TextHandler } from '../bottype';
 import {
+  levelOf,
   LEVEL_ADMIN,
   LEVEL_NAMES,
-  LEVEL_OPERATOR,
-  LEVEL_TESTER,
+  LEVEL_SUBADMIN,
   LEVEL_USER,
   UserModel,
 } from '../db/user';
@@ -15,6 +15,7 @@ import { unpackID } from '../utils/helpers';
 import { OICQBotAdapter } from '../bots/oicq';
 import { MessageElem, MessageEventData, segment } from 'oicq';
 import { QMOTE } from '../utils/consts';
+import { ChannelModel } from '../db/channel';
 
 export const subscribe: TextHandler = async msg => {
   if (msg.sessionType == 'DM') return;
@@ -25,7 +26,7 @@ export const subscribe: TextHandler = async msg => {
   const result = await SubscriptionModel.updateOne(
     { name },
     { $addToSet: { channels: channel } },
-    { upsert: msg.userLevel <= LEVEL_OPERATOR }
+    { upsert: msg.effectiveUserLevel <= LEVEL_SUBADMIN }
   ).exec();
   if (result.ok) {
     if (channel == msg.channelKey) {
@@ -60,7 +61,7 @@ export const unsubscribe: TextHandler = async msg => {
 
   const query = new CommandParser(msg.command);
   const name = query.getString(1);
-  const destroy = msg.userLevel > LEVEL_OPERATOR ? '' : query.getString(2);
+  const destroy = msg.effectiveUserLevel > LEVEL_SUBADMIN ? '' : query.getString(2);
 
   if (destroy == 'all') {
     const result = await SubscriptionModel.deleteOne({ name }).exec();
@@ -102,7 +103,7 @@ export const relay: TextHandler = async msg => {
   const result = await RelayModel.updateOne(
     { gateway },
     { $addToSet: { channels: channel } },
-    { upsert: msg.userLevel <= LEVEL_OPERATOR }
+    { upsert: msg.effectiveUserLevel <= LEVEL_SUBADMIN }
   ).exec();
   if (result.ok) {
     if (channel == msg.channelKey) {
@@ -140,7 +141,7 @@ export const unrelay: TextHandler = async msg => {
 
   const query = new CommandParser(msg.command);
   const gateway = query.getString(1);
-  const destroy = msg.userLevel > LEVEL_OPERATOR ? '' : query.getString(2);
+  const destroy = msg.effectiveUserLevel > LEVEL_SUBADMIN ? '' : query.getString(2);
 
   if (destroy == 'all') {
     const result = await RelayModel.deleteOne({ gateway }).exec();
@@ -175,7 +176,7 @@ export const unrelay: TextHandler = async msg => {
 // userKey 使用 .me 获取
 export const assign: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
-  const level = query.getNumber(1);
+  const level = levelOf(query.getString(1));
   const userKey = query.getRest(2);
 
   if (level == null) {
@@ -197,10 +198,50 @@ export const assign: TextHandler = async msg => {
   );
 };
 
+// 设置频道指令使用权限 .channelLevel level [channelKey]
+export const channelLevel: TextHandler = async msg => {
+  const query = new CommandParser(msg.command);
+  const level = levelOf(query.getString(1));
+  const channelKey = query.getRest(2) || msg.channelKey;
+
+  if (level == null) {
+    await msg.reply.text(`level参数无效`);
+    return;
+  }
+
+  if (level >= LEVEL_ADMIN) {
+    await ChannelModel.updateOne(
+      { channelKey },
+      { $set: { minCommandLevel: level } },
+      { upsert: true }
+    );
+  }
+
+  await msg.reply.text(
+    `已将 ${channelKey} 指令使用权设置为 ${
+      LEVEL_NAMES[level] ? LEVEL_NAMES[level] : `${level}级用户`
+    } 以上`
+  );
+};
+
+// 列举一个权限的用户
+export const listUser: TextHandler = async msg => {
+  const query = new CommandParser(msg.command);
+  const level = levelOf(query.getString(1));
+
+  if (level == LEVEL_USER) {
+    await msg.reply.text(`怕是人太多，还是不要查询普通用户了`);
+    return;
+  }
+
+  const result = await UserModel.find({ level }).exec();
+  await msg.reply.text(result.map(user => user.userKey).join(', '));
+};
+
 // 撤回一个权限 .revoke level
 export const revoke: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
-  const level = query.getNumber(1);
+  const level = levelOf(query.getString(1));
 
   if (level == LEVEL_ADMIN) {
     await msg.reply.text(`不能撤回超级管理权限`);
@@ -240,7 +281,7 @@ export const nuke: TextHandler = async msg => {
 // QQ：退群
 export const begone: TextHandler = async msg => {
   if (msg.content?.[0].type != 'mention') return;
-  if (msg.bot.platform != 'oicq') return;
+  if (msg.platform != 'oicq') return;
   if (unpackID(msg.content[0].userKey).id != process.env.OICQ_ACCOUNT) return;
 
   const bot: OICQBotAdapter = msg.bot;
@@ -252,13 +293,17 @@ export const checkface: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
   let face = query.getNumber(1);
   const content: MessageEventData = msg.raw;
+  let name = null;
 
-  if (face == null) {
+  if (isNaN(face)) {
+    face = null;
     for (const e of content.message) {
       if (e.type == 'face') {
         face = e.data.id;
+        name = e.data.text;
       } else if (e.type == 'sface') {
         face = e.data.id;
+        name = e.data.text;
       }
     }
   }
@@ -269,7 +314,7 @@ export const checkface: TextHandler = async msg => {
   }
 
   const emoteData = QMOTE[face];
-  const seg: MessageElem[] = [segment.face(face)];
+  const seg: MessageElem[] = [segment.face(face), segment.text(`(${face}|${name})`)];
   if (emoteData) {
     seg.push(segment.text(` | 中: ${emoteData.name}`));
     if (emoteData.eng) {

@@ -1,8 +1,10 @@
 import axios from 'axios';
-import { ButtonHandler, ConverseHandler, TextHandler } from '../bottype';
-import { getUser, LEVEL_USER, User, UserModel } from '../db/user';
+import { min } from 'lodash';
+import { ButtonHandler, ConverseHandler, GlobalCommandHandler, TextHandler } from '../bottype';
+import { Channel, getChannel } from '../db/channel';
+import { getUser, LEVEL_IGNORE, LEVEL_USER, User, UserModel } from '../db/user';
 import { Card } from '../utils/cardBuilder';
-import { packChannelID, packID, unpackID } from '../utils/helpers';
+import { packChannelID, packID, unpackChannelID, unpackID } from '../utils/helpers';
 
 export type MessageReply = {
   text: (content: string, quote?: string, temp?: boolean) => Promise<string>;
@@ -28,7 +30,7 @@ export type MessageAction = {
 };
 
 // empty stub
-const EMPTY_ACTIONS: MessageReply & MessageAction = {
+export const EMPTY_ACTIONS: MessageReply & MessageAction = {
   text: async () => null as string,
   image: async () => null as string,
   file: async () => null as string,
@@ -159,11 +161,23 @@ export type GenericMessageElement =
 
 const globalCommands: {
   [key: string]: {
-    func: TextHandler;
+    func: GlobalCommandHandler;
     desc: string | boolean | number;
+    descEng?: string;
     level: number;
   };
 } = {};
+
+// 这些指令在全平台有效，并会被relay广播结果到所有桥接频道
+export const GLOBAL_COMMAND = (
+  level: number,
+  cmd: string,
+  func: GlobalCommandHandler,
+  desc?: string | boolean | number,
+  descEng?: string
+) => {
+  globalCommands[cmd] = { func, desc, level, descEng };
+};
 
 export abstract class GenericBotAdapter<BotType> {
   protected _instance: any;
@@ -175,6 +189,7 @@ export abstract class GenericBotAdapter<BotType> {
     [key: string]: {
       func: TextHandler;
       desc: string | boolean | number;
+      descEng?: string;
       level: number;
     };
   } = {};
@@ -185,13 +200,15 @@ export abstract class GenericBotAdapter<BotType> {
     [key: string]: {
       func: ConverseHandler;
       desc: string | boolean | number;
+      descEng?: string;
       level: number;
     };
   } = {};
 
-  constructor(instance: any, platform: string) {
+  constructor(instance: any, platform: string, name: string) {
     this._instance = instance;
     this._platform = platform;
+    this._name = name;
   }
 
   public addCommand(
@@ -218,8 +235,9 @@ export abstract class GenericBotAdapter<BotType> {
 
   // 频道相关
   public channel(channelKey: string): MessageAction {
-    const { platform, id } = unpackID(channelKey);
+    const { platform, id, botName } = unpackChannelID(channelKey);
     if (platform !== this._platform) return EMPTY_ACTIONS;
+    if (botName !== this._name) return EMPTY_ACTIONS;
 
     return {
       ...EMPTY_ACTIONS,
@@ -236,6 +254,10 @@ export abstract class GenericBotAdapter<BotType> {
       ...EMPTY_ACTIONS,
       ...this.makeUserContext(id),
     };
+  }
+
+  public get globalCommands() {
+    return globalCommands;
   }
 
   public packID(id: string): string {
@@ -307,6 +329,7 @@ export abstract class GenericMessage<BotType> {
   protected _raw: any;
   protected _bot: GenericBotAdapter<BotType>;
   protected _dbuser: User;
+  protected _dbchannel: Channel;
   protected _text: string = null;
 
   public command: string = null;
@@ -424,13 +447,20 @@ export abstract class GenericMessage<BotType> {
 
   public async fillMsgDetail() {
     await this.fetchExtraMsgInfo();
-    if (this._dbuser) return this._dbuser;
-    try {
-      this._dbuser = await getUser(this.userKey);
-    } catch (e) {
-      this._dbuser = null;
+    if (!this._dbuser) {
+      try {
+        this._dbuser = await getUser(this.userKey);
+      } catch (e) {
+        this._dbuser = null;
+      }
     }
-    return this._dbuser;
+    if (!this._dbchannel) {
+      try {
+        this._dbchannel = await getChannel(this.channelKey);
+      } catch (e) {
+        this._dbchannel = null;
+      }
+    }
   }
 
   public async downloadAvatar() {
@@ -447,6 +477,15 @@ export abstract class GenericMessage<BotType> {
 
   public get user() {
     return this._dbuser;
+  }
+
+  public get effectiveUserLevel() {
+    if (this.userLevel > this.channelLevel) return LEVEL_IGNORE;
+    return this.userLevel;
+  }
+
+  public get channelLevel() {
+    return this._dbchannel?.minCommandLevel ?? LEVEL_USER;
   }
 
   public get userLevel() {

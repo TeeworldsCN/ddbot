@@ -1,10 +1,10 @@
 import { TextHandler } from '../bottype';
 import { MatchSignUpModel } from '../db/matchSignup';
-import { LEVEL_ADMIN, LEVEL_OPERATOR } from '../db/user';
+import { LEVEL_SUBADMIN } from '../db/user';
 import { CommandParser } from '../utils/commandParser';
 
 export const registrationCheck: TextHandler = async msg => {
-  if (msg.userLevel > LEVEL_OPERATOR) return;
+  if (msg.effectiveUserLevel > LEVEL_SUBADMIN) return;
 
   const query = new CommandParser(msg.command);
   const token = query.getString(1);
@@ -56,7 +56,7 @@ export const registrationCheck: TextHandler = async msg => {
 };
 
 export const exportRegistration: TextHandler = async msg => {
-  if (msg.userLevel > LEVEL_OPERATOR) return;
+  if (msg.effectiveUserLevel > LEVEL_SUBADMIN) return;
 
   const entries = await MatchSignUpModel.find({}).populate('teamCreator', 'createdTeamName').exec();
   const lines = [

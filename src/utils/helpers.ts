@@ -11,10 +11,12 @@ export const unpackID = (id: string) => {
 
 export const unpackChannelID = (id: string) => {
   const data = id.split('|');
+  const secondPart = data.slice(1).join('');
+  const secondData = secondPart.split(':');
   return {
     platform: data[0],
-    botName: data[1],
-    id: data.slice(2).join(''),
+    botName: secondData[0],
+    id: secondData.slice(1).join(''),
   };
 };
 
@@ -23,7 +25,7 @@ export const packID = (data: { platform: string; id: string }) => {
 };
 
 export const packChannelID = (data: { platform: string; botName: string; id: string }) => {
-  return `${data.platform}|${data.botName}|${data.id}`;
+  return `${data.platform}|${data.botName}:${data.id}`;
 };
 
 export const dateTime = (date: number) =>
