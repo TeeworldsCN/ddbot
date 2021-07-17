@@ -191,10 +191,7 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
               // not a command, do relay
               // no support for converse
               await broadcastRelay(msg);
-              setTimeout(() => {
-                this.queryBridge();
-              }, 500);
-              return;
+              continue;
             }
 
             msg.command = text.replace(/^[\.。] ?/, '');
@@ -203,16 +200,16 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
             if (this.globalCommands[command]) {
               await broadcastRelay(msg);
               await msg.fillMsgDetail();
-              if (msg.effectiveUserLevel > LEVEL_USER) return;
-              if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
+              if (msg.effectiveUserLevel > LEVEL_USER) continue;
+              if (msg.effectiveUserLevel > this.globalCommands[command].level) continue;
               this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
                 console.error(`Error proccessing global command '${text}'`);
                 console.error(reason);
               });
             } else if (this.commands[command]) {
               await msg.fillMsgDetail();
-              if (msg.effectiveUserLevel > LEVEL_USER) return;
-              if (msg.effectiveUserLevel > this.commands[command].level) return;
+              if (msg.effectiveUserLevel > LEVEL_USER) continue;
+              if (msg.effectiveUserLevel > this.commands[command].level) continue;
 
               this.commands[command].func(msg).catch(reason => {
                 console.error(`Error proccessing command '${text}'`);
