@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
 import { KaiheilaBot } from 'kaiheila-bot-root';
 import { createClient } from 'oicq';
 import { KaiheilaBotAdapter } from './kaiheila';

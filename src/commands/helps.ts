@@ -95,14 +95,6 @@ export const wechatHelp: TextHandler = async msg => {
     }
   }
 
-  for (const key in msg.bot.globalCommands) {
-    if (msg.bot.globalCommands[key].desc === true) {
-      engHelp.push(key);
-    } else if (msg.bot.globalCommands[key].desc) {
-      lines.push(`${key} - ${msg.bot.globalCommands[key].desc}`);
-    }
-  }
-
   lines.push(`\n * 还可以使用以下等同指令: \n${engHelp.join()}`);
   msg.reply.text(lines.join('\n'));
 };

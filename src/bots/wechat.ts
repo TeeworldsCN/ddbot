@@ -10,7 +10,6 @@ import FormData from 'form-data';
 import { WechatReplyModel } from '../db/wechatReply';
 import _ from 'lodash';
 import { LEVEL_USER } from '../db/user';
-import { RelayMessage } from '../relay';
 
 const xmlParseOption = {
   ignoreAttributes: true,
@@ -145,16 +144,7 @@ export class WechatBotAdapter extends GenericBotAdapter<AxiosInstance> {
           await msg.finishConverse();
         }
 
-        if (this.globalCommands[command]) {
-          await msg.fillMsgDetail();
-          if (msg.effectiveUserLevel > LEVEL_USER) return;
-          if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
-
-          this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
-            console.error(`Error proccessing global command '${text}'`);
-            console.error(reason);
-          });
-        } else if (this.commands[command]) {
+        if (this.commands[command]) {
           try {
             if (msg.effectiveUserLevel > LEVEL_USER) return;
             if (msg.effectiveUserLevel > this.commands[command].level) return;
