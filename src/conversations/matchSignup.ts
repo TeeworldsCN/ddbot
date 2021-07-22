@@ -49,11 +49,6 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
     return -1;
   }
 
-  if (DateTime.now() >= DateTime.fromISO('2021-07-20T00:00:00+0800')) {
-    await msg.reply.text('啊。报名已经结束了哦。（报名期间：6月20日至7月19日）');
-    return -1;
-  }
-
   const isPositiveReply = () => {
     return msg.text.match(
       /([^不]|^)(是([^个吗]|$)|要([^不么麽个]|$)|恩([^?？]|$)|嗯([^?？]|$)|好|可([^别个]|$)|行|ye|^y$)([^个]|$)/i
@@ -130,6 +125,11 @@ export const matchSignup: ConverseHandler = async (msg, progress, context: Conte
             `欢迎回来，你的FNG报名信息如下：\n==========\n报名ID：${signedUp.ddnetid}\n参赛码：${signedUp.entryToken}\n==========\n\n想要修改报名信息的话请用邮件联系event@teeworlds.cn`
           );
         }
+        return -1;
+      }
+
+      if (DateTime.now() >= DateTime.fromISO('2021-07-20T00:00:00+0800')) {
+        await msg.reply.text('啊。报名已经结束了哦。（报名期间：6月20日至7月19日）');
         return -1;
       }
 
