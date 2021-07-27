@@ -23,6 +23,9 @@ export const subscribe: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
   const name = query.getString(1);
   const channel = query.getString(2) || msg.channelKey;
+
+  if (name == null) return;
+
   const result = await SubscriptionModel.updateOne(
     { name },
     { $addToSet: { channels: channel } },
@@ -63,6 +66,8 @@ export const unsubscribe: TextHandler = async msg => {
   const name = query.getString(1);
   const destroy = msg.effectiveUserLevel > LEVEL_SUBADMIN ? '' : query.getString(2);
 
+  if (name == null) return;
+
   if (destroy == 'all') {
     const result = await SubscriptionModel.deleteOne({ name }).exec();
     if (result.ok) {
@@ -100,6 +105,9 @@ export const relay: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
   const gateway = query.getString(1);
   const channel = query.getString(2) || msg.channelKey;
+
+  if (gateway == null) return;
+
   const result = await RelayModel.updateOne(
     { gateway },
     { $addToSet: { channels: channel } },
@@ -142,6 +150,8 @@ export const unrelay: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
   const gateway = query.getString(1);
   const destroy = msg.effectiveUserLevel > LEVEL_SUBADMIN ? '' : query.getString(2);
+
+  if (gateway == null) return;
 
   if (destroy == 'all') {
     const result = await RelayModel.deleteOne({ gateway }).exec();
