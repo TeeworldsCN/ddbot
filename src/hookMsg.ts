@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { kaiheila, oicq } from './bots';
 import { SubscriptionModel } from './db/subscription';
 import { API } from './utils/axios';
-import { unpackID } from './utils/helpers';
+import { unpackChannelID } from './utils/helpers';
 
 export const hookMsg = express.Router();
 
@@ -32,7 +32,7 @@ hookMsg.post('/:channel', express.json(), async (req, res) => {
   // broadcast
   const err = [];
   for (const channel of doc.channels) {
-    const unpacked = unpackID(channel);
+    const unpacked = unpackChannelID(channel);
     if (unpacked.platform == 'kaiheila') {
       if (kaiheila) {
         if (body.khlcard) {
