@@ -5,7 +5,7 @@ export const Request = axios.create({
     'Accept-Encoding': 'gzip, deflate',
   },
   decompress: true,
-  timeout: 30000,
+  timeout: 5000,
 });
 
 export const API = axios.create({
@@ -14,5 +14,5 @@ export const API = axios.create({
     'Accept-Encoding': 'gzip, deflate',
   },
   decompress: true,
-  timeout: 30000,
+  timeout: 5000,
 });
