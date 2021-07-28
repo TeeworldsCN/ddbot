@@ -79,7 +79,7 @@ class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
           if (imageMatch[1]) {
             this._content.push(eText(imageMatch[1].trim()));
           }
-          this._content.push(eImage(imageMatch[2]));
+          this._content.push(eImage(`https://ip.webmasterapi.com/api/imageproxy/${imageMatch[2]}`));
           if (imageMatch[3]) {
             this._content.push(eText(imageMatch[3].trim()));
           }
