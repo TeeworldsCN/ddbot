@@ -199,7 +199,8 @@ export const broadcastText = async (text: string, caller?: GenericMessage<any>) 
     } else if (unpacked.platform == 'oicq') {
       if (oicq) oicq.channel(channel).text(text);
     } else if (unpacked.platform == 'gateway') {
-      if (bridges[unpacked.botName].channel(channel).text(text)) return;
+      if (bridges && bridges[unpacked.botName])
+        bridges[unpacked.botName].channel(channel).text(text);
     }
   }
 
