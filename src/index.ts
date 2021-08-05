@@ -47,7 +47,7 @@ import { feederStart } from './rss';
 import { bridges, kaiheila, oicq, wechat } from './bots';
 import { hookMsg } from './hookMsg';
 import { GLOBAL_COMMAND } from './bots/base';
-import { dice, gpt2, gpt2xl, roll, stupid, uuid } from './commands/fun';
+import { dice, gpt2, gpt2xl, roll, uuid } from './commands/fun';
 import { messageDumper } from './conversations/messageDumper';
 import { fanyi, translate } from './commands/tencent';
 
@@ -138,7 +138,6 @@ if (oicq) {
   oicq.addCommand(LEVEL_SUBADMIN, 'gun', begone);
   oicq.addCommand(LEVEL_SUBADMIN, '滚', begone);
   oicq.addCommand(LEVEL_SUBADMIN, 'checkface', checkface);
-  oicq.addCommand(LEVEL_ADMIN, 'donotdothis', stupid);
   oicq.addConverse(LEVEL_ADMIN, 'dumpmsg', messageDumper);
 }
 

