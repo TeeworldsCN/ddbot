@@ -29,12 +29,15 @@ export const translate: GlobalCommandHandler = async msg => {
 
   if (!text) return;
 
+  const notranslate = text.match(/(["“”].*["”“])/s);
+
   try {
     const result = await tencent.TextTranslate({
       SourceText: text,
       Source: 'auto',
       Target: 'zh',
       ProjectId: 0,
+      UntranslatedText: notranslate ? notranslate[1] : undefined,
     });
     msg.reply.text(`${msg.base.author.nickname}: ${result.TargetText}`);
   } catch (err) {
@@ -50,12 +53,15 @@ export const fanyi: GlobalCommandHandler = async msg => {
 
   if (!text) return;
 
+  const notranslate = text.match(/(["“”].*["”“])/s);
+
   try {
     const result = await tencent.TextTranslate({
       SourceText: text,
       Source: 'auto',
       Target: 'en',
       ProjectId: 0,
+      UntranslatedText: notranslate ? notranslate[1] : undefined,
     });
     msg.reply.text(`${msg.base.author.nickname}: ${result.TargetText}`);
   } catch (err) {
