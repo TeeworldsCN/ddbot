@@ -23,6 +23,8 @@ export const generalHelp: TextHandler = async msg => {
     }
   }
 
+  lines.push(`\n跨平台指令：`);
+
   for (const key in msg.bot.globalCommands) {
     if (msg.bot.globalCommands[key].desc) {
       lines.push(`${key} - ${msg.bot.globalCommands[key].desc}`);
@@ -59,6 +61,8 @@ export const generalHelpEng: TextHandler = async msg => {
       hidden.push(key);
     }
   }
+
+  lines.push(`\nRelay commands：`);
 
   for (const key in msg.bot.globalCommands) {
     if (msg.bot.globalCommands[key].descEng) {

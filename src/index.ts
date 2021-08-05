@@ -47,7 +47,9 @@ import { feederStart } from './rss';
 import { bridges, kaiheila, oicq, wechat } from './bots';
 import { hookMsg } from './hookMsg';
 import { GLOBAL_COMMAND } from './bots/base';
-import { dice, gpt2, gpt2xl, roll, uuid } from './commands/fun';
+import { dice, gpt2, gpt2xl, roll, stupid, uuid } from './commands/fun';
+import { messageDumper } from './conversations/messageDumper';
+import { fanyi, translate } from './commands/tencent';
 
 /*
   连接数据库
@@ -136,6 +138,8 @@ if (oicq) {
   oicq.addCommand(LEVEL_SUBADMIN, 'gun', begone);
   oicq.addCommand(LEVEL_SUBADMIN, '滚', begone);
   oicq.addCommand(LEVEL_SUBADMIN, 'checkface', checkface);
+  oicq.addCommand(LEVEL_ADMIN, 'donotdothis', stupid);
+  oicq.addConverse(LEVEL_ADMIN, 'dumpmsg', messageDumper);
 }
 
 for (const name in bridges) {
@@ -164,6 +168,11 @@ if (process.env.BOOSTE_TOKEN) {
     '用GPT2XL模型生成5个词 (.gpt2xl <英文文本>)',
     'generate text using gpt2 (5 words)'
   );
+}
+
+if (process.env.TENCENT_SDK_SECRETID) {
+  GLOBAL_COMMAND(LEVEL_USER, 'translate', translate, null, 'translate to chinese');
+  GLOBAL_COMMAND(LEVEL_USER, 'fanyi', fanyi, '翻译句子成英语', null);
 }
 
 /*

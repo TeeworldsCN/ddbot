@@ -155,7 +155,7 @@ export const broadcastRelay = async (msg: GenericMessage<any>, update: boolean =
         card.addMarkdown(`**[${SMD(msg.platformShort)}] ${SMD(msg.author.nicktag)}**`);
         await segmentToCard(kaiheila, msg.content, card, false, 'text');
         if (card.length == 1) continue;
-        kaiheila.channel(channel).card(card);
+        await kaiheila.channel(channel).card(card);
         // .then(id => {
         //   id && markMsg(msg.msgId, channel, id);
         // });
@@ -164,7 +164,7 @@ export const broadcastRelay = async (msg: GenericMessage<any>, update: boolean =
       if (oicq) {
         const segs = segmentToOICQSegs(oicq, msg.content, 'text');
         if (segs.length == 0) continue;
-        oicq.instance.sendGroupMsg(parseInt(unpacked.id), [
+        await oicq.instance.sendGroupMsg(parseInt(unpacked.id), [
           segment.text(`[${SMD(msg.platformShort)}] ${SMD(msg.author.nicktag)}: `),
           ...segs,
         ]);
@@ -173,7 +173,7 @@ export const broadcastRelay = async (msg: GenericMessage<any>, update: boolean =
         // });
       }
     } else if (unpacked.platform == 'gateway') {
-      relayMessageToGateway(unpacked.botName, unpacked.id, msg);
+      await relayMessageToGateway(unpacked.botName, unpacked.id, msg);
     }
   }
 
@@ -195,12 +195,12 @@ export const broadcastText = async (text: string, caller?: GenericMessage<any>) 
   for (const channel of relay.channels) {
     const unpacked = unpackChannelID(channel);
     if (unpacked.platform == 'kaiheila') {
-      if (kaiheila) kaiheila.channel(channel).text(text);
+      if (kaiheila) await kaiheila.channel(channel).text(text);
     } else if (unpacked.platform == 'oicq') {
-      if (oicq) oicq.channel(channel).text(text);
+      if (oicq) await oicq.channel(channel).text(text);
     } else if (unpacked.platform == 'gateway') {
       if (bridges && bridges[unpacked.botName])
-        bridges[unpacked.botName].channel(channel).text(text);
+        await bridges[unpacked.botName].channel(channel).text(text);
     }
   }
 

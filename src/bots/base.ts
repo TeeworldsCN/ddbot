@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { min } from 'lodash';
 import { ButtonHandler, ConverseHandler, GlobalCommandHandler, TextHandler } from '../bottype';
 import { Channel, getChannel } from '../db/channel';
 import { getUser, LEVEL_IGNORE, LEVEL_USER, User, UserModel } from '../db/user';
