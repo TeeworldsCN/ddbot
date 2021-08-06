@@ -77,11 +77,22 @@ class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
         const imageMatch = msg.text.match(
           /(.*)(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif)\??[^\s]*)(.*)/s
         );
+        const tenorMatch = msg.text.match(/(.*)(https:\/\/tenor\.com[^\s]*)(.*)/);
         if (imageMatch) {
           if (imageMatch[1]) {
             this._content.push(eText(imageMatch[1].trim()));
           }
           this._content.push(eImage(`https://ip.webmasterapi.com/api/imageproxy/${imageMatch[2]}`));
+          if (imageMatch[3]) {
+            this._content.push(eText(imageMatch[3].trim()));
+          }
+        } else if (tenorMatch) {
+          if (imageMatch[1]) {
+            this._content.push(eText(imageMatch[1].trim()));
+          }
+          this._content.push(
+            eImage(`https://ip.webmasterapi.com/api/imageproxy/${imageMatch[2]}.gif`)
+          );
           if (imageMatch[3]) {
             this._content.push(eText(imageMatch[3].trim()));
           }
