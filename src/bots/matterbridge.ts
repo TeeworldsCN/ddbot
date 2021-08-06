@@ -87,14 +87,14 @@ class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
             this._content.push(eText(imageMatch[3].trim()));
           }
         } else if (tenorMatch) {
-          if (imageMatch[1]) {
-            this._content.push(eText(imageMatch[1].trim()));
+          if (tenorMatch[1]) {
+            this._content.push(eText(tenorMatch[1].trim()));
           }
           this._content.push(
-            eImage(`https://ip.webmasterapi.com/api/imageproxy/${imageMatch[2]}.gif`)
+            eImage(`https://ip.webmasterapi.com/api/imageproxy/${tenorMatch[2]}.gif`)
           );
-          if (imageMatch[3]) {
-            this._content.push(eText(imageMatch[3].trim()));
+          if (tenorMatch[3]) {
+            this._content.push(eText(tenorMatch[3].trim()));
           }
         } else {
           this._content.push(eText(msg.text));
