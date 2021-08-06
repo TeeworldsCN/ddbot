@@ -75,7 +75,7 @@ class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
         this._content.push(eText(quote[1]));
       } else {
         const imageMatch = msg.text.match(
-          /(.*)(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif)??[^\s]*)(.*)/s
+          /(.*)(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif)\??[^\s]*)(.*)/s
         );
         if (imageMatch) {
           if (imageMatch[1]) {
