@@ -21,7 +21,6 @@ import {
   listRelay,
   unrelay,
   begone,
-  checkface,
   channelLevel,
 } from './commands/adminTools';
 import {
@@ -36,13 +35,11 @@ import { bind } from './commands/bind';
 import { ddnetStatus } from './commands/ddnetStatus';
 import { find } from './commands/find';
 import { maps } from './commands/maps';
-import { me } from './commands/me';
+import { here, me } from './commands/me';
 import { simplePoints as sp, points, simplerPoints as ssp } from './commands/points';
 import { rank } from './commands/rank';
 import { top } from './commands/top';
 import { generalHelp, generalHelpEng, wechatHelp } from './commands/helps';
-import { matchSignup } from './conversations/matchSignup';
-import { exportRegistration, registrationCheck } from './commands/signupManage';
 import { feederStart } from './rss';
 import { bridges, kaiheila, oicq, wechat } from './bots';
 import { hookMsg } from './hookMsg';
@@ -50,6 +47,7 @@ import { GLOBAL_COMMAND } from './bots/base';
 import { dice, gpt2, gpt2xl, roll, uuid } from './commands/fun';
 import { messageDumper } from './conversations/messageDumper';
 import { fanyi, translate } from './commands/tencent';
+import { checkface, oicqCheckMembers, oicqClearCache } from './commands/oicqAdminTools';
 
 /*
   连接数据库
@@ -89,6 +87,11 @@ for (const bot of MANAGER_BOTS) {
     bot.addCommand(LEVEL_ADMIN, 'relay', relay);
     bot.addCommand(LEVEL_ADMIN, 'listrelay', listRelay);
     bot.addCommand(LEVEL_ADMIN, 'unrelay', unrelay);
+
+    if (oicq) {
+      bot.addCommand(LEVEL_SUBADMIN, 'oicqcheckmembers', oicqCheckMembers);
+      bot.addCommand(LEVEL_SUBADMIN, 'oicqclearcache', oicqClearCache);
+    }
   }
 }
 
@@ -107,11 +110,12 @@ if (kaiheila) {
   kaiheila.addCommand(LEVEL_TESTER, 'sp', sp);
   kaiheila.addCommand(LEVEL_TESTER, 'ssp', ssp);
   kaiheila.addCommand(LEVEL_TESTER, 'helpwechat', wechatHelp);
-  kaiheila.addConverse(LEVEL_TESTER, 'testmatch', matchSignup);
 
-  // 开黑啦报名管理指令
-  kaiheila.addCommand(LEVEL_SUBADMIN, 'setreg', registrationCheck);
-  kaiheila.addCommand(LEVEL_SUBADMIN, 'exportreg', exportRegistration);
+  // kaiheila.addConverse(LEVEL_TESTER, 'testmatch', matchSignup);
+
+  // // 开黑啦报名管理指令
+  // kaiheila.addCommand(LEVEL_SUBADMIN, 'setreg', registrationCheck);
+  // kaiheila.addCommand(LEVEL_SUBADMIN, 'exportreg', exportRegistration);
 }
 
 if (wechat) {
@@ -129,7 +133,8 @@ if (wechat) {
   wechat.addCommand(LEVEL_USER, '分数', sp);
   wechat.addCommand(LEVEL_USER, '活跃度', points, '查询我的近期活跃度');
   wechat.addCommand(LEVEL_USER, '帮助', wechatHelp, '显示该帮助消息');
-  wechat.addConverse(LEVEL_USER, '报名', matchSignup, '2021暑期赛FNG报名');
+
+  // wechat.addConverse(LEVEL_USER, '报名', matchSignup, '2021暑期赛FNG报名');
 }
 
 if (oicq) {
@@ -149,6 +154,7 @@ for (const name in bridges) {
 }
 
 GLOBAL_COMMAND(LEVEL_USER, 'me', me);
+GLOBAL_COMMAND(LEVEL_MANAGER, 'here', here);
 GLOBAL_COMMAND(LEVEL_USER, 'roll', roll, '生成随机数 (.roll [min] [max])', 'roll a number (1-100)');
 GLOBAL_COMMAND(LEVEL_USER, 'dice', dice, '掷骰子 (.dice [n])', 'roll dice (.dice [n])');
 GLOBAL_COMMAND(LEVEL_USER, 'uuid', uuid, '生成UUID', 'generate a uuid v4');

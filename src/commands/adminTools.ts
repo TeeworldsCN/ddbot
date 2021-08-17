@@ -13,8 +13,6 @@ import { SubscriptionModel } from '../db/subscription';
 import { clearRelayCache, getGateway, RelayModel } from '../db/relay';
 import { unpackID } from '../utils/helpers';
 import { OICQBotAdapter } from '../bots/oicq';
-import { MessageElem, MessageEventData, segment } from 'oicq';
-import { QMOTE } from '../utils/consts';
 import { ChannelModel } from '../db/channel';
 
 export const subscribe: TextHandler = async msg => {
@@ -296,52 +294,4 @@ export const begone: TextHandler = async msg => {
 
   const bot: OICQBotAdapter = msg.bot;
   await bot.instance.setGroupLeave(parseInt(msg.channelId), false);
-};
-
-// QQ：查表情
-export const checkface: TextHandler = async msg => {
-  const query = new CommandParser(msg.command);
-  let face = query.getNumber(1);
-  const content: MessageEventData = msg.raw;
-  let name = null;
-
-  if (isNaN(face)) {
-    face = null;
-    for (const e of content.message) {
-      if (e.type == 'face') {
-        face = e.data.id;
-        name = e.data.text;
-      } else if (e.type == 'sface') {
-        face = e.data.id;
-        name = e.data.text;
-      }
-    }
-  }
-
-  if (face == null) {
-    await msg.reply.text('找不到相关内容');
-    return;
-  }
-
-  const emoteData = QMOTE[face];
-  const seg: MessageElem[] = [segment.face(face), segment.text(`(${face}|${name})`)];
-  if (emoteData) {
-    seg.push(segment.text(` | 中: ${emoteData.name}`));
-    if (emoteData.eng) {
-      seg.push(segment.text(` 英: ${emoteData.eng}`));
-    }
-    if (emoteData.emoji) {
-      seg.push(
-        segment.text(
-          ` Emoji: ${emoteData.emoji} | U+${emoteData.emoji.codePointAt(0).toString(16)}`
-        )
-      );
-    }
-  }
-
-  if (msg.sessionType == 'CHANNEL') {
-    await msg.bot.instance.sendGroupMsg(parseInt(msg.channelId), seg);
-  } else {
-    await msg.bot.instance.sendPrivateMsg(parseInt(msg.userId), seg);
-  }
 };
