@@ -59,15 +59,18 @@ export const checkface: TextHandler = async msg => {
 // QQ：查询群员
 export const oicqCheckMembers: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
-  const channelKey = query.getRest(1) || msg.channelKey;
+  let channelId = query.getNumber(1);
 
-  const channelInfo = unpackChannelID(channelKey);
-  if (channelInfo.platform !== 'oicq') {
-    await msg.reply.text('请提供频道Key');
-    return;
+  if (channelId == null) {
+    const channelInfo = unpackChannelID(msg.channelKey);
+    if (channelInfo.platform !== 'oicq') {
+      await msg.reply.text('请提供频道Key');
+      return;
+    }
+    channelId = parseInt(channelInfo.id);
   }
 
-  const memberList = await oicq.instance.getGroupMemberList(parseInt(channelInfo.id));
+  const memberList = await oicq.instance.getGroupMemberList(channelId);
   if (memberList.retcode) {
     await msg.reply.text(`获取列表失败：${memberList.error.message}`);
     return;
