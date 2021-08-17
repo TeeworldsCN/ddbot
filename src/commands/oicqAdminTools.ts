@@ -69,7 +69,7 @@ export const oicqCheckMembers: TextHandler = async msg => {
 
   const memberList = await oicq.instance.getGroupMemberList(parseInt(channelInfo.id));
   if (memberList.retcode) {
-    await msg.reply.text(`获取列表失败：${memberList.error}`);
+    await msg.reply.text(`获取列表失败：${memberList.error.message}`);
     return;
   }
 
