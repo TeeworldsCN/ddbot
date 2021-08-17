@@ -17,7 +17,8 @@ export class CommandParser {
   }
 
   public getNumber(index: number) {
-    return parseInt(this.getString(index)) ?? undefined;
+    const result = parseInt(this.getString(index));
+    return isNaN(result) ? undefined : result;
   }
 
   public getRest(index: number) {
