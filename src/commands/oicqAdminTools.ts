@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { DateTime } from 'luxon';
 import { MessageElem, MessageEventData, segment } from 'oicq';
 import { oicq } from '../bots';
 import { TextHandler } from '../bottype';
@@ -73,7 +74,7 @@ export const oicqCheckMembers: TextHandler = async msg => {
   }
 
   const csv_data: string[] = [
-    '"账号","昵称","群名片","等级","入群时间","最后发言时间","禁言到期时间"',
+    '"账号","昵称","群名片","入群时间戳","最后发言时间戳","禁言到期时间戳","入群时间","最后发言时间","禁言到期时间"',
   ];
 
   const q = (str: string) => {
@@ -82,9 +83,23 @@ export const oicqCheckMembers: TextHandler = async msg => {
 
   for (const [_, info] of memberList.data) {
     csv_data.push(
-      `"${info.user_id}","${q(info.nickname)}","${q(info.card)}","${q(info.rank)}","${
-        info.join_time
-      }","${info.last_sent_time}","${info.shutup_time}"`
+      `"${info.user_id}","${q(info.nickname)}","${q(info.card)}","${info.join_time}","${
+        info.last_sent_time
+      }","${info.shutup_time}","${DateTime.fromMillis(info.join_time * 1000)
+        .setLocale('zh')
+        .toLocaleString(DateTime.DATETIME_MED)}","${
+        info.last_sent_time
+          ? DateTime.fromMillis(info.last_sent_time * 1000)
+              .setLocale('zh')
+              .toLocaleString(DateTime.DATETIME_MED)
+          : 'never'
+      }","${
+        info.shutup_time
+          ? DateTime.fromMillis(info.shutup_time * 1000)
+              .setLocale('zh')
+              .toLocaleString(DateTime.DATETIME_MED)
+          : '-'
+      }"`
     );
   }
 
