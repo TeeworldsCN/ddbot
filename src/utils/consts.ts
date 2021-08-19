@@ -7,6 +7,7 @@ export const FLAGS: { [key: string]: string } = {
   chn: '🇨🇳',
   fra: '🇫🇷',
   ger: '🇩🇪',
+  ind: '🇮🇳',
   irn: '🇮🇷',
   jap: '🇯🇵',
   kor: '🇰🇷',
