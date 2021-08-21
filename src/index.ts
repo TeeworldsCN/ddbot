@@ -47,7 +47,12 @@ import { GLOBAL_COMMAND } from './bots/base';
 import { dice, gpt2, gpt2xl, roll, uuid } from './commands/fun';
 import { messageDumper } from './conversations/messageDumper';
 import { fanyi, translate } from './commands/tencent';
-import { checkface, oicqCheckMembers, oicqClearCache } from './commands/oicqAdminTools';
+import {
+  checkface,
+  oicqCheckMembers,
+  oicqClearCache,
+  oicqClearMembers,
+} from './commands/oicqAdminTools';
 
 /*
   连接数据库
@@ -139,6 +144,7 @@ if (wechat) {
 
 if (oicq) {
   // OICQ指令
+  oicq.addCommand(LEVEL_ADMIN, 'cleanup', oicqClearMembers);
   oicq.addCommand(LEVEL_USER, 'help', generalHelp, '显示该帮助消息');
   oicq.addCommand(LEVEL_SUBADMIN, 'gun', begone);
   oicq.addCommand(LEVEL_SUBADMIN, '滚', begone);

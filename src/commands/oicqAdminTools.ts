@@ -122,3 +122,68 @@ export const oicqClearCache: TextHandler = async msg => {
   msg.reply.text(`清除缓存成功`);
   return;
 };
+
+// QQ：清理群员
+export const oicqClearMembers: TextHandler = async msg => {
+  const query = new CommandParser(msg.command);
+  let beforeTime = query.getNumber(1);
+  let confirm = query.getRest(2);
+
+  if (beforeTime == null) {
+    return;
+  }
+
+  const channelInfo = unpackChannelID(msg.channelKey);
+  if (channelInfo.platform !== 'oicq') return;
+
+  const memberList = await oicq.instance.getGroupMemberList(parseInt(channelInfo.id));
+  if (memberList.retcode) {
+    await msg.reply.text(`获取列表失败：${memberList.error.message}`);
+    return;
+  }
+
+  const candidates: number[] = [];
+
+  for (const [_, info] of memberList.data) {
+    // no message
+    if (info.join_time < beforeTime && info.last_sent_time - info.join_time == 0) {
+      candidates.push(info.user_id);
+    }
+  }
+
+  if (candidates.length / memberList.data.size > 0.1) {
+    await msg.reply.text(`有${candidates.length}名符合条件的用户，数量过多，为了安全已禁止操作。`);
+    return;
+  }
+
+  if (confirm !== 'confirm') {
+    await msg.reply.text(`将清理${candidates.length}名用户。请确认。`);
+    return;
+  }
+
+  const total = candidates.length;
+  const reportPer = Math.floor(total / 5);
+
+  const removeOne = async () => {
+    if (candidates.length <= 0) {
+      await msg.reply.text(`清理完毕`);
+      return;
+    }
+    const result = await oicq.instance.setGroupKick(
+      parseInt(channelInfo.id),
+      candidates.pop(),
+      false
+    );
+    const delta = total - candidates.length - 1;
+    if (result.retcode) {
+      await msg.reply.text(`清理中断，已清理${delta}名用户`);
+      return;
+    } else if (delta % reportPer == 0) {
+      await msg.reply.text(`已清理 ${delta}/${total}`);
+    }
+    setTimeout(removeOne, 1000 + Math.random() * 2000);
+  };
+
+  await msg.reply.text(`清理操作已开始`);
+  removeOne();
+};
