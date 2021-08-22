@@ -285,7 +285,8 @@ export const segmentToCard = async (
     } else if (elem.type == 'notify' && elem.targetType == 'all') {
       if (mention == 'mention') {
         await addImages();
-        text.push('@全体成员');
+        addText();
+        card.addMarkdown('(met)all(met)');
       } else if (mention == 'text') {
         await addImages();
         text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
@@ -293,7 +294,8 @@ export const segmentToCard = async (
     } else if (elem.type == 'notify' && elem.targetType == 'here') {
       if (mention == 'mention') {
         await addImages();
-        text.push('@在线成员');
+        addText();
+        card.addMarkdown('(met)here(met)');
       } else if (mention == 'text') {
         await addImages();
         text.push(`[@#${elem.targetType}${elem.target ? `:${elem.target}` : ''}]`);
@@ -374,11 +376,11 @@ export class KaiheilaBotAdapter extends GenericBotAdapter<BotInstance> {
           }
         } else {
           const card = new Card('lg');
-          if (card.isEmpty) return null;
           const quote = await segmentToCard(this, content, card, true, 'mention');
+          if (card.isEmpty) return null;
           try {
             const result = await this.instance.API.message.create(
-              MSG_TYPES.text,
+              MSG_TYPES.card,
               channelId,
               card.toString(),
               quote || undefined,

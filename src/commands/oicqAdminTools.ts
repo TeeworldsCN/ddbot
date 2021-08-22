@@ -151,7 +151,7 @@ export const oicqClearMembers: TextHandler = async msg => {
     }
   }
 
-  if (candidates.length / memberList.data.size > 0.1) {
+  if (candidates.length / memberList.data.size > 0.15) {
     await msg.reply.text(`有${candidates.length}名符合条件的用户，数量过多，为了安全已禁止操作。`);
     return;
   }

@@ -35,7 +35,7 @@ export const wechat: WechatBotAdapter = process.env.WECHAT_APPID
 
 export const oicq: OICQBotAdapter = process.env.OICQ_ACCOUNT
   ? new OICQBotAdapter(
-      createClient(parseInt(process.env.OICQ_ACCOUNT), { log_level: 'mark' }),
+      createClient(parseInt(process.env.OICQ_ACCOUNT), { log_level: 'info' }),
       'oicq',
       'main'
     )

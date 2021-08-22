@@ -4,7 +4,7 @@ import { FeedHandler } from '../utils/rssFeeder';
 import cheerio from 'cheerio';
 import { Card } from '../utils/cardBuilder';
 import { dateTime, unpackID } from '../utils/helpers';
-import { kaiheila } from '../bots';
+import { kaiheila, oicq } from '../bots';
 
 interface MapDetail {
   name: string;
@@ -58,6 +58,10 @@ const sendKaiheila = async (item: MapDetail, channelKey: string) => {
 };
 
 let MAP_RETRY = 0;
+
+const sendOICQ = async (item: MapDetail, channelKey: string) => {
+  await oicq.channel(channelKey).text(`${item.author}发布了新的${item.server}地图: ${item.name}`);
+};
 
 export const mapFeed: FeedHandler = async item => {
   if (!item || !item.title) {
@@ -155,6 +159,8 @@ export const mapFeed: FeedHandler = async item => {
     const unpacked = unpackID(channel);
     if (unpacked.platform == 'kaiheila') {
       await sendKaiheila(data, channel);
+    } else if (unpacked.platform == 'oicq') {
+      await sendOICQ(data, channel);
     }
   }
 

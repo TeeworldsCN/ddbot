@@ -53,6 +53,7 @@ import {
   oicqClearCache,
   oicqClearMembers,
 } from './commands/oicqAdminTools';
+import { broadcast, broadcastAtAll } from './commands/broadcasting';
 
 /*
   连接数据库
@@ -92,6 +93,8 @@ for (const bot of MANAGER_BOTS) {
     bot.addCommand(LEVEL_ADMIN, 'relay', relay);
     bot.addCommand(LEVEL_ADMIN, 'listrelay', listRelay);
     bot.addCommand(LEVEL_ADMIN, 'unrelay', unrelay);
+    bot.addCommand(LEVEL_MANAGER, 'broadcast', broadcast);
+    bot.addCommand(LEVEL_SUBADMIN, 'broadcastatall', broadcastAtAll);
 
     if (oicq) {
       bot.addCommand(LEVEL_SUBADMIN, 'oicqcheckmembers', oicqCheckMembers);
