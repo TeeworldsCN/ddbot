@@ -5,6 +5,7 @@ import cheerio from 'cheerio';
 import { Card } from '../utils/cardBuilder';
 import { dateTime, unpackID } from '../utils/helpers';
 import { kaiheila, oicq } from '../bots';
+import { eImage, eText } from '../utils/messageElements';
 
 interface MapDetail {
   name: string;
@@ -60,7 +61,12 @@ const sendKaiheila = async (item: MapDetail, channelKey: string) => {
 let MAP_RETRY = 0;
 
 const sendOICQ = async (item: MapDetail, channelKey: string) => {
-  await oicq.channel(channelKey).text(`${item.author}发布了新的${item.server}地图: ${item.name}`);
+  await oicq
+    .channel(channelKey)
+    .elements([
+      eText(`"${item.author}"发布了新的${item.server}地图: "${item.name}"`),
+      eImage(`https://api.teeworlds.cn/ddnet/mapthumbs/${item.imageName}.png`),
+    ]);
 };
 
 export const mapFeed: FeedHandler = async item => {
