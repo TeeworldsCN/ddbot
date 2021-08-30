@@ -205,6 +205,7 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
             if (!text.startsWith('.') && !text.startsWith('。')) {
               // not a command, do relay
               // no support for converse
+              // fast broadcast, no await
               broadcastRelay(msg);
               continue;
             }
@@ -212,27 +213,31 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
             msg.command = text.replace(/^[\.。] ?/, '');
             const command = msg.command.split(' ')[0].toLowerCase();
 
-            if (this.globalCommands[command]) {
-              broadcastRelay(msg);
-              await msg.fillMsgDetail();
-              if (msg.effectiveUserLevel > LEVEL_USER) continue;
-              if (msg.effectiveUserLevel > this.globalCommands[command].level) continue;
-              this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
-                console.error(`Error proccessing global command '${text}'`);
-                console.error(reason);
-              });
-            } else if (this.commands[command]) {
-              await msg.fillMsgDetail();
-              if (msg.effectiveUserLevel > LEVEL_USER) continue;
-              if (msg.effectiveUserLevel > this.commands[command].level) continue;
+            // make sure command get broadcast first before the reply gets send,
+            // but still do multiple messages at the same time.
+            (async () => {
+              if (this.globalCommands[command]) {
+                await broadcastRelay(msg);
+                await msg.fillMsgDetail();
+                if (msg.effectiveUserLevel > LEVEL_USER) return;
+                if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
+                this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
+                  console.error(`Error proccessing global command '${text}'`);
+                  console.error(reason);
+                });
+              } else if (this.commands[command]) {
+                await msg.fillMsgDetail();
+                if (msg.effectiveUserLevel > LEVEL_USER) return;
+                if (msg.effectiveUserLevel > this.commands[command].level) return;
 
-              this.commands[command].func(msg).catch(reason => {
-                console.error(`Error proccessing command '${text}'`);
-                console.error(reason);
-              });
-            } else {
-              broadcastRelay(msg);
-            }
+                this.commands[command].func(msg).catch(reason => {
+                  console.error(`Error proccessing command '${text}'`);
+                  console.error(reason);
+                });
+              } else {
+                await broadcastRelay(msg);
+              }
+            })();
           }
         }
         setTimeout(() => {
