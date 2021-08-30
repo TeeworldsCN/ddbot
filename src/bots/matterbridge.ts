@@ -205,7 +205,7 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
             if (!text.startsWith('.') && !text.startsWith('。')) {
               // not a command, do relay
               // no support for converse
-              await broadcastRelay(msg);
+              broadcastRelay(msg);
               continue;
             }
 
@@ -213,7 +213,7 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
             const command = msg.command.split(' ')[0].toLowerCase();
 
             if (this.globalCommands[command]) {
-              await broadcastRelay(msg);
+              broadcastRelay(msg);
               await msg.fillMsgDetail();
               if (msg.effectiveUserLevel > LEVEL_USER) continue;
               if (msg.effectiveUserLevel > this.globalCommands[command].level) continue;
@@ -231,7 +231,7 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
                 console.error(reason);
               });
             } else {
-              await broadcastRelay(msg);
+              broadcastRelay(msg);
             }
           }
         }
