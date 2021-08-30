@@ -82,7 +82,9 @@ class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
           if (imageMatch[1]) {
             this._content.push(eText(imageMatch[1].trim()));
           }
-          this._content.push(eImage(`https://ip.webmasterapi.com/api/imageproxy/${imageMatch[2]}`));
+          this._content.push(
+            eImage(`https://ip.webmasterapi.com/api/imageproxy//${imageMatch[2]}`)
+          );
           if (imageMatch[3]) {
             this._content.push(eText(imageMatch[3].trim()));
           }
@@ -91,7 +93,7 @@ class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
             this._content.push(eText(tenorMatch[1].trim()));
           }
           this._content.push(
-            eImage(`https://ip.webmasterapi.com/api/imageproxy/${tenorMatch[2]}.gif`)
+            eImage(`https://ip.webmasterapi.com/api/imageproxy//${tenorMatch[2]}.gif`)
           );
           if (tenorMatch[3]) {
             this._content.push(eText(tenorMatch[3].trim()));
