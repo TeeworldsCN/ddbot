@@ -61,6 +61,7 @@ const sendKaiheila = async (item: MapDetail, channelKey: string) => {
 let MAP_RETRY = 0;
 
 const sendOICQ = async (item: MapDetail, channelKey: string) => {
+  if (!oicq) return;
   await oicq
     .channel(channelKey)
     .elements([
