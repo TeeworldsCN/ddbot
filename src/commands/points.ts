@@ -151,6 +151,7 @@ const uploadGraph = async (
 
   var svg = await new View(parse(graph.spec), { renderer: 'none' }).toSVG(2);
   var png = await sharp(Buffer.from(svg))
+    .resize(undefined, 200)
     .png({
       compressionLevel: 9,
     })
