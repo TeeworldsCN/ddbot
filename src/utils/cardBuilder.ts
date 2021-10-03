@@ -175,9 +175,21 @@ export class Card {
     });
   }
 
-  public addImages(images: CardImage[]) {
+  public addImageGrid(images: CardImage[]) {
     this.addModule({
       type: 'image-group',
+      elements: images.slice(0, 9).map(img => {
+        return {
+          type: 'image',
+          ...img,
+        };
+      }),
+    });
+  }
+
+  public addImages(images: CardImage[]) {
+    this.addModule({
+      type: 'container',
       elements: images.slice(0, 9).map(img => {
         return {
           type: 'image',

@@ -229,17 +229,16 @@ export const segmentToCard = async (
       const data = images.splice(0, 9).map(src => {
         return { src };
       });
-      if (data.length == 1) {
-        const width = await getImageWidth(data[0].src);
-        if (width <= 256) {
-          data.push(
-            { src: 'https://teeworlds.cn/null.png' },
-            { src: 'https://teeworlds.cn/null.png' }
-          );
-        } else if (width <= 512) {
-          data.push({ src: 'https://teeworlds.cn/null.png' });
-        }
-      }
+      // if (data.length == 1) {
+      //   if (width <= 256) {
+      //     data.push(
+      //       { src: 'https://teeworlds.cn/null.png' },
+      //       { src: 'https://teeworlds.cn/null.png' }
+      //     );
+      //   } else if (width <= 512) {
+      //     data.push({ src: 'https://teeworlds.cn/null.png' });
+      //   }
+      // }
       if (data.length > 0) {
         card.addImages(data);
       }
