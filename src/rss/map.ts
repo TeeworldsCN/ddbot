@@ -65,10 +65,10 @@ const sendOICQ = async (item: MapDetail, channelKey: string) => {
     .channel(channelKey)
     .elements([
       eText(
-        `"${item.author}"发布了新的${item.server}地图: "${item.name}\n${item.desc.replace(
+        `"${item.author}"发布了新的${item.server}地图: "${item.name}"\n${item.desc.replace(
           '\n',
           ' '
-        )}"`
+        )}`
       ),
       eImage(`https://api.teeworlds.cn/ddnet/mapthumbs/${item.imageName}.png`),
     ]);
