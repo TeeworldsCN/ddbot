@@ -27,7 +27,7 @@ export const wechatSetKeyword: TextHandler = async msg => {
     { upsert: true }
   ).exec();
 
-  if (result.ok) {
+  if (result.acknowledged) {
     await msg.reply.text('设置成功');
   } else {
     await msg.reply.text('未知错误，设置失败');
@@ -49,7 +49,7 @@ export const wechatRemoveKeyword: TextHandler = async msg => {
   const keyword = query.getString(1);
 
   const result = await WechatReplyModel.deleteOne({ keyword }).exec();
-  if (result.ok) {
+  if (result.acknowledged) {
     if (result.deletedCount) {
       await msg.reply.text('删除成功');
     } else {

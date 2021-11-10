@@ -12,7 +12,7 @@
     "@types/xml2js": "^0.4.8"
   },
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^0.21.4",
     "booste": "0.0.8",
     "cheerio": "^1.0.0-rc.9",
     "commander": "^7.1.0",
@@ -26,7 +26,7 @@
     "kaiheila-bot-root": "^0.2.9",
     "lodash": "^4.17.21",
     "luxon": "^1.26.0",
-    "mongoose": "^5.12.13",
+    "mongoose": "^6.0.12",
     "oicq": "^1.19.3",
     "sha1": "^1.1.1",
     "sharp": "^0.27.2",

@@ -33,7 +33,7 @@ export const bind: TextHandler = async msg => {
     { upsert: true }
   ).exec();
 
-  if (result.ok) {
+  if (result.acknowledged) {
     if (msg.platform == 'kaiheila') {
       const card = new Card('sm');
       card.addContext(['该消息只有您可见']);

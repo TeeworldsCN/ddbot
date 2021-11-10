@@ -59,12 +59,7 @@ import { broadcast, broadcastAtAll } from './commands/broadcasting';
   连接数据库
 */
 (async () => {
-  await mongoose.connect(process.env.MONGODB_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-  });
+  await mongoose.connect(process.env.MONGODB_URL);
 
   // 生成定义的管理员账户
   await initAdmins();

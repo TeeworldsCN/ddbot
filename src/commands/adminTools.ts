@@ -29,7 +29,7 @@ export const subscribe: TextHandler = async msg => {
     { $addToSet: { channels: channel } },
     { upsert: msg.effectiveUserLevel <= LEVEL_SUBADMIN }
   ).exec();
-  if (result.ok) {
+  if (result.acknowledged) {
     if (channel == msg.channelKey) {
       await msg.reply.text(`成功在这里订阅"${name}"消息`);
     } else {
@@ -68,7 +68,7 @@ export const unsubscribe: TextHandler = async msg => {
 
   if (destroy == 'all') {
     const result = await SubscriptionModel.deleteOne({ name }).exec();
-    if (result.ok) {
+    if (result.acknowledged) {
       await msg.reply.text(`成功清空了"${name}"消息的所有订阅`);
     } else {
       await msg.reply.text(`操作失败`);
@@ -78,7 +78,7 @@ export const unsubscribe: TextHandler = async msg => {
       { name },
       { $pull: { channels: destroy } }
     ).exec();
-    if (result.ok) {
+    if (result.acknowledged) {
       await msg.reply.text(`成功取消订阅了"${destroy}"的"${name}"消息`);
     } else {
       await msg.reply.text(`未知错误，取消订阅"${name}"失败`);
@@ -88,7 +88,7 @@ export const unsubscribe: TextHandler = async msg => {
       { name },
       { $pull: { channels: msg.channelKey } }
     ).exec();
-    if (result.ok) {
+    if (result.acknowledged) {
       await msg.reply.text(`成功取消订阅了这里的"${name}"消息`);
     } else {
       await msg.reply.text(`未知错误，取消订阅"${name}"失败`);
@@ -111,7 +111,7 @@ export const relay: TextHandler = async msg => {
     { $addToSet: { channels: channel } },
     { upsert: msg.effectiveUserLevel <= LEVEL_SUBADMIN }
   ).exec();
-  if (result.ok) {
+  if (result.acknowledged) {
     if (channel == msg.channelKey) {
       await msg.reply.text(`成功将本频道桥接"${gateway}"的消息`);
     } else {
@@ -153,14 +153,14 @@ export const unrelay: TextHandler = async msg => {
 
   if (destroy == 'all') {
     const result = await RelayModel.deleteOne({ gateway }).exec();
-    if (result.ok) {
+    if (result.acknowledged) {
       await msg.reply.text(`成功取消了"${gateway}"消息的所有桥接`);
     } else {
       await msg.reply.text(`操作失败`);
     }
   } else if (destroy) {
     const result = await RelayModel.updateOne({ gateway }, { $pull: { channels: destroy } }).exec();
-    if (result.ok) {
+    if (result.acknowledged) {
       await msg.reply.text(`成功取消桥接了"${destroy}"的"${gateway}"消息`);
     } else {
       await msg.reply.text(`未知错误，取消桥接"${gateway}"失败`);
@@ -170,7 +170,7 @@ export const unrelay: TextHandler = async msg => {
       { gateway },
       { $pull: { channels: msg.channelKey } }
     ).exec();
-    if (result.ok) {
+    if (result.acknowledged) {
       await msg.reply.text(`成功取消桥接了这里的"${gateway}"消息`);
     } else {
       await msg.reply.text(`未知错误，取消桥接"${gateway}"失败`);
@@ -259,7 +259,9 @@ export const revoke: TextHandler = async msg => {
   if (level > LEVEL_ADMIN) {
     const result = await UserModel.updateMany({ level }, { $set: { level: LEVEL_USER } });
     await msg.reply.text(
-      `已撤回 ${result.nModified} 名${LEVEL_NAMES[level] ? LEVEL_NAMES[level] : `${level}级用户`}`
+      `已撤回 ${result.modifiedCount} 名${
+        LEVEL_NAMES[level] ? LEVEL_NAMES[level] : `${level}级用户`
+      }`
     );
     return;
   }
