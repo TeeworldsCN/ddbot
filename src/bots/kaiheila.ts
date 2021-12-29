@@ -317,7 +317,7 @@ export const segmentToCard = async (
           images.push(elem.content);
         } else {
           const url = await bot.uploadImage('image.png', elem.content);
-          if (url) {
+          if (typeof url == 'string') {
             addText();
             images.push(url);
           }

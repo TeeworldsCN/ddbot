@@ -295,5 +295,5 @@ export const begone: TextHandler = async msg => {
   if (unpackID(msg.content[0].userKey).id != process.env.OICQ_ACCOUNT) return;
 
   const bot: OICQBotAdapter = msg.bot;
-  await bot.instance.setGroupLeave(parseInt(msg.channelId), false);
+  await bot.instance.setGroupLeave(parseInt(msg.channelId));
 };
