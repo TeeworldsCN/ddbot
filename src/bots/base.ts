@@ -7,7 +7,7 @@ import { packChannelID, packID, unpackChannelID, unpackID } from '../utils/helpe
 
 export type MessageReply = {
   text: (content: string, quote?: string, temp?: boolean) => Promise<string>;
-  image: (image: string, temp?: boolean) => Promise<string>;
+  image: (image: string | Buffer, temp?: boolean) => Promise<string>;
   file: (file: string, temp?: boolean) => Promise<string>;
   card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
   elements: (content: GenericMessageElement[], rich?: boolean, temp?: boolean) => Promise<string>;
@@ -18,7 +18,7 @@ export type MessageReply = {
 
 export type MessageAction = {
   text: (content: string, quote?: string, onlyTo?: string) => Promise<string>;
-  image: (image: string, onlyTo?: string) => Promise<string>;
+  image: (image: string | Buffer, onlyTo?: string) => Promise<string>;
   file: (file: string, onlyTo?: string) => Promise<string>;
   card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
   elements: (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => Promise<string>;
@@ -280,12 +280,12 @@ export abstract class GenericBotAdapter<BotType> {
   }
 
   // 上传图片获取URL
-  public async uploadImage(name: string, data: Buffer): Promise<string> {
+  public async uploadImage(name: string, data: Buffer): Promise<string | Buffer> {
     return null;
   }
 
   // 上传到图片素材库（微信），若不支持素材库则上传成URL
-  public async uploadImageAsset(name: string, data: Buffer): Promise<string> {
+  public async uploadImageAsset(name: string, data: Buffer): Promise<string | Buffer> {
     return null;
   }
 

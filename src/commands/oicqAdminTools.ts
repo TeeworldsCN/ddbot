@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { DateTime } from 'luxon';
-import { MessageElem, MessageEventData, segment } from 'oicq';
+import { MessageElem, MessageEvent, segment } from 'oicq';
 import { oicq } from '../bots';
+import { OICQMessageType } from '../bots/oicq';
 import { TextHandler } from '../bottype';
 import { CommandParser } from '../utils/commandParser';
 import { QMOTE } from '../utils/consts';
@@ -12,18 +13,18 @@ import { pstd } from '../utils/pstd';
 export const checkface: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
   let face = query.getNumber(1);
-  const content: MessageEventData = msg.raw;
+  const content: OICQMessageType = msg.raw;
   let name = null;
 
   if (isNaN(face)) {
     face = null;
     for (const e of content.message) {
       if (e.type == 'face') {
-        face = e.data.id;
-        name = e.data.text;
+        face = e.id;
+        name = e.text;
       } else if (e.type == 'sface') {
-        face = e.data.id;
-        name = e.data.text;
+        face = e.id;
+        name = e.text;
       }
     }
   }
@@ -70,56 +71,56 @@ export const oicqCheckMembers: TextHandler = async msg => {
     channelId = parseInt(channelInfo.id);
   }
 
-  const memberList = await oicq.instance.getGroupMemberList(channelId);
-  if (memberList.retcode) {
-    await msg.reply.text(`获取列表失败：${memberList.error.message}`);
+  try {
+    const memberList = await oicq.instance.getGroupMemberList(channelId);
+    const csv_data: string[] = [
+      '"账号","昵称","群名片","入群时间戳","最后发言时间戳","禁言到期时间戳","入群时间","最后发言时间","禁言到期时间"',
+    ];
+
+    const q = (str: string) => {
+      return str.replace(/"/g, '\\"');
+    };
+
+    for (const [_, info] of memberList) {
+      csv_data.push(
+        `"${info.user_id}","${q(info.nickname)}","${q(info.card)}","${info.join_time}","${
+          info.last_sent_time
+        }","${info.shutup_time}","${DateTime.fromMillis(info.join_time * 1000)
+          .setLocale('zh')
+          .toLocaleString(DateTime.DATETIME_MED)}","${
+          info.last_sent_time
+            ? DateTime.fromMillis(info.last_sent_time * 1000)
+                .setLocale('zh')
+                .toLocaleString(DateTime.DATETIME_MED)
+            : 'never'
+        }","${
+          info.shutup_time
+            ? DateTime.fromMillis(info.shutup_time * 1000)
+                .setLocale('zh')
+                .toLocaleString(DateTime.DATETIME_MED)
+            : '-'
+        }"`
+      );
+    }
+    await msg.reply.text(await pstd(csv_data.join('\n')));
+  } catch (e) {
+    await msg.reply.text(`获取列表失败：${JSON.stringify(e)}`);
     return;
   }
-
-  const csv_data: string[] = [
-    '"账号","昵称","群名片","入群时间戳","最后发言时间戳","禁言到期时间戳","入群时间","最后发言时间","禁言到期时间"',
-  ];
-
-  const q = (str: string) => {
-    return str.replace(/"/g, '\\"');
-  };
-
-  for (const [_, info] of memberList.data) {
-    csv_data.push(
-      `"${info.user_id}","${q(info.nickname)}","${q(info.card)}","${info.join_time}","${
-        info.last_sent_time
-      }","${info.shutup_time}","${DateTime.fromMillis(info.join_time * 1000)
-        .setLocale('zh')
-        .toLocaleString(DateTime.DATETIME_MED)}","${
-        info.last_sent_time
-          ? DateTime.fromMillis(info.last_sent_time * 1000)
-              .setLocale('zh')
-              .toLocaleString(DateTime.DATETIME_MED)
-          : 'never'
-      }","${
-        info.shutup_time
-          ? DateTime.fromMillis(info.shutup_time * 1000)
-              .setLocale('zh')
-              .toLocaleString(DateTime.DATETIME_MED)
-          : '-'
-      }"`
-    );
-  }
-
-  await msg.reply.text(await pstd(csv_data.join('\n')));
 };
 
 // QQ：清除缓存
 export const oicqClearCache: TextHandler = async msg => {
   if (!oicq) return;
 
-  const result = await oicq.instance.cleanCache();
-  if (result.retcode) {
-    msg.reply.text(`清除缓存失败：${result.error}`);
+  try {
+    oicq.instance.cleanCache();
+  } catch (e) {
+    await msg.reply.text(`清除缓存失败：${JSON.stringify(e)}`);
     return;
   }
 
-  msg.reply.text(`清除缓存成功`);
+  await msg.reply.text(`清除缓存成功`);
   return;
 };
 
@@ -136,54 +137,57 @@ export const oicqClearMembers: TextHandler = async msg => {
   const channelInfo = unpackChannelID(msg.channelKey);
   if (channelInfo.platform !== 'oicq') return;
 
-  const memberList = await oicq.instance.getGroupMemberList(parseInt(channelInfo.id));
-  if (memberList.retcode) {
-    await msg.reply.text(`获取列表失败：${memberList.error.message}`);
-    return;
-  }
+  try {
+    const memberList = await oicq.instance.getGroupMemberList(parseInt(channelInfo.id));
 
-  const candidates: number[] = [];
+    const candidates: number[] = [];
 
-  for (const [_, info] of memberList.data) {
-    // no message
-    if (info.join_time < beforeTime && info.last_sent_time - info.join_time == 0) {
-      candidates.push(info.user_id);
+    for (const [_, info] of memberList) {
+      // no message
+      if (info.join_time < beforeTime && info.last_sent_time - info.join_time == 0) {
+        candidates.push(info.user_id);
+      }
     }
-  }
 
-  if (candidates.length / memberList.data.size > 0.15) {
-    await msg.reply.text(`有${candidates.length}名符合条件的用户，数量过多，为了安全已禁止操作。`);
-    return;
-  }
-
-  if (confirm !== 'confirm') {
-    await msg.reply.text(`将清理${candidates.length}名用户。请确认。`);
-    return;
-  }
-
-  const total = candidates.length;
-  const reportPer = Math.floor(total / 5);
-
-  const removeOne = async () => {
-    if (candidates.length <= 0) {
-      await msg.reply.text(`清理完毕`);
+    if (candidates.length / memberList.size > 0.15) {
+      await msg.reply.text(
+        `有${candidates.length}名符合条件的用户，数量过多，为了安全已禁止操作。`
+      );
       return;
     }
-    const result = await oicq.instance.setGroupKick(
-      parseInt(channelInfo.id),
-      candidates.pop(),
-      false
-    );
-    const delta = total - candidates.length - 1;
-    if (result.retcode) {
-      await msg.reply.text(`清理中断，已清理${delta}名用户`);
-      return;
-    } else if (delta % reportPer == 0) {
-      await msg.reply.text(`已清理 ${delta}/${total}`);
-    }
-    setTimeout(removeOne, 1000 + Math.random() * 2000);
-  };
 
-  await msg.reply.text(`清理操作已开始`);
-  removeOne();
+    if (confirm !== 'confirm') {
+      await msg.reply.text(`将清理${candidates.length}名用户。请确认。`);
+      return;
+    }
+
+    const total = candidates.length;
+    const reportPer = Math.floor(total / 5);
+
+    const removeOne = async () => {
+      if (candidates.length <= 0) {
+        await msg.reply.text(`清理完毕`);
+        return;
+      }
+
+      const delta = total - candidates.length - 1;
+
+      try {
+        await oicq.instance.setGroupKick(parseInt(channelInfo.id), candidates.pop(), false);
+      } catch (e) {
+        await msg.reply.text(`清理中断，已清理${delta}名用户`);
+        return;
+      }
+      if (delta % reportPer == 0) {
+        await msg.reply.text(`已清理 ${delta}/${total}`);
+      }
+      setTimeout(removeOne, 1000 + Math.random() * 2000);
+    };
+
+    await msg.reply.text(`清理操作已开始`);
+    removeOne();
+  } catch (e) {
+    await msg.reply.text(`操作失败：${JSON.stringify(e)}`);
+    return;
+  }
 };

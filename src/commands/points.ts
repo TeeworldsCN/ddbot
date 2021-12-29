@@ -356,7 +356,7 @@ export const points: TextHandler = async msg => {
       card.addTable([table]);
     }
 
-    if (imageID) {
+    if (typeof imageID == 'string') {
       card.addImages([{ src: imageID }]);
     }
 

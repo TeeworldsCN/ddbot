@@ -6,7 +6,7 @@ import {
   MessageReply,
   quotify,
 } from './base';
-import { Client, MessageEventData, segment } from 'oicq';
+import { Client, DiscussMessage, GroupMessage, PrivateMessage, segment } from 'oicq';
 import { unpackID } from '../utils/helpers';
 import { getUser, LEVEL_MANAGER, LEVEL_USER } from '../db/user';
 import { QMOTE } from '../utils/consts';
@@ -24,7 +24,6 @@ export const segmentToOICQSegs = (
 
   for (const elem of content) {
     if (elem.type == 'quote' && elem.platform == bot.platformKey) {
-      result.push(segment.reply(elem.msgId));
       result.push(segment.at(parseInt(unpackID(elem.userKey).id)));
       break;
     }
@@ -80,151 +79,145 @@ export class OICQBotAdapter extends GenericBotAdapter<Client> {
     return {
       text: async (content: string, quote?: string, onlyTo?: string) => {
         const msg = [];
-        if (quote) {
-          msg.push(segment.reply(quote));
-        }
-        msg.push(segment.text(content));
-        const result = await this.instance.sendGroupMsg(parseInt(channelId), msg);
-        if (result.retcode) {
+        msg.push(content);
+        try {
+          const result = await this.instance.sendGroupMsg(parseInt(channelId), msg);
+          return result.message_id;
+        } catch (e) {
           console.warn(`[OICQ] 发送消息失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
-        return result.data?.message_id || null;
       },
-      image: async (url: string, onlyTo?: string) => {
-        const result = await this.instance.sendGroupMsg(
-          parseInt(channelId),
-          segment.image(url, true, 10000)
-        );
-        if (result.retcode) {
+      image: async (image: string | Buffer, onlyTo?: string) => {
+        try {
+          const result = await this.instance.sendGroupMsg(
+            parseInt(channelId),
+            segment.image(image, true, 10000)
+          );
+          return result.message_id;
+        } catch (e) {
           console.warn(`[OICQ] 发送图片失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
-        return result.data?.message_id || null;
       },
       elements: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
         const msg = segmentToOICQSegs(this, content, 'mention');
         if (msg.length == 0) return null;
-        const result = await this.instance.sendGroupMsg(parseInt(channelId), msg);
-        if (result.retcode) {
+        try {
+          const result = await this.instance.sendGroupMsg(parseInt(channelId), msg);
+          return result.message_id;
+        } catch (e) {
           console.warn(`[OICQ] 发送分段消息失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
-        return result.data?.message_id || null;
       },
       update: async (msgId: string, content: string, quote?: string) => {
-        const deleteRes = await this.instance.deleteMsg(msgId);
-        if (deleteRes.retcode) {
+        try {
+          await this.instance.deleteMsg(msgId);
+        } catch (e) {
           console.warn(`[OICQ] 重发删除消息失败`);
-          console.warn(deleteRes);
+          console.warn(e);
           return null;
         }
 
         const msg = [];
-        if (quote) {
-          msg.push(segment.reply(quote));
-        }
-        msg.push(segment.text(content));
-        const result = await this.instance.sendGroupMsg(parseInt(channelId), msg);
-        if (result.retcode) {
+
+        msg.push(content);
+        try {
+          await this.instance.sendGroupMsg(parseInt(channelId), msg);
+        } catch (e) {
           console.warn(`[OICQ] 重发更新消息失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
-        return;
       },
       delete: async (msgId: string) => {
-        const deleteRes = await this.instance.deleteMsg(msgId);
-        if (deleteRes.retcode) {
+        try {
+          await this.instance.deleteMsg(msgId);
+        } catch (e) {
           console.warn(`[OICQ] 删除消息失败`);
-          console.warn(deleteRes);
+          console.warn(e);
           return null;
         }
       },
     };
   }
+
   public makeUserContext(userId: string): Partial<MessageAction> {
     return {
       text: async (content: string, quote?: string, onlyTo?: string) => {
         const msg = [];
-        if (quote) {
-          msg.push(segment.reply(quote));
-        }
-        msg.push(segment.text(content));
-        const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
-        if (result.retcode) {
+        msg.push(content);
+        try {
+          const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
+          return result.message_id;
+        } catch (e) {
           console.warn(`[OICQ] 发送私聊失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
-        return result.data?.message_id || null;
       },
       image: async (url: string, onlyTo?: string) => {
-        const result = await this.instance.sendPrivateMsg(
-          parseInt(userId),
-          segment.image(url, true, 10000)
-        );
-        if (result.retcode) {
+        try {
+          const result = await this.instance.sendPrivateMsg(
+            parseInt(userId),
+            segment.image(url, true, 10000)
+          );
+          return result.message_id;
+        } catch (e) {
           console.warn(`[OICQ] 私聊图片失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
-        return result.data?.message_id || null;
       },
       elements: async (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => {
         const msg = segmentToOICQSegs(this, content, 'mention');
         if (msg.length == 0) return null;
-        const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
-        if (result.retcode) {
+        try {
+          const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
+          return result.message_id;
+        } catch (e) {
           console.warn(`[OICQ] 发送分段消息失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
-        return result.data?.message_id || null;
       },
       update: async (msgId: string, content: string, quote?: string) => {
-        const deleteRes = await this.instance.deleteMsg(msgId);
-        if (deleteRes.retcode) {
+        try {
+          await this.instance.deleteMsg(msgId);
+        } catch (e) {
           console.warn(`[OICQ] 私聊重发删除消息失败`);
-          console.warn(deleteRes);
+          console.warn(e);
           return null;
         }
-
         const msg = [];
-        if (quote) {
-          msg.push(segment.reply(quote));
-        }
-        msg.push(segment.text(content));
-        const result = await this.instance.sendPrivateMsg(parseInt(userId), msg);
-        if (result.retcode) {
+        msg.push(content);
+        try {
+          await this.instance.sendPrivateMsg(parseInt(userId), msg);
+        } catch (e) {
           console.warn(`[OICQ] 私聊重发更新消息失败`);
-          console.warn(result);
+          console.warn(e);
           return null;
         }
         return;
       },
       delete: async (msgId: string) => {
-        const deleteRes = await this.instance.deleteMsg(msgId);
-        if (deleteRes.retcode) {
+        try {
+          await this.instance.deleteMsg(msgId);
+        } catch (e) {
           console.warn(`[OICQ] 删除消息失败`);
-          console.warn(deleteRes);
+          console.warn(e);
           return null;
         }
       },
     };
   }
 
-  public async uploadImage(name: string, data: Buffer): Promise<string> {
-    const result = await this.instance.preloadImages([data]);
-    if (result.retcode) {
-      console.warn('[OICQ] 图片上传失败');
-      console.warn(result);
-      return null;
-    }
-    return result.data[0];
+  public async uploadImage(name: string, data: Buffer): Promise<string | Buffer> {
+    return data;
   }
 
   public async uploadImageAsset(name: string, data: Buffer) {
@@ -418,8 +411,10 @@ const parseOICQJson = (json: string): GenericMessageElement => {
   }
 };
 
+export type OICQMessageType = PrivateMessage | GroupMessage | DiscussMessage;
+
 class OICQMessage extends GenericMessage<Client> {
-  public constructor(bot: OICQBotAdapter, e: MessageEventData) {
+  public constructor(bot: OICQBotAdapter, e: OICQMessageType) {
     super(bot, e);
 
     this._type = 'message';
@@ -434,43 +429,43 @@ class OICQMessage extends GenericMessage<Client> {
 
     for (const seg of e.message) {
       if (seg.type == 'text') {
-        this._content.push({ type: 'text', content: seg.data.text });
+        this._content.push({ type: 'text', content: seg.text });
       } else if (seg.type == 'at' && !lastQuote) {
         // reply 可能自带一个 at，无视掉
-        if (seg.data.qq == 'all') {
+        if (seg.qq == 'all') {
           this._content.push({
             type: 'notify',
-            content: (seg.data.text || '').slice(1),
+            content: (seg.text || '').slice(1),
             targetType: 'all',
           });
         } else {
           this._content.push({
             type: 'mention',
-            content: (seg.data.text || '').slice(1),
-            userKey: this.bot.packID(seg.data.qq.toString()),
+            content: (seg.text || '').slice(1),
+            userKey: this.bot.packID(seg.qq.toString()),
           });
         }
       } else if (seg.type == 'bface') {
         this._content.push({
           type: 'emote',
           platform: this.bot.platformKey,
-          content: seg.data.file,
+          content: seg.file,
           id: null,
-          name: seg.data.text,
+          name: seg.text,
         });
       } else if (seg.type == 'sface') {
-        if (seg.data.text) {
+        if (seg.text) {
           this._content.push({
             type: 'emote',
             platform: this.bot.platformKey,
             content: null,
             id: null,
-            name: seg.data.text,
+            name: seg.text,
           });
         }
       } else if (seg.type == 'face') {
-        if (seg.data.id != null) {
-          const qmote = QMOTE[seg.data.id];
+        if (seg.id != null) {
+          const qmote = QMOTE[seg.id];
           if (qmote) {
             this._content.push({
               type: 'emote',
@@ -487,25 +482,25 @@ class OICQMessage extends GenericMessage<Client> {
               platform: this.bot.platformKey,
               content: null,
               id: null,
-              name: seg.data.id.toString(),
+              name: seg.id.toString(),
             });
           }
         }
       } else if (seg.type == 'image') {
         this._content.push({
           type: 'image',
-          content: seg.data.url,
+          content: seg.url,
         });
       } else if (seg.type == 'reply') {
         this._content.push({
           type: 'quote',
           platform: this.bot.platformKey,
-          msgId: seg.data.id,
+          msgId: seg.id,
         });
       } else if (seg.type == 'xml') {
-        this._content.push(parseOICQXML(seg.data.data));
+        this._content.push(parseOICQXML(seg.data));
       } else if (seg.type == 'json') {
-        this._content.push(parseOICQJson(seg.data.data));
+        this._content.push(parseOICQJson(seg.data));
       } else {
         this._content.push({
           type: 'unknown',
@@ -589,16 +584,17 @@ class OICQMessage extends GenericMessage<Client> {
   public async fetchExtraMsgInfo() {
     for (const part of this._content) {
       if (part.type == 'quote') {
-        const result = await this.bot.instance.getMsg(part.msgId);
-        if (result.retcode) {
+        try {
+          const result = await this.bot.instance.getMsg(part.msgId);
+          part.userKey = this.bot.packID(result.sender.user_id.toString());
+
+          const quoteMsg = new OICQMessage(this.bot, result);
+          part.content = `${result.sender.nickname}: ${quoteMsg.text}`;
+        } catch (e) {
           console.warn('[OICQ] 获取被回复消息失败');
-          console.warn(result);
+          console.warn(e);
           return;
         }
-        part.userKey = this.bot.packID(result.data.sender.user_id.toString());
-
-        const quoteMsg = new OICQMessage(this.bot, result.data);
-        part.content = `${result.data.sender.nickname}: ${quoteMsg.text}`;
       }
     }
     this._text = null;
