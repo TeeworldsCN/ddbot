@@ -3,6 +3,7 @@ import { broadcastRelay, RelayMessage } from '../relay';
 import { eQuote, eText, eImage } from '../utils/messageElements';
 import { GenericBotAdapter, GenericMessage, MessageAction, MessageReply } from './base';
 import WebSocket from 'ws';
+import sharp from 'sharp';
 
 export class StableWebSocket {
   private ws: WebSocket;
@@ -108,7 +109,12 @@ class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
       tag: msg.username,
       avatar: msg.avatar,
     };
+    this._raw = msg;
+  }
 
+  public async processMessage() {
+    const msg = this._raw;
+    if (this._content.length > 0) return;
     if (msg.text) {
       const quote = msg.text.match(/(.*)\(re (.*)\)/s);
       if (quote) {
@@ -153,12 +159,27 @@ class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
         if (file.Name.match('.*.(png|jpeg|jpg|gif)')) {
           if (file.Data) {
             this._content.push(eImage(Buffer.from(file.Data, 'base64')));
-            if (file.Comment) this._content.push(eText(file.Comment));
           } else if (file.URL) {
             this._content.push(eImage(file.URL));
-            if (file.Comment) this._content.push(eText(file.Comment));
+          } else {
+            this._content.push(eText('[Image]'));
+          }
+        } else if (file.Name.match('.*.(webp)')) {
+          if (file.Data) {
+            try {
+              const image = Buffer.from(file.Data, 'base64');
+              const out = await sharp(image, { animated: true }).resize(128).gif().toBuffer();
+              this._content.push(eImage(out));
+            } catch {
+              this._content.push(eText('[Sticker]'));
+            }
+          } else if (file.URL) {
+            this._content.push(eText(`[Image ${file.URL}]`));
+          } else {
+            this._content.push(eText('[Image]'));
           }
         }
+        if (file.Comment) this._content.push(eText(file.Comment));
       }
     }
   }
@@ -239,9 +260,10 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<StableWebSocket> {
   }
 
   public connect() {
-    const processMessage = (matterMessage: MatterMessage) => {
+    const processMessage = async (matterMessage: MatterMessage) => {
       if (!matterMessage.event) {
         const msg = new MatterBridgeMessage(this, matterMessage, this.botName);
+        await msg.processMessage();
         const text = msg.onlyText;
 
         if (!text.startsWith('.') && !text.startsWith('。')) {
