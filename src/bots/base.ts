@@ -179,7 +179,7 @@ export const GLOBAL_COMMAND = (
 };
 
 export abstract class GenericBotAdapter<BotType> {
-  protected _instance: any;
+  protected _instance: BotType;
   protected _platform: string;
   protected _name: string;
   public started: boolean = false;

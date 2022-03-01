@@ -41,7 +41,7 @@ const relayMessageToGateway = async (name: string, gateway: string, msg: Generic
   const text: string[] = [];
   const sendImage = async (url: string) => {
     try {
-      await bridges[name].instance.post('/message', {
+      bridges[name].instance.send({
         username: `[${msg.platformShort}] ${msg.author.nickname}`,
         text: url,
         gateway,
@@ -56,7 +56,7 @@ const relayMessageToGateway = async (name: string, gateway: string, msg: Generic
   const sendText = async () => {
     if (text.length == 0) return;
     try {
-      await bridges[name].instance.post('/message', {
+      bridges[name].instance.send({
         username: `[${msg.platformShort}] ${msg.author.nickname}`,
         text: text.splice(0, text.length).join(' '),
         gateway,

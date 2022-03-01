@@ -1,9 +1,50 @@
-import { AxiosInstance } from 'axios';
-import { command } from 'commander';
 import { LEVEL_USER } from '../db/user';
 import { broadcastRelay, RelayMessage } from '../relay';
 import { eQuote, eText, eImage } from '../utils/messageElements';
 import { GenericBotAdapter, GenericMessage, MessageAction, MessageReply } from './base';
+import WebSocket from 'ws';
+
+export class StableWebSocket {
+  private ws: WebSocket;
+  private url: string;
+  private options: WebSocket.ClientOptions;
+  public onMessage: (data: any) => void;
+
+  constructor(url: string, options?: WebSocket.ClientOptions) {
+    this.url = url;
+    this.options = options;
+  }
+
+  public async connect() {
+    this.ws = new WebSocket(this.url, this.options);
+    this.ws.on('message', (data: WebSocket.Data) => {
+      if (this.onMessage) this.onMessage(JSON.parse(data.toString()));
+    });
+    this.ws.on('close', () => {
+      console.log('桥接连接断开，将在5秒后重试');
+      this.ws.close();
+      this.ws = null;
+      setTimeout(() => this.connect(), 5000);
+    });
+    return new Promise<void>((resolve, reject) => {
+      this.ws.on('open', () => {
+        resolve();
+      });
+      this.ws.on('error', err => {
+        reject(err);
+      });
+    });
+  }
+
+  public async send(data: any) {
+    return new Promise<void>((resolve, reject) => {
+      this.ws.send(JSON.stringify(data), err => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+}
 
 interface MatterMessage {
   avatar: string;
@@ -41,7 +82,7 @@ const proto = (protocol: string) => {
   return PROTOCOL_SHORT[protocol] || protocol;
 };
 
-class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
+class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
   private _platform: string;
   private _bridgeName: string;
 
@@ -143,40 +184,40 @@ class MatterBridgeMessage extends GenericMessage<AxiosInstance> {
   }
 }
 
-export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
+export class MatterbridgeBotAdapter extends GenericBotAdapter<StableWebSocket> {
   public makeChannelContext(gateway: string): Partial<MessageAction> {
     return {
       text: async (content: string, quote?: string, onlyTo?: string) => {
         try {
-          const data = await this.instance.post('/message', {
+          this.instance.send({
             username: this.botName,
             text: content,
             gateway,
             avatar:
               'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
           });
-          return data.data.id;
+          return null;
         } catch {
           return null;
         }
       },
       image: async (image: string, onlyTo?: string) => {
         try {
-          const data = await this.instance.post('/message', {
+          this.instance.send({
             username: this.botName,
             text: image,
             gateway,
             avatar:
               'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
           });
-          return data.data.id;
+          return null;
         } catch {
           return null;
         }
       },
       delete: async (msgid: string) => {
         try {
-          const data = await this.instance.post('/message', {
+          this.instance.send({
             username: this.botName,
             id: msgid,
             event: 'msg_delete',
@@ -184,7 +225,7 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
             avatar:
               'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
           });
-          return data.data.id;
+          return null;
         } catch {
           return null;
         }
@@ -197,68 +238,60 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<AxiosInstance> {
     return {};
   }
 
-  public queryBridge() {
-    this.instance
-      .get<MatterMessage[]>('/messages')
-      .then(async res => {
-        for (const matterMessage of res.data) {
-          if (!matterMessage.event) {
-            const msg = new MatterBridgeMessage(this, matterMessage, this.botName);
-            const text = msg.onlyText;
-
-            if (!text.startsWith('.') && !text.startsWith('。')) {
-              // not a command, do relay
-              // no support for converse
-              // fast broadcast, no await
-              broadcastRelay(msg);
-              continue;
-            }
-
-            msg.command = text.replace(/^[\.。] ?/, '');
-            const command = msg.command.split(' ')[0].toLowerCase();
-
-            // make sure command get broadcast first before the reply gets send,
-            // but still do multiple messages at the same time.
-            (async () => {
-              if (this.globalCommands[command]) {
-                await broadcastRelay(msg);
-                await msg.fillMsgDetail();
-                if (msg.effectiveUserLevel > LEVEL_USER) return;
-                if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
-                this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
-                  console.error(`Error proccessing global command '${text}'`);
-                  console.error(reason);
-                });
-              } else if (this.commands[command]) {
-                await msg.fillMsgDetail();
-                if (msg.effectiveUserLevel > LEVEL_USER) return;
-                if (msg.effectiveUserLevel > this.commands[command].level) return;
-
-                this.commands[command].func(msg).catch(reason => {
-                  console.error(`Error proccessing command '${text}'`);
-                  console.error(reason);
-                });
-              } else {
-                await broadcastRelay(msg);
-              }
-            })();
-          }
-        }
-        setTimeout(() => {
-          this.queryBridge();
-        }, 500);
-      })
-      .catch(err => {
-        console.log(`bridge ${this.botName} failed to connect`);
-        console.log(err.message);
-        console.log('retrying bridge in 5 seconds');
-        setTimeout(() => {
-          this.queryBridge();
-        }, 5000);
-      });
-  }
-
   public connect() {
-    this.queryBridge();
+    const processMessage = (matterMessage: MatterMessage) => {
+      if (!matterMessage.event) {
+        const msg = new MatterBridgeMessage(this, matterMessage, this.botName);
+        const text = msg.onlyText;
+
+        if (!text.startsWith('.') && !text.startsWith('。')) {
+          // not a command, do relay
+          // no support for converse
+          // fast broadcast, no await
+          broadcastRelay(msg);
+          return;
+        }
+
+        msg.command = text.replace(/^[\.。] ?/, '');
+        const command = msg.command.split(' ')[0].toLowerCase();
+
+        // make sure command get broadcast first before the reply gets send,
+        // but still do multiple messages at the same time.
+        (async () => {
+          if (this.globalCommands[command] && msg.sessionType == 'CHANNEL') {
+            await broadcastRelay(msg);
+            await msg.fillMsgDetail();
+            if (msg.effectiveUserLevel > LEVEL_USER) return;
+            if (msg.effectiveUserLevel > this.globalCommands[command].level) return;
+            this.globalCommands[command].func(new RelayMessage(msg)).catch(reason => {
+              console.error(`Error proccessing global command '${text}'`);
+              console.error(reason);
+            });
+          } else if (this.commands[command]) {
+            await msg.fillMsgDetail();
+            if (msg.effectiveUserLevel > LEVEL_USER) return;
+            if (msg.effectiveUserLevel > this.commands[command].level) return;
+
+            this.commands[command].func(msg).catch(reason => {
+              console.error(`Error proccessing command '${text}'`);
+              console.error(reason);
+            });
+          } else {
+            await broadcastRelay(msg);
+          }
+        })();
+      }
+    };
+
+    this.instance.onMessage = async msg => {
+      if (!Array.isArray(msg)) {
+        processMessage(msg);
+      } else {
+        for (const matterMessage of msg) {
+          processMessage(matterMessage);
+        }
+      }
+    };
+    this.instance.connect();
   }
 }

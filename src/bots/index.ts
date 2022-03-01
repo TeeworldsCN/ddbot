@@ -1,8 +1,7 @@
-import axios from 'axios';
 import { KaiheilaBot } from 'kaiheila-bot-root';
 import { createClient } from 'oicq';
 import { KaiheilaBotAdapter } from './kaiheila';
-import { MatterbridgeBotAdapter } from './matterbridge';
+import { MatterbridgeBotAdapter, StableWebSocket } from './matterbridge';
 import { OICQBotAdapter } from './oicq';
 import { wechatAPI, WechatBotAdapter } from './wechat';
 
@@ -59,14 +58,8 @@ export const bridges = (() => {
     const b = info[i];
     const t = tokens[i];
 
-    result[b.name] = new MatterbridgeBotAdapter(
-      axios.create({
-        baseURL: b.url,
-        headers: t ? { Authorization: `Bearer ${t}` } : undefined,
-      }),
-      'gateway',
-      b.name
-    );
+    const ws = new StableWebSocket(b.url, { headers: { Authorization: `Bearer ${t}` } });
+    result[b.name] = new MatterbridgeBotAdapter(ws, 'gateway', b.name);
   }
 
   return result;

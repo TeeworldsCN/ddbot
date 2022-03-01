@@ -266,7 +266,7 @@ export class OICQBotAdapter extends GenericBotAdapter<Client> {
       msg.command = text.replace(/^[\.。] ?/, '');
       const command = msg.command.split(' ')[0].toLowerCase();
 
-      if (this.globalCommands[command]) {
+      if (this.globalCommands[command] && msg.sessionType == 'CHANNEL') {
         await broadcastRelay(msg);
         await msg.fillMsgDetail();
         if (msg.effectiveUserLevel > LEVEL_USER) return;
