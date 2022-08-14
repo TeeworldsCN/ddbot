@@ -1,11 +1,8 @@
-import { GlobalCommandHandler, TextHandler } from '../bottype';
+import { ReplyCommandHandler } from '../bottype';
 import { CommandParser } from '../utils/commandParser';
 import { v4 as uuidv4 } from 'uuid';
-import booste from 'booste';
-import { OICQBotAdapter } from '../bots/oicq';
-import { segment } from 'oicq';
 
-export const roll: GlobalCommandHandler = async msg => {
+export const roll: ReplyCommandHandler = async msg => {
   const query = new CommandParser(msg.base.command);
   const first = query.getNumber(1);
   const second = query.getNumber(2);
@@ -23,7 +20,7 @@ export const roll: GlobalCommandHandler = async msg => {
   await msg.reply.text(`${msg.base.author.nickname} rolled ${result} (${min}-${max})`);
 };
 
-export const dice: GlobalCommandHandler = async msg => {
+export const dice: ReplyCommandHandler = async msg => {
   const query = new CommandParser(msg.base.command);
   let numDice = query.getNumber(1);
   if (isNaN(numDice)) numDice = 1;
@@ -45,64 +42,6 @@ export const dice: GlobalCommandHandler = async msg => {
   );
 };
 
-export const uuid: GlobalCommandHandler = async msg => {
+export const uuid: ReplyCommandHandler = async msg => {
   await msg.reply.text(`${uuidv4()}`);
 };
-
-let gpt2Generating = false;
-
-export const gpt2: GlobalCommandHandler = async msg => {
-  const query = new CommandParser(msg.base.command);
-  const text = query.getRest(1);
-  if (gpt2Generating) {
-    await msg.reply.text('there is already a gpt2 task in queue');
-    return;
-  }
-
-  if (!text) {
-    await msg.reply.text('please provide a prompt');
-    return;
-  }
-
-  await msg.reply.text('please wait patiently');
-  gpt2Generating = true;
-  try {
-    await msg.reply.text(
-      `${msg.base.author.nickname} generated:\n${text} ${(
-        await booste.gpt2(process.env.BOOSTE_TOKEN, text, 10)
-      ).join(' ')}`
-    );
-  } catch {
-    await msg.reply.text('gpt2 task failed');
-  }
-  gpt2Generating = false;
-};
-
-export const gpt2xl: GlobalCommandHandler = async msg => {
-  const query = new CommandParser(msg.base.command);
-  const text = query.getRest(1);
-  if (gpt2Generating) {
-    await msg.reply.text('there is already a gpt2 task in queue');
-    return;
-  }
-
-  if (!text) {
-    await msg.reply.text('please provide a prompt');
-    return;
-  }
-
-  await msg.reply.text('please wait patiently');
-  gpt2Generating = true;
-  try {
-    await msg.reply.text(
-      `${msg.base.author.nickname} generated:\n${text} ${(
-        await booste.gpt2XL(process.env.BOOSTE_TOKEN, text, 5)
-      ).join(' ')}`
-    );
-  } catch {
-    await msg.reply.text('gpt2xl task failed');
-  }
-  gpt2Generating = false;
-};
-
-export const deal: GlobalCommandHandler = async msg => {};

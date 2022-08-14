@@ -1,4 +1,5 @@
 import { Document, Schema, model } from 'mongoose';
+import { CONFIG } from '../config';
 
 // Level越高权限越低
 export const LEVEL_ADMIN = 1;
@@ -16,7 +17,8 @@ export const LEVEL_NAMES: { [key: number]: string } = {
   3: '机器人管理',
   4: '服务器管理',
   5: '群管理员',
-  9: '测试员',
+  8: '测试员',
+  9: '频道指令',
   10: '用户',
   11: '禁用指令用户',
   12: '禁用转发用户',
@@ -28,7 +30,8 @@ export const LEVEL_KEY: { [key: string]: number } = {
   operator: 3,
   mods: 4,
   manager: 5,
-  tester: 9,
+  tester: 8,
+  channel: 9,
   user: 10,
   ignore: 11,
   norelay: 12,
@@ -69,9 +72,9 @@ schema.index({ ddnetid: 1 });
 export const UserModel = model<User>('User', schema);
 
 export const initAdmins = async () => {
-  if (!process.env.BOT_ADMIN_USERS) return;
+  if (!CONFIG.admins) return;
 
-  const ADMIN_USERS = process.env.BOT_ADMIN_USERS.split(',');
+  const ADMIN_USERS = CONFIG.admins;
   for (const userKey of ADMIN_USERS) {
     await UserModel.updateOne({ userKey }, { $set: { level: LEVEL_ADMIN } }, { upsert: true });
   }

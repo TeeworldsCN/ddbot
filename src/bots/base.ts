@@ -1,28 +1,22 @@
 import axios from 'axios';
-import { ButtonHandler, ConverseHandler, GlobalCommandHandler, TextHandler } from '../bottype';
+import { ButtonHandler, ConverseHandler, ReplyCommandHandler, TextHandler } from '../bottype';
 import { Channel, getChannel } from '../db/channel';
 import { getUser, LEVEL_IGNORE, LEVEL_USER, User, UserModel } from '../db/user';
-import { Card } from '../utils/cardBuilder';
 import { packChannelID, packID, unpackChannelID, unpackID } from '../utils/helpers';
 
 export type MessageReply = {
-  text: (content: string, quote?: string, temp?: boolean) => Promise<string>;
-  image: (image: string | Buffer, temp?: boolean) => Promise<string>;
-  file: (file: string, temp?: boolean) => Promise<string>;
-  card: (content: Card, quote?: string, temp?: boolean) => Promise<string>;
-  elements: (content: GenericMessageElement[], rich?: boolean, temp?: boolean) => Promise<string>;
+  text: (content: string, quote?: string) => Promise<string>;
+  elements: (content: GenericMessageElement[]) => Promise<string>;
+  image: (image: string | Buffer, quote?: string) => Promise<string>;
   delete: () => Promise<void>;
   addReaction: (emoji: string[]) => Promise<void>;
   deleteReaction: (emoji: string[], userId?: string) => Promise<void>;
 };
 
 export type MessageAction = {
-  text: (content: string, quote?: string, onlyTo?: string) => Promise<string>;
-  image: (image: string | Buffer, onlyTo?: string) => Promise<string>;
-  file: (file: string, onlyTo?: string) => Promise<string>;
-  card: (content: Card, quote?: string, onlyTo?: string) => Promise<string>;
-  elements: (content: GenericMessageElement[], rich?: boolean, onlyTo?: string) => Promise<string>;
-  update: (msgid: string, content: string, quote?: string) => Promise<string>;
+  text: (content: string, quote?: string) => Promise<string>;
+  elements: (content: GenericMessageElement[]) => Promise<string>;
+  image: (image: string | Buffer, quote?: string) => Promise<string>;
   delete: (msgid: string) => Promise<void>;
   addReaction: (msgid: string, emoji: string[]) => Promise<void>;
   deleteReaction: (msgid: string, emoji: string[], userId?: string) => Promise<void>;
@@ -31,13 +25,10 @@ export type MessageAction = {
 // empty stub
 export const EMPTY_ACTIONS: MessageReply & MessageAction = {
   text: async () => null as string,
-  image: async () => null as string,
-  file: async () => null as string,
-  card: async () => null as string,
   elements: async () => null as string,
+  image: async () => null as string,
   addReaction: async () => {},
   deleteReaction: async () => {},
-  update: async () => null as string,
   delete: async () => {},
 };
 
@@ -46,45 +37,10 @@ export interface UserInfo {
   username: string;
   // 昵称|群名片
   nickname: string;
-  // 开黑啦：头像
+  // 头像
   avatar?: string | Buffer;
-  // 开黑啦：是否在线
-  online?: boolean;
-  // 开黑啦：四位ID
-  identifyNum?: string;
-  // 开黑啦：用户名#四位ID
-  tag: string;
-  // 昵称+ID
-  nicktag: string;
-  // 开黑啦：角色ID
-  roles?: number[];
-  // 开黑啦：目前游戏信息
-  game?: {
-    icon: string;
-    id: number;
-    name: string;
-    startTime: number;
-    type: number;
-  };
-  // 开黑啦：目前听歌信息
-  music?: {
-    musicName: string;
-    singer: string;
-    software: string;
-    startTime: number;
-  };
-  // 开黑啦：是否为服主 | OICQ: 是否为群主
+  // 是否为管理
   isMaster?: boolean;
-  // 开黑啦：是否为认证用户
-  mobileVerified?: boolean;
-  // 开黑啦：用户优先显示的角色 | OICQ：name - 头衔, roleId: 1 - 管理, 2 - 群主
-  hoistInfo?: {
-    color?: number;
-    name: string;
-    roleId: number;
-  };
-  // OICQ：群等级
-  chatLevel?: number;
 }
 
 interface GenericMessageElementChannel {
@@ -160,7 +116,16 @@ export type GenericMessageElement =
 
 const globalCommands: {
   [key: string]: {
-    func: GlobalCommandHandler;
+    func: ReplyCommandHandler;
+    desc: string | boolean | number;
+    descEng?: string;
+    level: number;
+  };
+} = {};
+
+const channelCommands: {
+  [key: string]: {
+    func: ReplyCommandHandler;
     desc: string | boolean | number;
     descEng?: string;
     level: number;
@@ -171,11 +136,22 @@ const globalCommands: {
 export const GLOBAL_COMMAND = (
   level: number,
   cmd: string,
-  func: GlobalCommandHandler,
+  func: ReplyCommandHandler,
   desc?: string | boolean | number,
   descEng?: string
 ) => {
   globalCommands[cmd] = { func, desc, level, descEng };
+};
+
+// 这些指令在指定的频道有效，并会被relay广播结果到所有桥接频道
+export const CHANNEL_COMMAND = (
+  level: number,
+  cmd: string,
+  func: ReplyCommandHandler,
+  desc?: string | boolean | number,
+  descEng?: string
+) => {
+  channelCommands[cmd] = { func, desc, level, descEng };
 };
 
 export abstract class GenericBotAdapter<BotType> {
@@ -204,7 +180,7 @@ export abstract class GenericBotAdapter<BotType> {
     };
   } = {};
 
-  constructor(instance: any, platform: string, name: string) {
+  constructor(instance: BotType, platform: string, name: string) {
     this._instance = instance;
     this._platform = platform;
     this._name = name;
@@ -259,6 +235,10 @@ export abstract class GenericBotAdapter<BotType> {
     return globalCommands;
   }
 
+  public get channelCommands() {
+    return channelCommands;
+  }
+
   public packID(id: string): string {
     return packID({ platform: this._platform, id });
   }
@@ -291,10 +271,6 @@ export abstract class GenericBotAdapter<BotType> {
 
   // 从素材库删除图片素材
   public async deleteImageAsset(id: string): Promise<void> {}
-
-  public async uploadFile(name: string, data: Buffer): Promise<string> {
-    return null;
-  }
 
   public abstract makeChannelContext(channelId: string): Partial<MessageAction>;
   public abstract makeUserContext(userId: string): Partial<MessageAction>;
@@ -480,11 +456,16 @@ export abstract class GenericMessage<BotType> {
 
   public get effectiveUserLevel() {
     if (this.userLevel > this.channelLevel) return LEVEL_IGNORE;
+    if (this.userLevel > this.channelUnlockLevel) return this.channelUnlockLevel;
     return this.userLevel;
   }
 
   public get channelLevel() {
     return this._dbchannel?.minCommandLevel ?? LEVEL_USER;
+  }
+
+  public get channelUnlockLevel() {
+    return this._dbchannel?.unlockedCommandLevel ?? LEVEL_USER;
   }
 
   public get userLevel() {

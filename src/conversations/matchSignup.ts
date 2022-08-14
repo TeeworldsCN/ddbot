@@ -5,6 +5,7 @@ import { MatchSignUpModel } from '../db/matchSignup';
 import truncate from 'truncate-utf8-bytes';
 import { DateTime } from 'luxon';
 import { LEVEL_TESTER } from '../db/user';
+import { CONFIG } from '../config';
 
 interface Context {
   name?: string;
@@ -14,7 +15,7 @@ interface Context {
 
 export const generateEntryToken = async () => {
   const hashids = new Hashids(
-    process.env.BOT_AUTH_TOKEN + 'matchid',
+    CONFIG.auth?.token + 'matchid',
     4,
     'ABCDEFGHJKLMNPQRSTUVWXYZ1234567890'
   );
@@ -24,7 +25,7 @@ export const generateEntryToken = async () => {
 
 export const generateTeamToken = async () => {
   const hashids = new Hashids(
-    process.env.BOT_AUTH_TOKEN + 'matchteamid',
+    CONFIG.auth?.token + 'matchteamid',
     3,
     '涛昌进林有坚和彪博诚先敬震振壮会群豪心邦承乐绍功松善厚庆磊民友裕河哲江超浩亮政谦亨奇固之轮翰朗伯宏言若鸣朋斌梁栋维启克伦翔旭鹏泽晨辰士以建家致树炎德行时泰盛雄冠策腾伟刚勇毅俊峰强军平保东文辉力明永健世广志义兴良海山仁波宁贵福生龙元全国胜学祥才发成康星光天达安岩中茂武新利清飞彬富顺信子杰楠榕风航弘嘉琼桂叶璧璐娅琦晶妍茜秋珊莎锦黛青倩婷婉娴瑾颖露瑶怡婵雁仪荷丹蓉眉君琴蕊薇菁梦岚苑婕馨瑗韵融园艺咏卿聪澜纯毓悦昭冰爽羽希宁欣飘育滢柔竹凝晓欢霄枫芸菲寒伊亚宜可姬舒影荔枝思丽秀娟英华慧巧美娜静淑惠珠翠雅芝玉萍红娥玲芬芳燕彩春菊勤珍贞莉兰凤洁梅琳素云莲真环雪荣爱妹霞香月莺媛艳瑞凡佳'
   );

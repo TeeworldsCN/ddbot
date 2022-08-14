@@ -1,12 +1,10 @@
-import { segment } from 'oicq';
 import { getRelay } from './db/relay';
 import { LEVEL_NORELAY } from './db/user';
 import { unpackChannelID } from './utils/helpers';
 import { EMPTY_ACTIONS, GenericMessage, MessageReply, quotify } from './bots/base';
-import { bridges, kaiheila, oicq } from './bots';
-import { segmentToCard } from './bots/kaiheila';
-import { segmentToOICQSegs } from './bots/oicq';
-import { Card, SMD } from './utils/cardBuilder';
+import { botsByName, bridges, qqguild } from './bots';
+import { elementsToQQGuildMessage } from './bots/qqguild';
+import { eText } from './utils/messageElements';
 
 // 多Bot共用Adapter和Message
 export class RelayMessage {
@@ -23,7 +21,7 @@ export class RelayMessage {
   public get reply(): MessageReply {
     return {
       ...EMPTY_ACTIONS,
-      text: async (content: string, quote?: string, temp?: boolean) => {
+      text: async (content: string, quote?: string) => {
         broadcastText(content, this.baseMessage);
         return null;
       },
@@ -149,31 +147,17 @@ export const broadcastRelay = async (msg: GenericMessage<any>, update: boolean =
     if (channel == msg.channelKey) continue;
 
     const unpacked = unpackChannelID(channel);
-    if (unpacked.platform == 'kaiheila') {
-      if (kaiheila) {
-        const card = new Card('sm');
-        card.addMarkdown(`**[${SMD(msg.platformShort)}] ${SMD(msg.author.nicktag)}**`);
-        await segmentToCard(kaiheila, msg.content, card, false, 'text');
-        if (card.length == 1) continue;
-        await kaiheila.channel(channel).card(card);
-        // .then(id => {
-        //   id && markMsg(msg.msgId, channel, id);
-        // });
-      }
-    } else if (unpacked.platform == 'oicq') {
-      if (oicq) {
-        const segs = segmentToOICQSegs(oicq, msg.content, 'text');
-        if (segs.length == 0) continue;
-        await oicq.instance.sendGroupMsg(parseInt(unpacked.id), [
-          segment.text(`[${SMD(msg.platformShort)}] ${SMD(msg.author.nicktag)}: `),
-          ...segs,
-        ]);
-        // .then(data => {
-        //   data.retcode || markMsg(msg.msgId, channel, data.data.message_id);
-        // });
-      }
-    } else if (unpacked.platform == 'gateway') {
+    if (unpacked.platform == 'gateway') {
       await relayMessageToGateway(unpacked.botName, unpacked.id, msg);
+    } else if (unpacked.platform == 'qqguild') {
+      const guildMsg = elementsToQQGuildMessage(
+        qqguild,
+        [eText(`[${msg.platformShort}] ${msg.author.nickname}: \n`), ...msg.content],
+        'text'
+      );
+      if (guildMsg.content || guildMsg.image) {
+        await qqguild.instance.client.messageApi.postMessage(unpacked.id, guildMsg);
+      }
     }
   }
 
@@ -194,13 +178,9 @@ export const broadcastText = async (text: string, caller?: GenericMessage<any>) 
   // broadcast
   for (const channel of relay.channels) {
     const unpacked = unpackChannelID(channel);
-    if (unpacked.platform == 'kaiheila') {
-      if (kaiheila) await kaiheila.channel(channel).text(text);
-    } else if (unpacked.platform == 'oicq') {
-      if (oicq) await oicq.channel(channel).text(text);
-    } else if (unpacked.platform == 'gateway') {
-      if (bridges && bridges[unpacked.botName])
-        await bridges[unpacked.botName].channel(channel).text(text);
+    const bot = botsByName[unpacked.botName];
+    if (bot) {
+      await bot.channel(channel).text(text);
     }
   }
 

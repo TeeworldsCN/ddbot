@@ -1,0 +1,61 @@
+const m = module;
+const r = require;
+
+const path = r('path');
+
+m.exports = () => ({
+  // MongoDB 连接
+  mongodb: '<url>',
+
+  // Wechat 配置
+  wechat: {
+    appid: '<appid>',
+    secret: '<secret>',
+  },
+
+  matterbridge: [
+    {
+      name: 'bridge',
+      url: '<url>',
+      token: '<token>',
+    },
+  ],
+
+  qqguild: {
+    appID: '<id>',
+    token: '<token>',
+    intents: [
+      'GUILD_MESSAGES',
+      'FORUMS_EVENT',
+      'MESSAGE_AUDIT',
+      'INTERACTION',
+      'DIRECT_MESSAGE',
+      'GUILD_MESSAGE_REACTIONS',
+      'GUILDS',
+      'GUILD_MEMBERS',
+    ],
+    sandbox: false,
+  },
+
+  // Bot的HTTP服务接口
+  webhookPort: 4000,
+
+  // 验证入消息的 Token
+  auth: {
+    token: '<token>',
+  },
+
+  twcnApi: {
+    url: 'https://api.teeworlds.cn',
+    token: '<token>',
+  },
+
+  admins: ['qqguild|00001'],
+
+  tencentSdk: {
+    secretId: '<id>',
+    secretKey: '<key>',
+  },
+
+  imageProxy: 'http://localhost:8080',
+});

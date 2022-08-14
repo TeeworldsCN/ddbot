@@ -4,7 +4,6 @@ import { compile } from 'vega-lite';
 import sharp from 'sharp';
 import { View, parse } from 'vega';
 import { dateTime, ddnetEncode, secTime } from '../utils/helpers';
-import { Card, SMD } from '../utils/cardBuilder';
 import { TextHandler } from '../bottype';
 import { CommandParser } from '../utils/commandParser';
 import { API } from '../utils/axios';
@@ -159,339 +158,339 @@ const uploadGraph = async (
   return image;
 };
 
-const playerLink = (label: string, player: string) => {
-  return `[${SMD(label)}](https://ddnet.tw/players/${ddnetEncode(player)})`;
-};
+// const playerLink = (label: string, player: string) => {
+//   return `[${SMD(label)}](https://ddnet.tw/players/${ddnetEncode(player)})`;
+// };
 
-const fetchPlayer = async (player: string, allowFuzzy?: boolean, server?: string | false) => {
-  const result: any = {};
+// const fetchPlayer = async (player: string, allowFuzzy?: boolean, server?: string | false) => {
+//   const result: any = {};
 
-  try {
-    // 玩家详情
-    const { data } = await API.get(`/ddnet/players/${encodeURIComponent(player)}.json`);
-    const favServer = _.maxBy(_.toPairs(_.groupBy(data.last_finishes, 'country')), '1.length')?.[0];
-    const flag = FLAGS[favServer.toLowerCase()] || '❓';
+//   try {
+//     // 玩家详情
+//     const { data } = await API.get(`/ddnet/players/${encodeURIComponent(player)}.json`);
+//     const favServer = _.maxBy(_.toPairs(_.groupBy(data.last_finishes, 'country')), '1.length')?.[0];
+//     const flag = FLAGS[favServer.toLowerCase()] || '❓';
 
-    data.favServer = favServer;
-    data.flag = flag;
+//     data.favServer = favServer;
+//     data.flag = flag;
 
-    result.type = 'points';
-    result.data = data;
+//     result.type = 'points';
+//     result.data = data;
 
-    if (server !== false) {
-      const fetchServer = server || favServer;
-      const rankRes = await API.get(`/ddnet/players.json?server=${fetchServer.toLowerCase()}`);
-      const rank = rankRes.data;
+//     if (server !== false) {
+//       const fetchServer = server || favServer;
+//       const rankRes = await API.get(`/ddnet/players.json?server=${fetchServer.toLowerCase()}`);
+//       const rank = rankRes.data;
 
-      data.region_points = _.find(rank.points, { name: data.player });
-      data.region_team_rank = _.find(rank.teamRank, { name: data.player });
-      data.region_rank = _.find(rank.rank, { name: data.player });
-      data.fetchedRegionalData = true;
-    }
-  } catch (e) {
-    if (allowFuzzy) {
-      try {
-        const { data } = await API.get(`/ddnet/fuzzy/players/${encodeURIComponent(player)}.json`);
-        result.type = 'fuzzy';
-        result.data = data;
-      } catch (e) {
-        return null;
-      }
-    } else {
-      return null;
-    }
-  }
+//       data.region_points = _.find(rank.points, { name: data.player });
+//       data.region_team_rank = _.find(rank.teamRank, { name: data.player });
+//       data.region_rank = _.find(rank.rank, { name: data.player });
+//       data.fetchedRegionalData = true;
+//     }
+//   } catch (e) {
+//     if (allowFuzzy) {
+//       try {
+//         const { data } = await API.get(`/ddnet/fuzzy/players/${encodeURIComponent(player)}.json`);
+//         result.type = 'fuzzy';
+//         result.data = data;
+//       } catch (e) {
+//         return null;
+//       }
+//     } else {
+//       return null;
+//     }
+//   }
 
-  return result;
-};
+//   return result;
+// };
 
-export const points: TextHandler = async msg => {
-  const query = new CommandParser(msg.command);
-  const name = query.getRest(1);
+// export const points: TextHandler = async msg => {
+//   const query = new CommandParser(msg.command);
+//   const name = query.getRest(1);
 
-  const searchName = name || msg.user?.ddnetid;
+//   const searchName = name || msg.user?.ddnetid;
 
-  const temporary = msg.type == 'button';
-  const card = new Card('lg');
+//   const temporary = msg.type == 'button';
+//   const card = new Card('lg');
 
-  const isKaiheila = msg.platform == 'kaiheila';
-  const isWechat = msg.platform == 'wechat';
+//   const isKaiheila = msg.platform == 'kaiheila';
+//   const isWechat = msg.platform == 'wechat';
 
-  if (temporary) card.addContext(['该消息只有您可见']);
+//   if (temporary) card.addContext(['该消息只有您可见']);
 
-  if (!searchName) {
-    if (isKaiheila) {
-      card.addMarkdown('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
-      card.addContext([`(met)${msg.userId}(met)`]);
-      await msg.reply.card(card, undefined, temporary);
-    } else if (isWechat) {
-      await msg.reply.text(
-        '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
-      );
-    } else {
-      await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
-    }
-    return;
-  }
+//   if (!searchName) {
+//     if (isKaiheila) {
+//       card.addMarkdown('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
+//       card.addContext([`(met)${msg.userId}(met)`]);
+//       await msg.reply.card(card, undefined, temporary);
+//     } else if (isWechat) {
+//       await msg.reply.text(
+//         '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
+//       );
+//     } else {
+//       await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
+//     }
+//     return;
+//   }
 
-  await msg.reply.addReaction(['⌛']);
+//   await msg.reply.addReaction(['⌛']);
 
-  const result = isKaiheila
-    ? await fetchPlayer(searchName, true)
-    : await fetchPlayer(searchName, true, false);
+//   const result = isKaiheila
+//     ? await fetchPlayer(searchName, true)
+//     : await fetchPlayer(searchName, true, false);
 
-  if (!result || (result.type != 'fuzzy' && result.type != 'points')) {
-    if (isKaiheila) {
-      card.slice(0, 0);
-      card.addMarkdown('❌ *查询失败，请稍后重试*');
-      card.addContext([`(met)${msg.userId}(met)`]);
-      await msg.reply.card(card, undefined, temporary);
-    } else {
-      await msg.reply.text('查询失败，请稍后重试');
-    }
-    await msg.reply.deleteReaction(['⌛']);
-    return;
-  }
+//   if (!result || (result.type != 'fuzzy' && result.type != 'points')) {
+//     if (isKaiheila) {
+//       card.slice(0, 0);
+//       card.addMarkdown('❌ *查询失败，请稍后重试*');
+//       card.addContext([`(met)${msg.userId}(met)`]);
+//       await msg.reply.card(card, undefined, temporary);
+//     } else {
+//       await msg.reply.text('查询失败，请稍后重试');
+//     }
+//     await msg.reply.deleteReaction(['⌛']);
+//     return;
+//   }
 
-  if (result.type == 'fuzzy') {
-    if ((result.data as any[]).length > 0) {
-      const top5: any[] = result.data.slice(0, 5);
-      if (isKaiheila) {
-        card.addTitle(`未找到DDNet玩家: ${searchName}`);
-        card.addMarkdown('*以下为近似结果：*');
-        card.addTable(top5.map((x: any) => [playerLink(x.name, x.name), `${x.points}pts`]));
-        card.addContext([`(met)${msg.userId}(met)`]);
-        card.setTheme('info');
-        await msg.reply.card(card, undefined, temporary);
-      } else {
-        await msg.reply.text(
-          `未找到玩家，以下为近似结果\n${top5
-            .map((x: any) => `${x.name}: ${x.points}pts`)
-            .join('\n')}`
-        );
-      }
-    } else {
-      if (isKaiheila) {
-        card.addTitle(`⚠ 未找到DDNet玩家: ${searchName}`);
-        card.addContext([`(met)${msg.userId}(met)`]);
-        card.setTheme('danger');
-        await msg.reply.card(card, undefined, temporary);
-      } else {
-        await msg.reply.text(`未找到玩家`);
-      }
-    }
-    await msg.reply.deleteReaction(['⌛']);
-    return;
-  }
+//   if (result.type == 'fuzzy') {
+//     if ((result.data as any[]).length > 0) {
+//       const top5: any[] = result.data.slice(0, 5);
+//       if (isKaiheila) {
+//         card.addTitle(`未找到DDNet玩家: ${searchName}`);
+//         card.addMarkdown('*以下为近似结果：*');
+//         card.addTable(top5.map((x: any) => [playerLink(x.name, x.name), `${x.points}pts`]));
+//         card.addContext([`(met)${msg.userId}(met)`]);
+//         card.setTheme('info');
+//         await msg.reply.card(card, undefined, temporary);
+//       } else {
+//         await msg.reply.text(
+//           `未找到玩家，以下为近似结果\n${top5
+//             .map((x: any) => `${x.name}: ${x.points}pts`)
+//             .join('\n')}`
+//         );
+//       }
+//     } else {
+//       if (isKaiheila) {
+//         card.addTitle(`⚠ 未找到DDNet玩家: ${searchName}`);
+//         card.addContext([`(met)${msg.userId}(met)`]);
+//         card.setTheme('danger');
+//         await msg.reply.card(card, undefined, temporary);
+//       } else {
+//         await msg.reply.text(`未找到玩家`);
+//       }
+//     }
+//     await msg.reply.deleteReaction(['⌛']);
+//     return;
+//   }
 
-  const player = result.data;
-  const allMaps = _.map(
-    _.flatten(
-      _.map(_.toPairs(player.types), p => _.filter((p?.[1] as any)?.maps, m => m.finishes != 0))
-    ),
-    m => {
-      return { ...m, first_finish: (m.first_finish || 0) * 1000 };
-    }
-  );
-  allMaps.sort((a, b) => (b.first_finish || 0) - (a.first_finish || 0));
-  let imageID = null;
-  const size: 'lg' | 'sm' = msg.platform == 'wechat' ? 'sm' : 'lg';
+//   const player = result.data;
+//   const allMaps = _.map(
+//     _.flatten(
+//       _.map(_.toPairs(player.types), p => _.filter((p?.[1] as any)?.maps, m => m.finishes != 0))
+//     ),
+//     m => {
+//       return { ...m, first_finish: (m.first_finish || 0) * 1000 };
+//     }
+//   );
+//   allMaps.sort((a, b) => (b.first_finish || 0) - (a.first_finish || 0));
+//   let imageID = null;
+//   const size: 'lg' | 'sm' = msg.platform == 'wechat' ? 'sm' : 'lg';
 
-  try {
-    imageID = await uploadGraph(msg.bot, allMaps, player.player, player.points.points, size);
-  } catch (e) {
-    console.warn('Image generation failed');
-    console.warn(e);
-  }
+//   try {
+//     imageID = await uploadGraph(msg.bot, allMaps, player.player, player.points.points, size);
+//   } catch (e) {
+//     console.warn('Image generation failed');
+//     console.warn(e);
+//   }
 
-  if (isKaiheila) {
-    card.addTitle(`${player.flag} DDNet玩家: ${searchName}`);
+//   if (isKaiheila) {
+//     card.addTitle(`${player.flag} DDNet玩家: ${searchName}`);
 
-    const regional = [];
-    if (player.fetchedRegionalData) {
-      regional.push([
-        ['region_points', `**${player.flag} 区域服点数**`, '未进前五百'],
-        ['region_team_rank', `**${player.flag} 区域团队分**`, '未进前五百'],
-        ['region_rank', `**${player.flag} 区域个人分**`, '未进前五百'],
-      ]);
-    }
+//     const regional = [];
+//     if (player.fetchedRegionalData) {
+//       regional.push([
+//         ['region_points', `**${player.flag} 区域服点数**`, '未进前五百'],
+//         ['region_team_rank', `**${player.flag} 区域团队分**`, '未进前五百'],
+//         ['region_rank', `**${player.flag} 区域个人分**`, '未进前五百'],
+//       ]);
+//     }
 
-    if (allMaps.length > 0) {
-      let index = 0;
-      while ((allMaps[index].points || 0) == 0 && index < allMaps.length) {
-        index += 1;
-      }
-      player.points.delta = allMaps[index].points;
-    }
+//     if (allMaps.length > 0) {
+//       let index = 0;
+//       while ((allMaps[index].points || 0) == 0 && index < allMaps.length) {
+//         index += 1;
+//       }
+//       player.points.delta = allMaps[index].points;
+//     }
 
-    const categories = [
-      [
-        ['detail', '🔗 玩家详情'],
-        ['team_rank', '**🌐 团队排名分**', '无排名'],
-        ['rank', '**🌐 个人排名分**', '无排名'],
-      ],
-      ...regional,
-    ];
+//     const categories = [
+//       [
+//         ['detail', '🔗 玩家详情'],
+//         ['team_rank', '**🌐 团队排名分**', '无排名'],
+//         ['rank', '**🌐 个人排名分**', '无排名'],
+//       ],
+//       ...regional,
+//     ];
 
-    for (let row of categories) {
-      const table = [];
-      for (let category of row) {
-        if (category[0] != 'detail') {
-          const rankData = player[category[0]];
-          if (rankData && rankData.points) {
-            if (rankData.delta) {
-              table.push(
-                `${category[1]}[+${rankData.delta}]\n${rankData.points} (#${rankData.rank})`
-              );
-            } else {
-              table.push(`${category[1]}\n${rankData.points} (#${rankData.rank})`);
-            }
-          } else {
-            table.push(`${category[1]}\n*${category[2]}*`);
-          }
-        } else {
-          table.push(`${category[1]}\n${playerLink('点击查看', searchName)}`);
-        }
-      }
-      card.addTable([table]);
-    }
+//     for (let row of categories) {
+//       const table = [];
+//       for (let category of row) {
+//         if (category[0] != 'detail') {
+//           const rankData = player[category[0]];
+//           if (rankData && rankData.points) {
+//             if (rankData.delta) {
+//               table.push(
+//                 `${category[1]}[+${rankData.delta}]\n${rankData.points} (#${rankData.rank})`
+//               );
+//             } else {
+//               table.push(`${category[1]}\n${rankData.points} (#${rankData.rank})`);
+//             }
+//           } else {
+//             table.push(`${category[1]}\n*${category[2]}*`);
+//           }
+//         } else {
+//           table.push(`${category[1]}\n${playerLink('点击查看', searchName)}`);
+//         }
+//       }
+//       card.addTable([table]);
+//     }
 
-    if (typeof imageID == 'string') {
-      card.addImages([{ src: imageID }]);
-    }
+//     if (typeof imageID == 'string') {
+//       card.addImages([{ src: imageID }]);
+//     }
 
-    card.addDivider();
+//     card.addDivider();
 
-    const lastFinish = player?.last_finishes?.[0];
-    card.addContext([
-      `最新完成 [${SERVERS_SHORT[lastFinish.type.toLowerCase()]}] ${SMD(lastFinish.map)} (${secTime(
-        lastFinish.time
-      )}) - ${dateTime(lastFinish.timestamp * 1000)} (met)${msg.userId}(met)`,
-    ]);
+//     const lastFinish = player?.last_finishes?.[0];
+//     card.addContext([
+//       `最新完成 [${SERVERS_SHORT[lastFinish.type.toLowerCase()]}] ${SMD(lastFinish.map)} (${secTime(
+//         lastFinish.time
+//       )}) - ${dateTime(lastFinish.timestamp * 1000)} (met)${msg.userId}(met)`,
+//     ]);
 
-    await msg.reply.card(card, undefined, temporary);
-    card.setTheme('success');
-  } else {
-    await msg.reply.image(imageID);
-  }
+//     await msg.reply.card(card, undefined, temporary);
+//     card.setTheme('success');
+//   } else {
+//     await msg.reply.image(imageID);
+//   }
 
-  await msg.reply.deleteReaction(['⌛']);
-};
+//   await msg.reply.deleteReaction(['⌛']);
+// };
 
-// 微信Only，查个人点数排名
-export const simplePoints: TextHandler = async msg => {
-  if (msg.sessionType == 'CHANNEL') return;
+// // 微信Only，查个人点数排名
+// export const simplePoints: TextHandler = async msg => {
+//   if (msg.sessionType == 'CHANNEL') return;
 
-  const query = new CommandParser(msg.command);
-  const name = query.getRest(1);
+//   const query = new CommandParser(msg.command);
+//   const name = query.getRest(1);
 
-  const searchName = name || msg.user?.ddnetid;
-  const isWechat = msg.platform == 'wechat';
+//   const searchName = name || msg.user?.ddnetid;
+//   const isWechat = msg.platform == 'wechat';
 
-  if (!searchName) {
-    if (isWechat) {
-      await msg.reply.text(
-        '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
-      );
-    } else {
-      await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
-    }
-    return;
-  }
+//   if (!searchName) {
+//     if (isWechat) {
+//       await msg.reply.text(
+//         '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
+//       );
+//     } else {
+//       await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
+//     }
+//     return;
+//   }
 
-  const result = await fetchPlayer(searchName, false);
+//   const result = await fetchPlayer(searchName, false);
 
-  if (!result) {
-    await msg.reply.text(`未找到玩家 ${searchName}`);
-    return;
-  }
+//   if (!result) {
+//     await msg.reply.text(`未找到玩家 ${searchName}`);
+//     return;
+//   }
 
-  const player = result.data;
-  const lines = [];
+//   const player = result.data;
+//   const lines = [];
 
-  lines.push(`玩家排名: ${searchName}\n`);
+//   lines.push(`玩家排名: ${searchName}\n`);
 
-  const regional = [];
-  if (player.fetchedRegionalData) {
-    regional.push([
-      ['region_points', `\n${player.flag} 点数`, '未进前五百'],
-      ['region_team_rank', `${player.flag} 团队`, '未进前五百'],
-      ['region_rank', `${player.flag} 个人`, '未进前五百'],
-    ]);
-  }
+//   const regional = [];
+//   if (player.fetchedRegionalData) {
+//     regional.push([
+//       ['region_points', `\n${player.flag} 点数`, '未进前五百'],
+//       ['region_team_rank', `${player.flag} 团队`, '未进前五百'],
+//       ['region_rank', `${player.flag} 个人`, '未进前五百'],
+//     ]);
+//   }
 
-  const categories = [
-    [
-      ['points', '🌐 点数', '无排名'],
-      ['team_rank', '🌐 团队', '无排名'],
-      ['rank', '🌐 个人', '无排名'],
-    ],
-    ...regional,
-  ];
+//   const categories = [
+//     [
+//       ['points', '🌐 点数', '无排名'],
+//       ['team_rank', '🌐 团队', '无排名'],
+//       ['rank', '🌐 个人', '无排名'],
+//     ],
+//     ...regional,
+//   ];
 
-  for (let row of categories) {
-    for (let category of row) {
-      const rankData = player[category[0]];
-      if (rankData && rankData.points) {
-        lines.push(`${category[1]}: ${rankData.points}pts (第${rankData.rank}名)`);
-      } else {
-        lines.push(`${category[1]}: (${category[2]})`);
-      }
-    }
-  }
+//   for (let row of categories) {
+//     for (let category of row) {
+//       const rankData = player[category[0]];
+//       if (rankData && rankData.points) {
+//         lines.push(`${category[1]}: ${rankData.points}pts (第${rankData.rank}名)`);
+//       } else {
+//         lines.push(`${category[1]}: (${category[2]})`);
+//       }
+//     }
+//   }
 
-  await msg.reply.text(lines.join('\n'));
-};
+//   await msg.reply.text(lines.join('\n'));
+// };
 
-export const simplerPoints: TextHandler = async msg => {
-  if (msg.sessionType == 'CHANNEL') return;
+// export const simplerPoints: TextHandler = async msg => {
+//   if (msg.sessionType == 'CHANNEL') return;
 
-  const query = new CommandParser(msg.command);
-  const name = query.getRest(1);
+//   const query = new CommandParser(msg.command);
+//   const name = query.getRest(1);
 
-  const searchName = name || msg.user?.ddnetid;
-  const isWechat = msg.platform == 'wechat';
+//   const searchName = name || msg.user?.ddnetid;
+//   const isWechat = msg.platform == 'wechat';
 
-  if (!searchName) {
-    if (isWechat) {
-      await msg.reply.text(
-        '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
-      );
-    } else {
-      await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
-    }
-    return;
-  }
+//   if (!searchName) {
+//     if (isWechat) {
+//       await msg.reply.text(
+//         '请先使用 “绑定” 指令绑定DDNet ID再使用快速查询指令。\n\n例：若要绑定“nameless tee”，输入：\n绑定 nameless tee'
+//       );
+//     } else {
+//       await msg.reply.text('请先使用 `.bind 名字` 指令绑定DDNet ID再使用快速查询指令');
+//     }
+//     return;
+//   }
 
-  const result = await fetchPlayer(searchName, false);
+//   const result = await fetchPlayer(searchName, false);
 
-  if (!result) {
-    await msg.reply.text(`未找到玩家 ${searchName}`);
-    return;
-  }
+//   if (!result) {
+//     await msg.reply.text(`未找到玩家 ${searchName}`);
+//     return;
+//   }
 
-  const player = result.data;
-  const info = [];
+//   const player = result.data;
+//   const info = [];
 
-  info.push(`${searchName}: `);
+//   info.push(`${searchName}: `);
 
-  const regional = [];
-  if (player.fetchedRegionalData) {
-    regional.push([['region_points', `${player.favServer}`, '未进前五百']]);
-  }
+//   const regional = [];
+//   if (player.fetchedRegionalData) {
+//     regional.push([['region_points', `${player.favServer}`, '未进前五百']]);
+//   }
 
-  const categories = [[['points', '总', '无排名']], ...regional];
+//   const categories = [[['points', '总', '无排名']], ...regional];
 
-  for (let row of categories) {
-    for (let category of row) {
-      const rankData = player[category[0]];
-      if (rankData && rankData.points) {
-        info.push(`${category[1]}: ${rankData.points}pts (第${rankData.rank}名)`);
-      } else {
-        info.push(`${category[1]}: (${category[2]})`);
-      }
-    }
-  }
+//   for (let row of categories) {
+//     for (let category of row) {
+//       const rankData = player[category[0]];
+//       if (rankData && rankData.points) {
+//         info.push(`${category[1]}: ${rankData.points}pts (第${rankData.rank}名)`);
+//       } else {
+//         info.push(`${category[1]}: (${category[2]})`);
+//       }
+//     }
+//   }
 
-  await msg.reply.text(info.join(' '));
-};
+//   await msg.reply.text(info.join(' '));
+// };

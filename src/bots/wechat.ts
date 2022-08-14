@@ -4,12 +4,13 @@ import { DateTime } from 'luxon';
 import axios, { AxiosInstance } from 'axios';
 import sha1 from 'sha1';
 import { TextHandler } from '../bottype';
-import { GenericBotAdapter, GenericMessage, MessageAction, MessageReply } from './base';
+import { GenericBotAdapter, GenericMessage, GenericMessageElement, MessageAction, MessageReply } from './base';
 import { parse, j2xParser } from 'fast-xml-parser';
 import FormData from 'form-data';
 import { WechatReplyModel } from '../db/wechatReply';
 import _ from 'lodash';
 import { LEVEL_USER } from '../db/user';
+import { CONFIG } from '../config';
 
 const xmlParseOption = {
   ignoreAttributes: true,
@@ -42,8 +43,8 @@ export const accessToken = async () => {
     const result = await wechatAPI.get('/token', {
       params: {
         grant_type: 'client_credential',
-        appid: process.env.WECHAT_APPID,
-        secret: process.env.WECHAT_SECRET,
+        appid: CONFIG.wechat.appid,
+        secret: CONFIG.wechat.secret,
       },
     });
 
@@ -55,7 +56,9 @@ export const accessToken = async () => {
 };
 
 const checkSign = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const signData = [process.env.BOT_AUTH_TOKEN, req.query.timestamp, req.query.nonce];
+  if (!CONFIG.auth?.token) return res.sendStatus(404);
+
+  const signData = [CONFIG.auth.token, req.query.timestamp, req.query.nonce];
   const sign = sha1(signData.sort().join(''));
 
   if (req.query.signature === sign) {
@@ -206,8 +209,6 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
     this._msgId = req.body.MsgId;
     this._eventMsgId = req.body.MsgId;
     this._author = {
-      tag: 'Anonymous',
-      nicktag: 'Anonymous',
       nickname: '公众号用户',
       username: 'WechatUser',
     };
@@ -222,7 +223,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
   public makeReply(context: MessageAction): Partial<MessageReply> {
     const res: express.Response = this._raw.res;
     return {
-      text: async (content: string, quote?: string, temp?: boolean) => {
+      text: async (content: string, quote?: string) => {
         if (this._sent) return null;
         const xml = json2xml.parse({
           xml: {
@@ -237,7 +238,7 @@ class WechatMessage extends GenericMessage<AxiosInstance> {
         this._sent = true;
         return 'wechatTextMessage';
       },
-      image: async (mediaId: string, temp?: boolean) => {
+      image: async (mediaId: string) => {
         if (this._sent) return null;
         const xml = json2xml.parse({
           xml: {

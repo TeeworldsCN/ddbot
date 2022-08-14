@@ -1,6 +1,6 @@
 import express from 'express';
 import { DateTime } from 'luxon';
-import { kaiheila, oicq } from './bots';
+import { CONFIG } from './config';
 import { SubscriptionModel } from './db/subscription';
 import { API } from './utils/axios';
 import { unpackChannelID } from './utils/helpers';
@@ -14,8 +14,10 @@ interface WebhookMessage {
 }
 
 hookMsg.post('/:channel', express.json(), async (req, res) => {
+  if (!CONFIG.auth?.token) return res.sendStatus(404);
+
   const body = req.body as WebhookMessage;
-  if (req.query.token != process.env.BOT_AUTH_TOKEN) return res.sendStatus(404);
+  if (req.query.token != CONFIG.auth.token) return res.sendStatus(404);
 
   if (!body.content) {
     return res.status(400).send({ error: 'content missing' });
@@ -33,24 +35,17 @@ hookMsg.post('/:channel', express.json(), async (req, res) => {
   const err = [];
   for (const channel of doc.channels) {
     const unpacked = unpackChannelID(channel);
-    if (unpacked.platform == 'kaiheila') {
-      if (kaiheila) {
-        if (body.khlcard) {
-          await kaiheila.channel(channel).card(body.khlcard);
-        } else {
-          await kaiheila.channel(channel).text(body.content);
-        }
-      }
-    } else if (unpacked.platform == 'discord') {
+    if (unpacked.platform == 'discord') {
+      if (!CONFIG.twcnApi?.token) continue;
       try {
         if (body.discord) {
           await API.post(
-            `/webhook/${process.env.TWCN_API_TOKEN}/https://discord.com/api/webhooks/${unpacked.id}`,
+            `/webhook/${CONFIG.twcnApi.token}/https://discord.com/api/webhooks/${unpacked.id}`,
             body.discord
           );
         } else {
           await API.post(
-            `/webhook/${process.env.TWCN_API_TOKEN}/https://discord.com/api/webhooks/${unpacked.id}`,
+            `/webhook/${CONFIG.twcnApi.token}/https://discord.com/api/webhooks/${unpacked.id}`,
             { content: body.content }
           );
         }
@@ -62,18 +57,15 @@ hookMsg.post('/:channel', express.json(), async (req, res) => {
         });
       }
     } else if (unpacked.platform == 'webhook') {
+      if (!CONFIG.twcnApi?.token) continue;
       try {
-        await API.post(`/webhook/${process.env.TWCN_API_TOKEN}/${unpacked.id}`, body);
+        await API.post(`/webhook/${CONFIG.twcnApi.token}/${unpacked.id}`, body);
       } catch (e) {
         err.push({
           channel,
           status: e?.response?.status || -1,
           data: e?.response?.data || null,
         });
-      }
-    } else if (unpacked.platform == 'oicq') {
-      if (oicq) {
-        await oicq.channel(channel).text(body.content);
       }
     }
   }

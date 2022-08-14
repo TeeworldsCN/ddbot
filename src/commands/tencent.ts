@@ -1,10 +1,11 @@
-import { GlobalCommandHandler } from '../bottype';
+import { ReplyCommandHandler } from '../bottype';
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { CommandParser } from '../utils/commandParser';
+import { CONFIG } from '../config';
 
 const TmtClient = tencentcloud.tmt.v20180321.Client;
-const secretId = process.env.TENCENT_SDK_SECRETID;
-const secretKey = process.env.TENCENT_SDK_SECRETKEY;
+const secretId = CONFIG.tencentSdk?.secretId;
+const secretKey = CONFIG.tencentSdk?.secretKey;
 export const tencent =
   secretId && secretKey
     ? new TmtClient({
@@ -21,7 +22,7 @@ export const tencent =
       })
     : null;
 
-export const translate: GlobalCommandHandler = async msg => {
+export const translate: ReplyCommandHandler = async msg => {
   if (!tencent) return;
 
   const query = new CommandParser(msg.base.command);
@@ -45,7 +46,7 @@ export const translate: GlobalCommandHandler = async msg => {
   }
 };
 
-export const fanyi: GlobalCommandHandler = async msg => {
+export const fanyi: ReplyCommandHandler = async msg => {
   if (!tencent) return;
 
   const query = new CommandParser(msg.base.command);

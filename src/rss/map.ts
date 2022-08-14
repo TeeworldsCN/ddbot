@@ -1,11 +1,10 @@
 import { SubscriptionModel } from '../db/subscription';
 import { SERVERS } from '../utils/consts';
 import { FeedHandler } from '../utils/rssFeeder';
-import cheerio from 'cheerio';
-import { Card } from '../utils/cardBuilder';
-import { dateTime, unpackID } from '../utils/helpers';
-import { kaiheila, oicq } from '../bots';
+import * as cheerio from 'cheerio';
+import { dateTime, unpackChannelID, unpackID } from '../utils/helpers';
 import { eImage, eText } from '../utils/messageElements';
+import { botsByName } from '../bots';
 
 interface MapDetail {
   name: string;
@@ -18,62 +17,62 @@ interface MapDetail {
   updated: number;
 }
 
-const sendKaiheila = async (item: MapDetail, channelKey: string) => {
-  if (!kaiheila) return;
+// const sendKaiheila = async (item: MapDetail, channelKey: string) => {
+//   if (!kaiheila) return;
 
-  const card = new Card('lg');
+//   const card = new Card('lg');
 
-  card.addTitle(`DDNet 新地图发布`);
-  card.addTextWithButton(`地图: ${item.name}\n作者: ${item.author}`, {
-    theme: 'info',
-    text: '预览',
-    value: `https://teeworlds.cn/p/${encodeURIComponent(item.name)}`,
-    click: 'link',
-  });
+//   card.addTitle(`DDNet 新地图发布`);
+//   card.addTextWithButton(`地图: ${item.name}\n作者: ${item.author}`, {
+//     theme: 'info',
+//     text: '预览',
+//     value: `https://teeworlds.cn/p/${encodeURIComponent(item.name)}`,
+//     click: 'link',
+//   });
 
-  if (item.tiles.length > 0)
-    card.addContext(
-      item.tiles.map(src => {
-        return { src };
-      })
-    );
+//   if (item.tiles.length > 0)
+//     card.addContext(
+//       item.tiles.map(src => {
+//         return { src };
+//       })
+//     );
 
-  const text = [];
-  if (item.size) text.push(`地图大小: ${item.size}`);
-  if (item.server) text.push(`类型: ${item.server}`);
-  if (item.desc) text.push(item.desc);
-  const descText = `${text.join('\n')}\n\n发布时间: ${dateTime(item.updated)}`;
+//   const text = [];
+//   if (item.size) text.push(`地图大小: ${item.size}`);
+//   if (item.server) text.push(`类型: ${item.server}`);
+//   if (item.desc) text.push(item.desc);
+//   const descText = `${text.join('\n')}\n\n发布时间: ${dateTime(item.updated)}`;
 
-  if (item.imageName) {
-    card.addTextWithImage(
-      descText,
-      { src: `https://api.teeworlds.cn/ddnet/mapthumbs/${item.imageName}.png?square=true` },
-      'lg',
-      true
-    );
-  } else {
-    card.addText(descText);
-  }
-  card.setTheme('success');
-  await kaiheila.channel(channelKey).card(card);
-};
+//   if (item.imageName) {
+//     card.addTextWithImage(
+//       descText,
+//       { src: `https://api.teeworlds.cn/ddnet/mapthumbs/${item.imageName}.png?square=true` },
+//       'lg',
+//       true
+//     );
+//   } else {
+//     card.addText(descText);
+//   }
+//   card.setTheme('success');
+//   await kaiheila.channel(channelKey).card(card);
+// };
 
 let MAP_RETRY = 0;
 
-const sendOICQ = async (item: MapDetail, channelKey: string) => {
-  if (!oicq) return;
-  await oicq
-    .channel(channelKey)
-    .elements([
-      eText(
-        `"${item.author}"发布了新的${item.server}地图: "${item.name}"\n${item.desc.replace(
-          '\n',
-          ' '
-        )}`
-      ),
-      eImage(`https://api.teeworlds.cn/ddnet/mapthumbs/${item.imageName}.png`),
-    ]);
-};
+// const sendOICQ = async (item: MapDetail, channelKey: string) => {
+//   if (!oicq) return;
+//   await oicq
+//     .channel(channelKey)
+//     .elements([
+//       eText(
+//         `"${item.author}"发布了新的${item.server}地图: "${item.name}"\n${item.desc.replace(
+//           '\n',
+//           ' '
+//         )}`
+//       ),
+//       eImage(`https://api.teeworlds.cn/ddnet/mapthumbs/${item.imageName}.png`),
+//     ]);
+// };
 
 export const mapFeed: FeedHandler = async item => {
   if (!item || !item.title) {
@@ -168,11 +167,18 @@ export const mapFeed: FeedHandler = async item => {
 
   // broadcast
   for (const channel of doc.channels) {
-    const unpacked = unpackID(channel);
-    if (unpacked.platform == 'kaiheila') {
-      await sendKaiheila(data, channel);
-    } else if (unpacked.platform == 'oicq') {
-      await sendOICQ(data, channel);
+    const unpacked = unpackChannelID(channel);
+
+    const bot = botsByName[unpacked.botName];
+    if (bot) {
+      await bot
+        .channel(channel)
+        .text(
+          `"${data.author}"发布了新的${data.server}地图: "${data.name}"\n${data.desc.replace(
+            '\n',
+            ' '
+          )}`
+        );
     }
   }
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { CONFIG } from '../config';
 
 export const Request = axios.create({
   headers: {
@@ -9,7 +10,7 @@ export const Request = axios.create({
 });
 
 export const API = axios.create({
-  baseURL: process.env.TWCN_API_URL,
+  baseURL: CONFIG.twcnApi.url,
   headers: {
     'Accept-Encoding': 'gzip, deflate',
   },

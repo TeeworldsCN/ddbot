@@ -1,66 +1,43 @@
-import { KaiheilaBot } from 'kaiheila-bot-root';
-import { createClient } from 'oicq';
-import { KaiheilaBotAdapter } from './kaiheila';
+import { CONFIG } from '../config';
 import { MatterbridgeBotAdapter, StableWebSocket } from './matterbridge';
-import { OICQBotAdapter } from './oicq';
+import { QQGuildBotAdapter } from './qqguild';
 import { wechatAPI, WechatBotAdapter } from './wechat';
+import { createOpenAPI, createWebsocket } from 'qq-guild-bot';
+import _ from 'lodash';
+import { GenericBotAdapter } from './base';
 
-export const kaiheila: KaiheilaBotAdapter = process.env.KAIHEILA_BOT_TOKEN
-  ? new KaiheilaBotAdapter(
-      new KaiheilaBot(
-        process.env.KAIHEILA_BOT_MODE == 'webhook'
-          ? {
-              mode: 'webhook',
-              token: process.env.KAIHEILA_BOT_TOKEN,
-              port: parseInt(process.env.KAIHEILA_BOT_PORT),
-              verifyToken: process.env.KAIHEILA_BOT_VERIFYTOKEN,
-              key: process.env.KAIHEILA_BOT_KEY,
-              ignoreDecryptError: false,
-            }
-          : {
-              mode: 'websocket',
-              token: process.env.KAIHEILA_BOT_TOKEN,
-              ignoreDecryptError: false,
-            }
-      ),
-      'kaiheila',
-      'main'
+export const qqguild: QQGuildBotAdapter = CONFIG.qqguild
+  ? new QQGuildBotAdapter(
+      {
+        client: createOpenAPI(CONFIG.qqguild),
+        ws: createWebsocket(CONFIG.qqguild),
+      },
+      'qqguild',
+      'guild'
     )
   : null;
 
-export const wechat: WechatBotAdapter = process.env.WECHAT_APPID
+export const wechat: WechatBotAdapter = CONFIG.wechat
   ? new WechatBotAdapter(wechatAPI, 'wechat', 'gzh')
   : null;
 
-export const oicq: OICQBotAdapter = process.env.OICQ_ACCOUNT
-  ? new OICQBotAdapter(
-      createClient(parseInt(process.env.OICQ_ACCOUNT), { log_level: 'warn' }),
-      'oicq',
-      'main'
-    )
-  : null;
-
 export const bridges = (() => {
-  const info = process.env.MATTERBRIDGE_API
-    ? process.env.MATTERBRIDGE_API.split('|').map(b => {
-        const data = b.split('#');
-        return {
-          name: data[0],
-          url: data.slice(1).join(''),
-        };
-      })
-    : [];
-  const tokens = process.env.MATTERBRIDGE_TOKEN ? process.env.MATTERBRIDGE_TOKEN.split('|') : [];
+  const bridges = CONFIG.matterbridge || [];
   const result: {
     [name: string]: MatterbridgeBotAdapter;
   } = {};
-  for (let i = 0; i < info.length; ++i) {
-    const b = info[i];
-    const t = tokens[i];
-
-    const ws = new StableWebSocket(b.url, { headers: { Authorization: `Bearer ${t}` } });
-    result[b.name] = new MatterbridgeBotAdapter(ws, 'gateway', b.name);
+  for (const bridge of bridges) {
+    const ws = new StableWebSocket(bridge.url, {
+      headers: { Authorization: `Bearer ${bridge.token}` },
+    });
+    result[bridge.name] = new MatterbridgeBotAdapter(ws, 'gateway', bridge.name);
   }
-
   return result;
 })();
+
+export const bots = [qqguild, wechat, ...Object.values(bridges)].filter(b => b != null);
+export const botsByName: { [name: string]: GenericBotAdapter<any> } = {};
+
+for (const bot of bots) {
+  botsByName[bot.botName] = bot;
+}

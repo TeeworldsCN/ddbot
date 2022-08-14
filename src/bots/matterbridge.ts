@@ -1,9 +1,17 @@
 import { LEVEL_USER } from '../db/user';
 import { broadcastRelay, RelayMessage } from '../relay';
 import { eQuote, eText, eImage } from '../utils/messageElements';
-import { GenericBotAdapter, GenericMessage, MessageAction, MessageReply } from './base';
+import {
+  GenericBotAdapter,
+  GenericMessage,
+  GenericMessageElement,
+  MessageAction,
+  MessageReply,
+  quotify,
+} from './base';
 import WebSocket from 'ws';
 import sharp from 'sharp';
+import { CONFIG } from '../config';
 
 export class StableWebSocket {
   private ws: WebSocket;
@@ -82,7 +90,6 @@ const PROTOCOL_SHORT: { [key: string]: string } = {
 const proto = (protocol: string) => {
   return PROTOCOL_SHORT[protocol] || protocol;
 };
-
 class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
   private _platform: string;
   private _bridgeName: string;
@@ -105,8 +112,6 @@ class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
     this._author = {
       username: msg.username,
       nickname: msg.username,
-      nicktag: msg.username,
-      tag: msg.username,
       avatar: msg.avatar,
     };
     this._raw = msg;
@@ -129,8 +134,8 @@ class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
           if (imageMatch[1]) {
             this._content.push(eText(imageMatch[1].trim()));
           }
-          if (process.env.IMAGE_PROXY) {
-            this._content.push(eImage(`${process.env.IMAGE_PROXY}//${imageMatch[2]}`));
+          if (CONFIG.imageProxy) {
+            this._content.push(eImage(`${CONFIG.imageProxy}//${imageMatch[2]}`));
           } else {
             this._content.push(eImage(`${imageMatch[2]}`));
           }
@@ -141,8 +146,8 @@ class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
           if (tenorMatch[1]) {
             this._content.push(eText(tenorMatch[1].trim()));
           }
-          if (process.env.IMAGE_PROXY) {
-            this._content.push(eImage(`${process.env.IMAGE_PROXY}//${tenorMatch[2]}.gif`));
+          if (CONFIG.imageProxy) {
+            this._content.push(eImage(`${CONFIG.imageProxy}//${tenorMatch[2]}.gif`));
           } else {
             this._content.push(eImage(`${imageMatch[2]}`));
           }
@@ -190,8 +195,9 @@ class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
 
   public makeReply(context: MessageAction): Partial<MessageReply> {
     return {
-      text: (c, q, t) => context.text(c, q, t ? this.userId : undefined),
-      image: (c, t) => context.image(c, t ? this.userId : undefined),
+      text: (c, q) => context.text(c, q),
+      image: c => context.image(c),
+      elements: c => context.elements(c),
       delete: () => this.sessionType == 'CHANNEL' && context.delete(this.msgId),
     };
   }
@@ -208,7 +214,7 @@ class MatterBridgeMessage extends GenericMessage<StableWebSocket> {
 export class MatterbridgeBotAdapter extends GenericBotAdapter<StableWebSocket> {
   public makeChannelContext(gateway: string): Partial<MessageAction> {
     return {
-      text: async (content: string, quote?: string, onlyTo?: string) => {
+      text: async (content: string, quote?: string) => {
         try {
           this.instance.send({
             username: this.botName,
@@ -222,7 +228,83 @@ export class MatterbridgeBotAdapter extends GenericBotAdapter<StableWebSocket> {
           return null;
         }
       },
-      image: async (image: string, onlyTo?: string) => {
+      elements: async (elements: GenericMessageElement[]) => {
+        const text: string[] = [];
+        const sendImage = async (url: string) => {
+          try {
+            this.instance.send({
+              username: this.botName,
+              text: url,
+              gateway,
+              avatar:
+                'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
+            });
+          } catch (err) {
+            /** ignore */
+          }
+        };
+
+        const sendText = async () => {
+          if (text.length == 0) return;
+          try {
+            this.instance.send({
+              username: this.botName,
+              text: text.splice(0, text.length).join(' '),
+              gateway,
+              avatar:
+                'https://raw.githubusercontent.com/TeeworldsCN/ddbot/master/images/avatar128.png',
+            });
+          } catch (err) {
+            /** ignore */
+          }
+        };
+
+        let imageSent = false;
+
+        for (const c of elements) {
+          switch (c.type) {
+            case 'text':
+              text.push(c.content);
+              break;
+            case 'emote':
+              text.push(`[${c.english ? c.english : c.name}]`);
+              break;
+            case 'mention':
+              text.push(`[@${c.content}]`);
+              break;
+            case 'notify':
+              text.push(`[@#${c.targetType}${c.target ? `:${c.target}` : ''}]`);
+              break;
+            case 'quote':
+              if (c.content) text.push(quotify(c.content));
+              break;
+            case 'channel':
+              text.push(`[#${c.content}]`);
+              break;
+            case 'image':
+              if (!imageSent && typeof c.content == 'string') {
+                await sendText();
+                await sendImage(c.content);
+                imageSent = true;
+              } else {
+                text.push(`[image]`);
+              }
+              break;
+            case 'link':
+              text.push(c.url);
+              break;
+            case 'unknown':
+              text.push(`[${c.content}]`);
+              break;
+            default:
+              text.push(`[unsupported]`);
+          }
+        }
+
+        await sendText();
+        return null;
+      },
+      image: async (image: string) => {
         try {
           this.instance.send({
             username: this.botName,

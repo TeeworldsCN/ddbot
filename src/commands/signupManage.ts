@@ -55,24 +55,21 @@ export const registrationCheck: TextHandler = async msg => {
   }
 };
 
-export const exportRegistration: TextHandler = async msg => {
-  if (msg.effectiveUserLevel > LEVEL_SUBADMIN) return;
+// export const exportRegistration: TextHandler = async msg => {
+//   if (msg.effectiveUserLevel > LEVEL_SUBADMIN) return;
 
-  const entries = await MatchSignUpModel.find({}).populate('teamCreator', 'createdTeamName').exec();
-  const lines = [
-    'userKey,registered,ddnetid,teamName,entryToken,teamToken,createdTeamName,createdTeamToken',
-  ];
+//   const entries = await MatchSignUpModel.find({}).populate('teamCreator', 'createdTeamName').exec();
+//   const lines = [
+//     'userKey,registered,ddnetid,teamName,entryToken,teamToken,createdTeamName,createdTeamToken',
+//   ];
 
-  for (const entry of entries) {
-    lines.push(
-      `"${entry.userKey}","${entry.registered}","${entry.ddnetid}","${
-        entry.teamCreator ? entry.teamCreator.createdTeamName : ''
-      }","${entry.entryToken}","${entry.teamToken || ''}","${entry.createdTeamName || ''}","${
-        entry.createdTeamToken || ''
-      }"`
-    );
-  }
-
-  const fileID = await msg.bot.uploadFile('reg.csv', Buffer.from(lines.join('\n')));
-  await msg.reply.file(fileID);
-};
+//   for (const entry of entries) {
+//     lines.push(
+//       `"${entry.userKey}","${entry.registered}","${entry.ddnetid}","${
+//         entry.teamCreator ? entry.teamCreator.createdTeamName : ''
+//       }","${entry.entryToken}","${entry.teamToken || ''}","${entry.createdTeamName || ''}","${
+//         entry.createdTeamToken || ''
+//       }"`
+//     );
+//   }
+// };

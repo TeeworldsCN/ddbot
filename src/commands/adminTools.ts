@@ -12,7 +12,6 @@ import _ from 'lodash';
 import { SubscriptionModel } from '../db/subscription';
 import { clearRelayCache, getGateway, RelayModel } from '../db/relay';
 import { unpackID } from '../utils/helpers';
-import { OICQBotAdapter } from '../bots/oicq';
 import { ChannelModel } from '../db/channel';
 
 export const subscribe: TextHandler = async msg => {
@@ -232,6 +231,37 @@ export const channelLevel: TextHandler = async msg => {
   );
 };
 
+// 设置频道指令解锁权限 .channelUnlock level [channelKey]
+export const channelUnlock: TextHandler = async msg => {
+  const query = new CommandParser(msg.command);
+  const level = levelOf(query.getString(1));
+  const channelKey = query.getRest(2) || msg.channelKey;
+
+  if (level == null) {
+    await msg.reply.text(`level参数无效`);
+    return;
+  }
+
+  if (level >= LEVEL_ADMIN) {
+    await ChannelModel.updateOne(
+      { channelKey },
+      { $set: { unlockedCommandLevel: level } },
+      { upsert: true }
+    );
+  }
+
+  await msg.reply.text(
+    `所有用户均可以在频道 ${channelKey} 使用权限为 ${
+      LEVEL_NAMES[level] ? LEVEL_NAMES[level] : `${level}级用户`
+    } 以下的指令`
+  );
+};
+
+// 查询频道 channelKey
+export const channelKey: TextHandler = async msg => {
+  await msg.reply.text(`当前频道的为: ${msg.channelKey}`);
+};
+
 // 列举一个权限的用户
 export const listUser: TextHandler = async msg => {
   const query = new CommandParser(msg.command);
@@ -286,14 +316,4 @@ export const nuke: TextHandler = async msg => {
   } else {
     await msg.reply.text(`未找到相关用户`);
   }
-};
-
-// QQ：退群
-export const begone: TextHandler = async msg => {
-  if (msg.content?.[0].type != 'mention') return;
-  if (msg.platform != 'oicq') return;
-  if (unpackID(msg.content[0].userKey).id != process.env.OICQ_ACCOUNT) return;
-
-  const bot: OICQBotAdapter = msg.bot;
-  await bot.instance.setGroupLeave(parseInt(msg.channelId));
 };
