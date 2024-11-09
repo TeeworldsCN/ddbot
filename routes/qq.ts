@@ -67,14 +67,10 @@ export const qq = (router: Router) => {
         await mainHandler(
           {
             text: (msg: string) => {
-              ReplyToDirectMessage(payload.d.author.id, payload.d.id, msg);
+              ReplyToDirectMessage(payload.d.guild_id, payload.d.id, msg);
             },
             link: (title: string, desc: string, url: string) => {
-              ReplyToDirectMessage(
-                payload.d.author.id,
-                payload.d.id,
-                `${title} - ${desc}:\n${url}`
-              );
+              ReplyToDirectMessage(payload.d.guild_id, payload.d.id, `${title} - ${desc}:\n${url}`);
             },
           },
           message,
