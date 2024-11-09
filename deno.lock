@@ -1,0 +1,129 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@libs/typing@3": "3.1.0",
+    "jsr:@noble/ed25519@*": "2.1.0",
+    "jsr:@oak/commons@1": "1.0.0",
+    "jsr:@oak/oak@*": "17.1.3",
+    "jsr:@std/assert@1": "1.0.7",
+    "jsr:@std/bytes@1": "1.0.3",
+    "jsr:@std/bytes@^1.0.2": "1.0.3",
+    "jsr:@std/crypto@*": "1.0.3",
+    "jsr:@std/crypto@1": "1.0.3",
+    "jsr:@std/encoding@*": "1.0.5",
+    "jsr:@std/encoding@1": "1.0.5",
+    "jsr:@std/encoding@^1.0.5": "1.0.5",
+    "jsr:@std/http@1": "1.0.9",
+    "jsr:@std/io@0.224": "0.224.9",
+    "jsr:@std/media-types@1": "1.0.3",
+    "jsr:@std/path@1": "1.0.8",
+    "npm:@types/node@*": "22.5.4",
+    "npm:path-to-regexp@6.2.1": "6.2.1"
+  },
+  "jsr": {
+    "@libs/typing@3.1.0": {
+      "integrity": "091b59f57a99f84c9fccf8f59534f77f177705ac25183b575c83fd7aa6dcfafe"
+    },
+    "@noble/ed25519@2.1.0": {
+      "integrity": "59a6ad395a37a0d065f6a2771e56fe52ea4bd9070c77bdaca5c475f5184412cc"
+    },
+    "@oak/commons@1.0.0": {
+      "integrity": "49805b55603c3627a9d6235c0655aa2b6222d3036b3a13ff0380c16368f607ac",
+      "dependencies": [
+        "jsr:@std/assert",
+        "jsr:@std/bytes@1",
+        "jsr:@std/crypto@1",
+        "jsr:@std/encoding@1",
+        "jsr:@std/http",
+        "jsr:@std/media-types"
+      ]
+    },
+    "@oak/oak@17.1.3": {
+      "integrity": "d89296c22db91681dd3a2a1e1fd14e258d0d5a9654de55637aee5b661c159f33",
+      "dependencies": [
+        "jsr:@oak/commons",
+        "jsr:@std/assert",
+        "jsr:@std/bytes@1",
+        "jsr:@std/crypto@1",
+        "jsr:@std/http",
+        "jsr:@std/io",
+        "jsr:@std/media-types",
+        "jsr:@std/path",
+        "npm:path-to-regexp"
+      ]
+    },
+    "@std/assert@1.0.7": {
+      "integrity": "64ce9fac879e0b9f3042a89b3c3f8ccfc9c984391af19e2087513a79d73e28c3"
+    },
+    "@std/bytes@1.0.3": {
+      "integrity": "e5d5b9e685966314e4edb4be60dfc4bd7624a075bfd4ec8109252b4320f76452"
+    },
+    "@std/crypto@1.0.3": {
+      "integrity": "a2a32f51ddef632d299e3879cd027c630dcd4d1d9a5285d6e6788072f4e51e7f"
+    },
+    "@std/encoding@1.0.5": {
+      "integrity": "ecf363d4fc25bd85bd915ff6733a7e79b67e0e7806334af15f4645c569fefc04"
+    },
+    "@std/http@1.0.9": {
+      "integrity": "d409fc319a5e8d4a154e576c758752e9700282d74f31357a12fec6420f9ecb6c",
+      "dependencies": [
+        "jsr:@std/encoding@^1.0.5"
+      ]
+    },
+    "@std/io@0.224.9": {
+      "integrity": "4414664b6926f665102e73c969cfda06d2c4c59bd5d0c603fd4f1b1c840d6ee3",
+      "dependencies": [
+        "jsr:@std/bytes@^1.0.2"
+      ]
+    },
+    "@std/media-types@1.0.3": {
+      "integrity": "b12d30a7852f7578f4d210622df713bbfd1cbdd9b4ec2eaf5c1845ab70bab159"
+    },
+    "@std/path@1.0.8": {
+      "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    }
+  },
+  "npm": {
+    "@types/node@22.5.4": {
+      "integrity": "sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "path-to-regexp@6.2.1": {
+      "integrity": "sha512-JLyh7xT1kizaEvcaXOQwOc2/Yhw6KZOvPf1S8401UyLk86CU79LN3vl7ztXGm/pZ+YjoyAJ4rxmHwbkBXJX+yw=="
+    },
+    "undici-types@6.19.8": {
+      "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
+    }
+  },
+  "redirects": {
+    "https://deno.land/x/crypto/aes.ts": "https://deno.land/x/crypto@v0.10.1/aes.ts"
+  },
+  "remote": {
+    "https://deno.land/x/crypto@v0.10.0/block-modes.ts": "a7ef359649a2cf235451e80aed7a5fda612d92ca2b158bf2a724b32899f8e455",
+    "https://deno.land/x/crypto@v0.10.0/src/block-modes/base.ts": "ed96f69c0855ffc2d34ffbab293ac131dd4fd3d24e6d8ccd86e2a2f9f898c9b5",
+    "https://deno.land/x/crypto@v0.10.0/src/block-modes/cbc.ts": "ce1ae944dd1912febd1d69c26c3a4ba18caeac9544ac3c62abd8b2429842de19",
+    "https://deno.land/x/crypto@v0.10.0/src/block-modes/cfb.ts": "95b937293e9daebd336370fd954a3c53e47853fc81e1574db1ea4f31c6eb4663",
+    "https://deno.land/x/crypto@v0.10.0/src/block-modes/ctr.ts": "06fd8e338dbda0a6a7fa49718a0fd247830759820e61646a6cf611ad69a9d464",
+    "https://deno.land/x/crypto@v0.10.0/src/block-modes/ecb.ts": "c346d692f16f8efbcc041c25dd761ca223ef92e03bb05457908953bf261ba325",
+    "https://deno.land/x/crypto@v0.10.0/src/block-modes/mod.ts": "bb7e3ddafa15b1ca024b4b5013b23d134410d01e90ce3d5be5489eb9d5f601c5",
+    "https://deno.land/x/crypto@v0.10.0/src/block-modes/ofb.ts": "0f77075505853b4ba1a55b4edecb17323f8a1489456a3d3b74717565cccbf2ef",
+    "https://deno.land/x/crypto@v0.10.0/src/utils/padding.ts": "db60b542bf7629fada4a9b92dbae7fcfc7d074a325f3b4e6d5a269b16546aa9b",
+    "https://deno.land/x/crypto@v0.10.1/aes.ts": "0f4e5af07514a07d56ec01b2186c0153f13d6e00c26fc4e70692996af6280e48",
+    "https://deno.land/x/crypto@v0.10.1/src/aes/consts.ts": "582aeed7afda2fe3deac4a60c4a9f29c60a7fb66f56645f95fa0ddab49bde994",
+    "https://deno.land/x/crypto@v0.10.1/src/aes/mod.ts": "883d1e48d033dc4491f3a336c07235c5c4cb0371972476b8cdeea5e94ad2efbe",
+    "https://deno.land/x/crypto@v0.10.1/src/block-modes/base.ts": "9006474c676782602ede9ea16aa49e8d084fd5670f6050641715a3d3085e1ba5",
+    "https://deno.land/x/crypto@v0.10.1/src/utils/bytes.ts": "7ccf6cb2d747d9b9de04c9a2494999957c1e86fd4e14bc228aad25283323f5a0",
+    "https://deno.land/x/crypto@v0.10.1/src/utils/padding.ts": "544c51a471a413b15940bf08b285bc6a5db27796ff3cf240564f42701aba01dc",
+    "https://deno.land/x/xml@6.0.1/_types.ts": "ff681c1008d0a6cdc6154b7f87bd033c01a88b89a17ca25c45882a3c3182333f",
+    "https://deno.land/x/xml@6.0.1/parse.ts": "84f0e4c0f06bef3de94700ae7a3be62330c67726b403586c0662df99be38ff64",
+    "https://deno.land/x/xml@6.0.1/stringify.ts": "63d4fe04838a8df995f1092881846e04b9142ed61b821686b51ddedcfc8a879d",
+    "https://deno.land/x/xml@6.0.1/wasm_xml_parser/wasm_xml_parser.js": "7f6b80616f0b5488a40771ed76ebe61cedf9473bf86320da5e8aa0deec22db51"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/assert@1"
+    ]
+  }
+}
