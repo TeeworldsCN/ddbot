@@ -136,6 +136,33 @@ export const ReplyToC2CMessage = async (openid: string, msgId: string, content: 
   return res;
 };
 
+export const ReplyToGroupAtMessage = async (groupId: string, msgId: string, content: string) => {
+  const url = new URL(`/v2/groups/${groupId}/messages`, END_POINT);
+  const token = await GetAccessToken();
+  if (!token) {
+    console.error('Can not get access token.');
+    return;
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `QQBot ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      content,
+      msg_type: 0,
+      msg_id: msgId,
+    }),
+  });
+
+  if (res.status != 200) {
+    console.error(res.status, res.statusText);
+  }
+  return res;
+};
+
 export const ReplyToDirectMessage = async (guildId: string, msgId: string, content: string) => {
   const url = new URL(`/dms/${guildId}/messages`, END_POINT);
   const token = await GetAccessToken();

@@ -94,7 +94,7 @@ export const wechat = (router: Router) => {
             },
           },
           message,
-          'local'
+          'DIRECT'
         );
         if (!sent) {
           response.body = 'success';

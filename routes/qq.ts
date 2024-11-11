@@ -1,6 +1,11 @@
 import { Status } from 'jsr:@oak/commons@1/status';
 import { Router } from 'jsr:@oak/oak/router';
-import { QQPayload, ReplyToC2CMessage, ReplyToDirectMessage } from '../protocols/qq.ts';
+import {
+  QQPayload,
+  ReplyToC2CMessage,
+  ReplyToDirectMessage,
+  ReplyToGroupAtMessage,
+} from '../protocols/qq.ts';
 import * as secret from '../secrets/qq.ts';
 import { mainHandler } from '../handlers/main.ts';
 
@@ -44,7 +49,6 @@ export const qq = (router: Router) => {
     } else {
       if (payload.t == 'C2C_MESSAGE_CREATE') {
         const message = payload.d.content;
-
         await mainHandler(
           {
             text: (msg: string) => {
@@ -59,10 +63,9 @@ export const qq = (router: Router) => {
             },
           },
           message,
-          'qq'
+          'DIRECT'
         );
-      }
-      if (payload.t == 'DIRECT_MESSAGE_CREATE') {
+      } else if (payload.t == 'DIRECT_MESSAGE_CREATE') {
         const message = payload.d.content;
         await mainHandler(
           {
@@ -74,7 +77,25 @@ export const qq = (router: Router) => {
             },
           },
           message,
-          'qq'
+          'DIRECT'
+        );
+      } else if (payload.t == 'GROUP_AT_MESSAGE_CREATE') {
+        const message = payload.d.content;
+        await mainHandler(
+          {
+            text: (msg: string) => {
+              ReplyToGroupAtMessage(payload.d.group_openid, payload.d.id, msg);
+            },
+            link: (title: string, desc: string, url: string) => {
+              ReplyToGroupAtMessage(
+                payload.d.group_openid,
+                payload.d.id,
+                `${title} - ${desc}:\n${url}`
+              );
+            },
+          },
+          message,
+          'GROUP'
         );
       }
 

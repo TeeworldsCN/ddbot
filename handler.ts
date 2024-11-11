@@ -3,4 +3,8 @@ export type SendReply = {
   link: (title: string, desc: string, url: string) => void;
 };
 
-export type Handler = (reply: SendReply, msg: string, user: string) => Promise<void> | void;
+export type Handler = (
+  reply: SendReply,
+  msg: string,
+  mode: 'GROUP' | 'DIRECT'
+) => Promise<void> | void;

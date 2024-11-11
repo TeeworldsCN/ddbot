@@ -4,7 +4,7 @@ import { mainHandler } from '../handlers/main.ts';
 export const local = (router: Router) => {
   router.post('/local', async ({ request, response }) => {
     const message = await request.body.text();
-    mainHandler(
+    await mainHandler(
       {
         text: (msg: string) => {
           response.body = msg;
@@ -14,7 +14,7 @@ export const local = (router: Router) => {
         },
       },
       message,
-      'local'
+      'DIRECT'
     );
   });
 };

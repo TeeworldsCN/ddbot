@@ -7,7 +7,7 @@
   },
   "deploy": {
     "project": "7384f8ed-6092-4420-aa9c-e98e223553d0",
-    "exclude": ["**/node_modules"],
+    "exclude": ["**/node_modules", "tools/**/*"],
     "include": [],
     "entrypoint": "main.ts"
   }
