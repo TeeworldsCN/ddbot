@@ -2,6 +2,7 @@ import { Status } from 'jsr:@oak/commons@1/status';
 import { Router } from 'jsr:@oak/oak/router';
 import {
   QQPayload,
+  ReplyToAtMessage,
   ReplyToC2CMessage,
   ReplyToDirectMessage,
   ReplyToGroupAtMessage,
@@ -92,6 +93,20 @@ export const qq = (router: Router) => {
                 payload.d.id,
                 `${title} - ${desc}:\n${url}`
               );
+            },
+          },
+          message,
+          'GROUP'
+        );
+      } else if (payload.t == 'AT_MESSAGE_CREATE') {
+        const message = payload.d.content;
+        await mainHandler(
+          {
+            text: (msg: string) => {
+              ReplyToAtMessage(payload.d.channel_id, payload.d.id, msg);
+            },
+            link: (title: string, desc: string, url: string) => {
+              ReplyToAtMessage(payload.d.channel_id, payload.d.id, `${title} - ${desc}:\n${url}`);
             },
           },
           message,

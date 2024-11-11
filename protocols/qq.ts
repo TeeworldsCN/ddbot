@@ -5,7 +5,8 @@ export type QQPayload =
   | QQValidationPayload
   | QQC2CMessageCreatePayload
   | QQGroupAtMessageCreatePayload
-  | QQDirectMessageCreatePayload;
+  | QQDirectMessageCreatePayload
+  | QQAtMessageCreatePayload;
 
 export type QQC2CMessageCreatePayload = CallbackPayload<
   {
@@ -50,6 +51,27 @@ export type QQDirectMessageCreatePayload = CallbackPayload<
     timestamp: string;
   },
   'DIRECT_MESSAGE_CREATE'
+>;
+
+export type QQAtMessageCreatePayload = CallbackPayload<
+  {
+    author: {
+      avatar: string;
+      bot: boolean;
+      id: string;
+      username: string;
+    };
+    channel_id: string;
+    content: string;
+    guild_id: string;
+    id: string;
+    member: {
+      joined_at: string;
+      roles: string[];
+    };
+    timestamp: string;
+  },
+  'AT_MESSAGE_CREATE'
 >;
 
 export interface QQValidationPayload {
@@ -182,6 +204,33 @@ export const ReplyToDirectMessage = async (guildId: string, msgId: string, conte
       msg_id: msgId,
     }),
   });
+  if (res.status != 200) {
+    console.error(res.status, res.statusText);
+  }
+  return res;
+};
+
+export const ReplyToAtMessage = async (channelId: string, msgId: string, content: string) => {
+  const url = new URL(`/channels/${channelId}/messages`, END_POINT);
+  const token = await GetAccessToken();
+  if (!token) {
+    console.error('Can not get access token.');
+    return;
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `QQBot ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      content,
+      msg_type: 0,
+      msg_id: msgId,
+    }),
+  });
+
   if (res.status != 200) {
     console.error(res.status, res.statusText);
   }
