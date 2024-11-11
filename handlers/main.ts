@@ -5,6 +5,7 @@ import { handlePoints } from './points.ts';
 export const mainHandler: Handler = async (reply, msg, mode) => {
   msg = msg.trim();
   let command = msg;
+  let args = '';
 
   const firstSpace = msg.indexOf(' ');
   if (firstSpace >= 0) {
@@ -13,9 +14,8 @@ export const mainHandler: Handler = async (reply, msg, mode) => {
     } else {
       command = command.slice(0, firstSpace);
     }
+    args = msg.slice(firstSpace + 1).trim();
   }
-
-  const args = msg.slice(firstSpace + 1);
 
   // TODO: Design a better handler for this
   if (command === '分数' || command === 'points') {
